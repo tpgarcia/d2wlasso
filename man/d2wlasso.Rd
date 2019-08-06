@@ -4,7 +4,7 @@
 \alias{d2wlasso}
 \title{Implement structured variables selection with q-values}
 \usage{
-d2wlasso(x, z, y)
+d2wlasso(x, z, y, ttest = FALSE)
 }
 \arguments{
 \item{x}{(n by m1) matrix of main covariates where m1 is the number of covariates and n is the sample size}

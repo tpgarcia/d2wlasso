@@ -10,7 +10,7 @@
 #'
 #' @examples
 #' x=matrix(rnorm(100*5, 0, 1),100,5)
-#' z=matrix(rnorm(100*1, 0, 1),100,1)
+#' z <- matrix(rbinom(100, 1, 0.5),100,1)
 #' y=matrix(z[1,] + 2*x[1,] - 2*x[2,] + rnorm(100, 0, 1), 100)
 #' d2wlasso(x,z,y)
 d2wlasso <- function(x,z,y,ttest=FALSE){
