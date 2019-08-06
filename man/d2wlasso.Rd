@@ -2,7 +2,7 @@
 % Please edit documentation in R/d2wlasso.R
 \name{d2wlasso}
 \alias{d2wlasso}
-\title{Title}
+\title{Implement structured variables selection with q-values}
 \usage{
 d2wlasso(x, z, y)
 }
@@ -19,7 +19,7 @@ sumx: sum of main covariates
 sumz: sum of additional fixed covariates
 }
 \description{
-Title
+Implement structured variables selection with q-values
 }
 \examples{
 x=matrix(rnorm(100*5, 0, 1),100,5)
