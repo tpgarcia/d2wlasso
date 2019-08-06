@@ -1,4 +1,4 @@
-#' Title
+#' Implement structured variables selection with q-values
 #'
 #' @param x (n by m1) matrix of main covariates
 #' @param z (n by m0) matrix of additional fixed covariates affecting response variable
