@@ -13,7 +13,7 @@
 #' z <- matrix(rbinom(100, 1, 0.5),100,1)
 #' y=matrix(z[1,] + 2*x[1,] - 2*x[2,] + rnorm(100, 0, 1), 100)
 #' d2wlasso(x,z,y)
-d2wlasso <- function(x,z,y,ttest=FALSE,plots=FALSE,pi0.true=FALSE,pi0.val=0.9){
+d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[1],plots=FALSE,pi0.true=FALSE,pi0.val=0.9){
 
     # dimension setting
     n <- nrow(x)

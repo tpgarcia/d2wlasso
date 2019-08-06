@@ -4,7 +4,8 @@
 \alias{d2wlasso}
 \title{Implement structured variables selection with q-values}
 \usage{
-d2wlasso(x, z, y, ttest = FALSE)
+d2wlasso(x, z, y, ttest = FALSE, plots = FALSE, pi0.true = FALSE,
+  pi0.val = 0.9)
 }
 \arguments{
 \item{x}{(n by m1) matrix of main covariates where m1 is the number of covariates and n is the sample size}
@@ -23,7 +24,7 @@ Implement structured variables selection with q-values
 }
 \examples{
 x=matrix(rnorm(100*5, 0, 1),100,5)
-z=matrix(rnorm(100*1, 0, 1),100,1)
+z <- matrix(rbinom(100, 1, 0.5),100,1)
 y=matrix(z[1,] + 2*x[1,] - 2*x[2,] + rnorm(100, 0, 1), 100)
 d2wlasso(x,z,y)
 }
