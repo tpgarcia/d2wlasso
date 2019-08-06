@@ -24,7 +24,7 @@ d2wlasso <- function(x,z,y){
     X <- cbind(z, x)
     colnames(X) <- c("Diet",paste("X_",seq(1,m1),sep=""))
     microbes <- t(X)
-    phenotype <- t(y)
+    phenotypes <- t(y)
 
     # compute correlation and partial correlation (for taking into account z) between x and y
     cor.out <- correlations(microbes,phenotypes,partial=FALSE,ttest=ttest)
