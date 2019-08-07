@@ -70,9 +70,7 @@ d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[1],plots
     ## Lasso calculations: With Diet forced in model ##
     out.w <- as.data.frame(matrix(0,nrow=out.nrow,ncol=length(delta.range),
                                    dimnames = list(out.rownames,paste("w.delta.",delta.range,sep=""))))
-    print(out.w)
     for(d in 1:length(delta.range)){
-        print(d)
         lasso.w <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight_",
                                        include.diet=include.diet,diet.wt=diet.wt,thresh.q=thresh.q,
                                        delta=delta.range[d])
