@@ -27,6 +27,8 @@ d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[1],plots
     colnames(X) <- c("Diet",paste("X_",seq(1,m),sep=""))
     microbes <- t(X)
     phenotypes <- t(y)
+    out.nrow <- nrow(microbes)
+    out.rownames <- rownames(microbes)
 
     # compute correlation and partial correlation (for taking into account z) between x and y
     cor.out <- correlations(microbes,phenotypes,partial=FALSE,ttest=ttest)
@@ -68,13 +70,14 @@ d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[1],plots
     ## Lasso calculations: With Diet forced in model ##
     out.w <- as.data.frame(matrix(0,nrow=out.nrow,ncol=length(delta.range),
                                    dimnames = list(out.rownames,paste("w.delta.",delta.range,sep=""))))
+    print(out.w)
     for(d in 1:length(delta.range)){
+        print(d)
         lasso.w <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight_",
                                        include.diet=include.diet,diet.wt=diet.wt,thresh.q=thresh.q,
                                        delta=delta.range[d])
-        out.w[,d] <- out.w[,d] + lasso.w$interest
+        out.w[,d] <- out.w[,d] + as.matrix(lasso.w$interest)
     }
-
 
     return(list("cor.out"=cor.out, "parcor.out"=parcor.out, "qval"=out.qvalue, "pval"=out.pvalue, "out.w"=out.w))
 }

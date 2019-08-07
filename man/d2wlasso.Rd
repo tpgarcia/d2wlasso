@@ -5,10 +5,13 @@
 \title{Implement structured variables selection with q-values}
 \usage{
 d2wlasso(x, z, y, ttest = FALSE, method = c("bootstrap",
-  "smoother")[1], plots = FALSE, pi0.true = FALSE, pi0.val = 0.9)
+  "smoother")[1], plots = FALSE, pi0.true = FALSE, pi0.val = 0.9,
+  weight_fn = c("identity", "sqrt", "inverse_abs", "square")[1],
+  include.diet = TRUE, diet.wt = 1000, thresh.q = TRUE,
+  delta.range = 2)
 }
 \arguments{
-\item{x}{(n by m1) matrix of main covariates where m1 is the number of covariates and n is the sample size}
+\item{x}{(n by m) matrix of main covariates where m is the number of covariates and n is the sample size}
 
 \item{z}{(n by 1) matrix of additional fixed covariate affecting response variable}
 
