@@ -2,14 +2,14 @@ Package: d2wlasso
 Title: Structured variable selection with q-values
 Version: 1.1.1.9001
 Authors@R: 
-    person(given = "Tanya",
-           family = "Garcia",
-           role = c("aut", "cre"),
-           email = "tpgarcia@stat.tamu.edu")
     person(given = "Rakheon",
            family = "Kim",
            role = c("aut", "cre"),
            email = "rkim@stat.tamu.edu")
+    person(given = "Tanya",
+           family = "Garcia",
+           role = c("aut", "cre"),
+           email = "tpgarcia@stat.tamu.edu")
 Description: Procedures for variable selection using weighted lasso with weights based on q-values
 License: GPL-3
 Encoding: UTF-8
