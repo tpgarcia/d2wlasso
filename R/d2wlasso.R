@@ -15,7 +15,8 @@
 #' d2wlasso(x,z,y)
 d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[1],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      weight_fn=c("identity","sqrt","inverse_abs","square")[1],
-                     include.diet=TRUE,diet.wt=1000,thresh.q=TRUE,delta.range=2){
+                     include.diet=TRUE,diet.wt=1000,thresh.q=TRUE,delta=2,
+                     vfold=10,lasso.delta.cv.mult=FALSE, ncv=100, percents.range=c(50,60,70,80,90,100)){
 
     # dimension setting
     n <- nrow(x)
@@ -67,15 +68,76 @@ d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[1],plots
         g <- g1
     }
 
-    ## Lasso calculations: With Diet forced in model ##
-    out.w <- as.data.frame(matrix(0,nrow=out.nrow,ncol=length(delta.range),
-                                   dimnames = list(out.rownames,paste("w.delta.",delta.range,sep=""))))
-    for(d in 1:length(delta.range)){
-        lasso.w <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight_",
-                                       include.diet=include.diet,diet.wt=diet.wt,thresh.q=thresh.q,
-                                       delta=delta.range[d])
-        out.w[,d] <- out.w[,d] + as.matrix(lasso.w$interest)
+    out.w <- as.data.frame(matrix(0,nrow=out.nrow,ncol=1,
+                                  dimnames = list(out.rownames,paste("w.delta.",delta,sep=""))))
+    lasso.w <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight_",
+                                  include.diet=include.diet,diet.wt=diet.wt,thresh.q=thresh.q,
+                                  delta=delta)
+    out.w <- as.matrix(lasso.w$interest)
+
+    ## mult.cv.delta.out.w5 : stores results from weighted lasso when weights are set to q-values AFTER taking into account diet,
+    ##           and weight function g1
+
+    nsimu = 1; j = 1
+
+    mult.cv.delta.out.w5 <- as.data.frame(matrix(0,nrow=out.nrow,ncol=nsimu,
+                                                 dimnames = list(out.rownames,paste("w5.mult.nsimu.",seq(1,nsimu),sep=""))))
+
+    mult.delta.w5 <- as.data.frame(matrix(0, nrow = 1, ncol = ncv,
+                                          dimnames = list("delta", seq(1,ncv))))
+
+    mult.cv.delta.out.w5.summary <- as.data.frame(matrix(0,nrow=out.nrow,ncol=length(percents.range),
+                                                         dimnames = list(out.rownames,paste("w5.mult.cv.",percents.range,sep=""))))
+
+    ## mult.cv.delta.out.w6 : stores results from weighted lasso when weights absolute value of partial correlations,
+    ##           and weight function g3
+
+    mult.cv.delta.out.w6 <- as.data.frame(matrix(0,nrow=out.nrow,ncol=nsimu,
+                                                 dimnames = list(out.rownames,paste("w6.mult.nsimu.",seq(1,nsimu),sep=""))))
+
+    mult.delta.w6 <- as.data.frame(matrix(0, nrow = 1, ncol = ncv,
+                                          dimnames = list("delta", seq(1,ncv))))
+
+
+    mult.cv.delta.out.w6.summary <- as.data.frame(matrix(0,nrow=out.nrow,ncol=length(percents.range),
+                                                         dimnames = list(out.rownames,paste("w6.mult.cv.",percents.range,sep=""))))
+
+    if(lasso.delta.cv.mult==TRUE){
+
+        include.diet <- TRUE
+
+        ## Weights set to q-values after taking into account diet
+        weights <- microbe.parcor.out.qvalues$qval.mat
+
+        for(v in 1:ncv){
+            mult.cv.delta.lasso.w5 <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,file="weight5_",
+                                                         include.diet=include.diet,diet.wt=diet.wt,thresh.q=thresh.q,delta=delta,
+                                                         cv.criterion="delta_cv",vfold=vfold)
+            mult.cv.delta.out.w5[,j] <- mult.cv.delta.out.w5[,j] + as.matrix(mult.cv.delta.lasso.w5$interest)
+            mult.delta.w5[,v] <- mult.delta.w5[,v] + mult.cv.delta.lasso.w5$delta.out
+        }
+
+        ## Weights set to absolute value of partial correlations
+        weights <- parcor.out$estimate
+
+        for(v in 1:ncv){
+            mult.cv.delta.lasso.w6 <- lasso.computations(weights,microbes,phenotypes,g3,plots=FALSE,file="weight6_",
+                                                         include.diet=include.diet,diet.wt=diet.wt,corr.g=TRUE,delta=delta,
+                                                         cv.criterion="delta_cv",vfold=vfold)
+            mult.cv.delta.out.w6[,j] <- mult.cv.delta.out.w6[,j] + as.matrix(mult.cv.delta.lasso.w6$interest)
+            mult.delta.w6[,v] <- mult.delta.w6[,v] + mult.cv.delta.lasso.w6$delta.out
+        }
+
+        for(v in 1:length(percents.range)){
+
+            ## Weights set to q-values after taking into account diet
+            mult.cv.delta.out.w5.summary[,v] <- org.mult.cv.delta(mult.cv.delta.out.w5,percents.range[v],ncv)
+
+            ## Weights set to absolute value of partial correlations
+            mult.cv.delta.out.w6.summary[,v] <- org.mult.cv.delta(mult.cv.delta.out.w6,percents.range[v],ncv)
+        }
+
     }
 
-    return(list("cor.out"=cor.out, "parcor.out"=parcor.out, "qval"=out.qvalue, "pval"=out.pvalue, "out.w"=out.w))
+    return(list("cor.out"=cor.out, "parcor.out"=parcor.out, "qval"=out.qvalue, "pval"=out.pvalue, "out.w"=out.w, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6))
 }
