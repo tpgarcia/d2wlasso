@@ -14,7 +14,7 @@
 #' y=matrix(z[1,] + 2*x[1,] - 2*x[2,] + rnorm(100, 0, 1), 100)
 #' d2wlasso(x,z,y)
 d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
-                     weights=c("one","cor","parcor")[3],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
+                     wt=c("one","adapt","q_cor","q_parcor")[4],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.diet=TRUE,diet.wt=1000,thresh.q=TRUE,delta=2,
                      vfold=10,lasso.delta.cv.mult=FALSE, ncv=100, percents.range=c(50,60,70,80,90,100)){
 
@@ -52,10 +52,13 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
     out.qvalue <- c(0,t(microbe.parcor.out.qvalues$qval.mat))
     out.pvalue <- c(0,t(parcor.out$pvalues))
 
-    if (weights == "one"){
+    if (wt == "one"){
         ## No weights
         weights <- matrix(1,nrow=nrow(microbes)-1,ncol=nrow(phenotypes))
-    } else if (weights == "cor"){
+    } else if (wt == "adapt"){
+        ## Weights set to absolute value of partial correlations
+        weights <- parcor.out$estimate
+    } else if (wt == "q_cor"){
         ## Weights set to q-values BEFORE taking into account diet
         weights <- microbe.cor.out.qvalues$qval.mat
     } else {
@@ -88,9 +91,16 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
 
     out.w <- as.data.frame(matrix(0,nrow=out.nrow,ncol=1,
                                   dimnames = list(out.rownames,paste("w.delta.",delta,sep=""))))
-    lasso.w <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight_",
-                                  include.diet=include.diet,diet.wt=diet.wt,thresh.q=thresh.q,
-                                  delta=delta)
+
+    if (wt == "adapt"){
+        lasso.w <- lasso.computations(weights,microbes,phenotypes,g3,plots=FALSE,file="weight_",
+                                      include.diet=include.diet,diet.wt=diet.wt,corr.g=TRUE,
+                                      delta=delta)
+    } else {
+        lasso.w <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight_",
+                                      include.diet=include.diet,diet.wt=diet.wt,thresh.q=thresh.q,
+                                      delta=delta)
+    }
     out.w <- as.matrix(lasso.w$interest)
 
     ## mult.cv.delta.out.w5 : stores results from weighted lasso when weights are set to q-values AFTER taking into account diet,
