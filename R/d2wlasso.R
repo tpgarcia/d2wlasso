@@ -13,8 +13,8 @@
 #' z <- matrix(rbinom(100, 1, 0.5),100,1)
 #' y=matrix(z[1,] + 2*x[1,] - 2*x[2,] + rnorm(100, 0, 1), 100)
 #' d2wlasso(x,z,y)
-d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[1],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
-                     weight_fn=c("identity","sqrt","inverse_abs","square")[1],
+d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
+                     weights=c("one","cor","parcor")[3],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.diet=TRUE,diet.wt=1000,thresh.q=TRUE,delta=2,
                      vfold=10,lasso.delta.cv.mult=FALSE, ncv=100, percents.range=c(50,60,70,80,90,100)){
 
@@ -35,6 +35,16 @@ d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[1],plots
     cor.out <- correlations(microbes,phenotypes,partial=FALSE,ttest=ttest)
     parcor.out <- correlations(microbes,phenotypes,partial=TRUE,ttest=ttest)
 
+    ## Results for testing if a microbe has an effect on phenotype, but NOT
+    ##            accounting for diet
+    ## That is, we test : H_0 : \beta_{x_j}=0
+    microbe.cor.out.qvalues <- q.computations(cor.out, method=method,
+                                              plots=FALSE,file="cor",
+                                              pi0.true=pi0.true,pi0.val=pi0.val)
+
+    ## Results for testing if a microbe has an effect on phenotype, but AFTER
+    ##            accounting for diet
+    ## That is, we test : H_0 : \beta_{x_j|z}=0
     # compute q-value as used by JD Storey with some adjustments made
     microbe.parcor.out.qvalues <- q.computations(parcor.out,method=method,
                                                  plots=FALSE,file="parcor",
@@ -42,8 +52,16 @@ d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[1],plots
     out.qvalue <- c(0,t(microbe.parcor.out.qvalues$qval.mat))
     out.pvalue <- c(0,t(parcor.out$pvalues))
 
-    ## Weights set to q-values after taking into account diet
-    weights <- microbe.parcor.out.qvalues$qval.mat
+    if (weights == "one"){
+        ## No weights
+        weights <- matrix(1,nrow=nrow(microbes)-1,ncol=nrow(phenotypes))
+    } else if (weights == "cor"){
+        ## Weights set to q-values BEFORE taking into account diet
+        weights <- microbe.cor.out.qvalues$qval.mat
+    } else {
+        ## Weights set to q-values after taking into account diet
+        weights <- microbe.parcor.out.qvalues$qval.mat
+    }
 
     ## Weight functions
     g1 <- function(x){
@@ -139,5 +157,5 @@ d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[1],plots
 
     }
 
-    return(list("cor.out"=cor.out, "parcor.out"=parcor.out, "qval"=out.qvalue, "pval"=out.pvalue, "out.w"=out.w, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6))
+    return(list("cor.out"=cor.out, "parcor.out"=parcor.out, "qval"=out.qvalue, "pval"=out.pvalue, "out.w"=out.w, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6, "mult.cv.delta.out.w5.summary"=mult.cv.delta.out.w5.summary, "mult.cv.delta.out.w6.summary"=mult.cv.delta.out.w6.summary))
 }
