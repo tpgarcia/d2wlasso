@@ -15,8 +15,8 @@
 #' d2wlasso(x,z,y)
 d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","adapt","q_cor","q_parcor")[4],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
-                     include.diet=TRUE,diet.wt=1000,thresh.q=TRUE,delta=2,
-                     vfold=10,lasso.delta.cv.mult=FALSE, ncv=100, percents.range=c(50,60,70,80,90,100)){
+                     include.diet=TRUE,diet.wt=1000,thresh.q=TRUE,alpha=0.15,delta=2,
+                     vfold=10,lasso.delta.cv.mult=FALSE,delta.cv.seed=NULL,ncv=100,percents.range=c(50,60,70,80,90,100)){
 
     # dimension setting
     n <- nrow(x)
@@ -41,6 +41,12 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
     microbe.cor.out.qvalues <- q.computations(cor.out, method=method,
                                               plots=FALSE,file="cor",
                                               pi0.true=pi0.true,pi0.val=pi0.val)
+    microbe.cor.out <- q.interest(microbe.cor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
+    out.cor   <- c(0,t(microbe.cor.out$interest))
+
+    ## Results from Benjamini-Hochberg adjusted p-values when p-values do not account for diet
+    benhoch.cor.results <- ben.hoch.interest(cor.out$pvalues,alpha=alpha)
+    out.benhoch.cor <- c(0,t(benhoch.cor.results$interest))
 
     ## Results for testing if a microbe has an effect on phenotype, but AFTER
     ##            accounting for diet
@@ -51,6 +57,13 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
                                                  pi0.true=pi0.true,pi0.val=pi0.val)
     out.qvalue <- c(0,t(microbe.parcor.out.qvalues$qval.mat))
     out.pvalue <- c(0,t(parcor.out$pvalues))
+    q.out <- q.interest(microbe.parcor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
+    out.parcor <- c(1,t(q.out$interest))
+
+    ## Results for Benjamini-Hochberg Method ##
+    benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=alpha)
+    out.benhoch <- c(1,t(benhoch.results$interest))
+    out.benhoch.pval.adjust <- c(0,t(benhoch.results$pval.adjust))
 
     if (wt == "one"){
         ## No weights
@@ -131,7 +144,9 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
                                                          dimnames = list(out.rownames,paste("w6.mult.cv.",percents.range,sep=""))))
 
     if(lasso.delta.cv.mult==TRUE){
-
+        if (!is.null(delta.cv.seed)){
+            set.seed(delta.cv.seed)
+        }
         include.diet <- TRUE
 
         ## Weights set to q-values after taking into account diet
@@ -167,5 +182,5 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
 
     }
 
-    return(list("cor.out"=cor.out, "parcor.out"=parcor.out, "qval"=out.qvalue, "pval"=out.pvalue, "out.w"=out.w, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6, "mult.cv.delta.out.w5.summary"=mult.cv.delta.out.w5.summary, "mult.cv.delta.out.w6.summary"=mult.cv.delta.out.w6.summary))
+    return(list("cor.out"=cor.out, "parcor.out"=parcor.out, "qval"=out.qvalue,"out.benhoch.pval.adjust"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.benhoch.cor"=out.benhoch.cor, "out.parcor"=out.parcor, "out.benhoch"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6, "mult.cv.delta.out.w5.summary"=mult.cv.delta.out.w5.summary, "mult.cv.delta.out.w6.summary"=mult.cv.delta.out.w6.summary, "mult.cv.delta.out.w5"=mult.cv.delta.out.w5, "mult.cv.delta.out.w6"=mult.cv.delta.out.w6))
 }
