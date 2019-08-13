@@ -3,6 +3,8 @@
 #' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size
 #' @param z (n by 1) matrix of additional fixed covariate affecting response variable
 #' @param y (n by 1) matrix of response variable
+#' @param ttest logical. If TRUE, p-value for each covariate is computed from the linear regression and this does not require normality of the covariates. If FALSE, p-value is computed as the p-value of the correlation coefficient. Default is FALSE.
+#' @param method indicates the method for choosing optimal tuning parameter in the q-value computation as proposed in Storey and Tibshirani (2003). One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
 #'
 #' @return cor.out
 #' @return parcor.out
@@ -13,7 +15,7 @@
 #' z <- matrix(rbinom(100, 1, 0.5),100,1)
 #' y=matrix(z[1,] + 2*x[1,] - 2*x[2,] + rnorm(100, 0, 1), 100)
 #' d2wlasso(x,z,y)
-d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
+d2wlasso <- function(x,z,y,ttest=FALSE,method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","adapt","q_cor","q_parcor")[4],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,delta=2,
                      vfold=10,lasso.delta.cv.mult=FALSE,delta.cv.seed=NULL,ncv=100,percents.range=c(50,60,70,80,90,100)){
@@ -39,7 +41,7 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
     ##            accounting for diet
     ## That is, we test : H_0 : \beta_{x_j}=0
     microbe.cor.out.qvalues <- q.computations(cor.out, method=method,
-                                              plots=FALSE,file="cor",
+                                              plots=plots,file="cor",
                                               pi0.true=pi0.true,pi0.val=pi0.val)
     microbe.cor.out <- q.interest(microbe.cor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
     out.cor   <- c(0,t(microbe.cor.out$interest))
@@ -53,7 +55,7 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
     ## That is, we test : H_0 : \beta_{x_j|z}=0
     # compute q-value as used by JD Storey with some adjustments made
     microbe.parcor.out.qvalues <- q.computations(parcor.out,method=method,
-                                                 plots=FALSE,file="parcor",
+                                                 plots=plots,file="parcor",
                                                  pi0.true=pi0.true,pi0.val=pi0.val)
     out.qvalue <- c(0,t(microbe.parcor.out.qvalues$qval.mat))
     out.pvalue <- c(0,t(parcor.out$pvalues))
@@ -106,11 +108,11 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
                                   dimnames = list(out.rownames,paste("w.delta.",delta,sep=""))))
 
     if (wt == "adapt"){
-        lasso.w <- lasso.computations(weights,microbes,phenotypes,g3,plots=FALSE,file="weight_",
+        lasso.w <- lasso.computations(weights,microbes,phenotypes,g3,plots=plots,file="weight_",
                                       include.diet=include.z,diet.wt=z.wt,corr.g=TRUE,
                                       delta=delta)
     } else {
-        lasso.w <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight_",
+        lasso.w <- lasso.computations(weights,microbes,phenotypes,g,plots=plots,file="weight_",
                                       include.diet=include.z,diet.wt=z.wt,thresh.q=thresh.q,
                                       delta=delta)
     }
