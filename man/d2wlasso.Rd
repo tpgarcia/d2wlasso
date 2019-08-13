@@ -4,11 +4,14 @@
 \alias{d2wlasso}
 \title{Implement structured variables selection with q-values}
 \usage{
-d2wlasso(x, z, y, ttest = FALSE, method = c("bootstrap",
-  "smoother")[1], plots = FALSE, pi0.true = FALSE, pi0.val = 0.9,
+d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
+  "smoother")[2], plots = FALSE, pi0.true = FALSE, pi0.val = 0.9,
+  wt = c("one", "adapt", "q_cor", "q_parcor")[4],
   weight_fn = c("identity", "sqrt", "inverse_abs", "square")[1],
-  include.diet = TRUE, diet.wt = 1000, thresh.q = TRUE,
-  delta.range = 2)
+  include.z = TRUE, z.wt = 1000, thresh.q = TRUE, alpha = 0.15,
+  delta = 2, vfold = 10, lasso.delta.cv.mult = FALSE,
+  delta.cv.seed = NULL, ncv = 100, percents.range = c(50, 60, 70, 80,
+  90, 100))
 }
 \arguments{
 \item{x}{(n by m) matrix of main covariates where m is the number of covariates and n is the sample size}
@@ -16,6 +19,26 @@ d2wlasso(x, z, y, ttest = FALSE, method = c("bootstrap",
 \item{z}{(n by 1) matrix of additional fixed covariate affecting response variable}
 
 \item{y}{(n by 1) matrix of response variable}
+
+\item{ttest}{logical. If TRUE, p-value for each covariate is computed from the linear regression and this does not require normality of the covariates. If FALSE, p-value is computed as the p-value of the correlation coefficient. Default is FALSE.}
+
+\item{q_method}{indicates the method for choosing optimal tuning parameter in the q-value computation as proposed in Storey and Tibshirani (2003). One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).}
+
+\item{plots}{logical. If TRUE, figures are plotted. Default is FALSE.}
+
+\item{pi0.true}{logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.}
+
+\item{pi0.val}{A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.true is TRUE. Default is 0.9.}
+
+\item{wt}{the weights to be used for the weighted lasso. One of "one","adapt","q_cor" or "q_parcor". "one" gives no weight. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.}
+
+\item{weight_fn}{the function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".}
+
+\item{include.z}{logical. If TRUE, the additional covariate z is forced to be included in the model. Default is TRUE.}
+
+\item{z.wt}{constant for forcing z in the model. If z is not included in the model even if include.z is TRUE, try different value. Default is 1000.}
+
+\item{thresh.q}{logical.}
 }
 \value{
 cor.out
