@@ -15,7 +15,7 @@
 #' d2wlasso(x,z,y)
 d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","adapt","q_cor","q_parcor")[4],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
-                     include.diet=TRUE,diet.wt=1000,thresh.q=TRUE,alpha=0.15,delta=2,
+                     include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,delta=2,
                      vfold=10,lasso.delta.cv.mult=FALSE,delta.cv.seed=NULL,ncv=100,percents.range=c(50,60,70,80,90,100)){
 
     # dimension setting
@@ -107,11 +107,11 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
 
     if (wt == "adapt"){
         lasso.w <- lasso.computations(weights,microbes,phenotypes,g3,plots=FALSE,file="weight_",
-                                      include.diet=include.diet,diet.wt=diet.wt,corr.g=TRUE,
+                                      include.diet=include.z,diet.wt=z.wt,corr.g=TRUE,
                                       delta=delta)
     } else {
         lasso.w <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight_",
-                                      include.diet=include.diet,diet.wt=diet.wt,thresh.q=thresh.q,
+                                      include.diet=include.z,diet.wt=z.wt,thresh.q=thresh.q,
                                       delta=delta)
     }
     out.w <- as.matrix(lasso.w$interest)
@@ -154,7 +154,7 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
 
         for(v in 1:ncv){
             mult.cv.delta.lasso.w5 <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,file="weight5_",
-                                                         include.diet=include.diet,diet.wt=diet.wt,thresh.q=thresh.q,delta=delta,
+                                                         include.diet=include.diet,diet.wt=z.wt,thresh.q=thresh.q,delta=delta,
                                                          cv.criterion="delta_cv",vfold=vfold)
             mult.cv.delta.out.w5[,j] <- mult.cv.delta.out.w5[,j] + as.matrix(mult.cv.delta.lasso.w5$interest)
             mult.delta.w5[,v] <- mult.delta.w5[,v] + mult.cv.delta.lasso.w5$delta.out
@@ -165,7 +165,7 @@ d2wlasso <- function(x,z,y,ttest=TRUE,method=c("bootstrap","smoother")[2],plots=
 
         for(v in 1:ncv){
             mult.cv.delta.lasso.w6 <- lasso.computations(weights,microbes,phenotypes,g3,plots=FALSE,file="weight6_",
-                                                         include.diet=include.diet,diet.wt=diet.wt,corr.g=TRUE,delta=delta,
+                                                         include.diet=include.diet,diet.wt=z.wt,corr.g=TRUE,delta=delta,
                                                          cv.criterion="delta_cv",vfold=vfold)
             mult.cv.delta.out.w6[,j] <- mult.cv.delta.out.w6[,j] + as.matrix(mult.cv.delta.lasso.w6$interest)
             mult.delta.w6[,v] <- mult.delta.w6[,v] + mult.cv.delta.lasso.w6$delta.out
