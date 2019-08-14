@@ -8,11 +8,18 @@
 #' @param plots logical. If TRUE, figures are plotted. Default is FALSE.
 #' @param pi0.true logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.
 #' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.true is TRUE. Default is 0.9.
-#' @param wt the weights to be used for the weighted lasso. One of "one","adapt","q_cor" or "q_parcor". "one" gives no weight. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
-#' @param weight_fn the function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
+#' @param wt The weights to be used for the weighted lasso. One of "one","adapt","q_cor" or "q_parcor". "one" gives no weight. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
+#' @param weight_fn The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
 #' @param include.z logical. If TRUE, the additional covariate z is forced to be included in the model. Default is TRUE.
 #' @param z.wt constant for forcing z in the model. If z is not included in the model even if include.z is TRUE, try different value. Default is 1000.
-#' @param thresh.q logical.
+#' @param thresh.q logical. If TRUE, remove excessively small weights by using threshold to maintain stability. The threshold is set to 0.0001.
+#' @param alpha indicates cut-off for q-values (thresholding). That is, the covariate with q-value less than this cut-off is included in the model.
+#' @param alpha.bh indicates cut-off for Benjamini-Hochberg adjusted p-value (thresholding). That is, the covariate with BH-adjusted p-value less than this cut-off is included in the model.
+#' @param delta Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.
+#' @param lasso.delta.cv.mult logical. If TRUE, we run vfold cross-validation to select optimal delta multiple times (ncv times). Default is FALSE.
+#' @param vfold indicates the number of folds of the cross-validation for selecting delta.
+#' @param ncv indicates the number of cross-validation runs for selecting delta.
+#'
 #'
 #' @return cor.out
 #' @return parcor.out
@@ -25,8 +32,8 @@
 #' d2wlasso(x,z,y)
 d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","adapt","q_cor","q_parcor")[4],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
-                     include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,delta=2,
-                     vfold=10,lasso.delta.cv.mult=FALSE,delta.cv.seed=NULL,ncv=100,percents.range=c(50,60,70,80,90,100)){
+                     include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,
+                     lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,percents.range=c(50,60,70,80,90,100),delta.cv.seed=NULL){
 
     # dimension setting
     n <- nrow(x)
@@ -55,7 +62,7 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
     out.cor   <- c(0,t(microbe.cor.out$interest))
 
     ## Results from Benjamini-Hochberg adjusted p-values when p-values do not account for diet
-    benhoch.cor.results <- ben.hoch.interest(cor.out$pvalues,alpha=alpha)
+    benhoch.cor.results <- ben.hoch.interest(cor.out$pvalues,alpha=alpha.bh)
     out.benhoch.cor <- c(0,t(benhoch.cor.results$interest))
 
     ## Results for testing if a microbe has an effect on phenotype, but AFTER
@@ -71,7 +78,7 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
     out.parcor <- c(1,t(q.out$interest))
 
     ## Results for Benjamini-Hochberg Method ##
-    benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=alpha)
+    benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=alpha.bh)
     out.benhoch <- c(1,t(benhoch.results$interest))
     out.benhoch.pval.adjust <- c(0,t(benhoch.results$pval.adjust))
 
@@ -192,5 +199,5 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
 
     }
 
-    return(list("cor.out"=cor.out, "parcor.out"=parcor.out, "qval"=out.qvalue,"out.benhoch.pval.adjust"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.benhoch.cor"=out.benhoch.cor, "out.parcor"=out.parcor, "out.benhoch"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6, "mult.cv.delta.out.w5.summary"=mult.cv.delta.out.w5.summary, "mult.cv.delta.out.w6.summary"=mult.cv.delta.out.w6.summary, "mult.cv.delta.out.w5"=mult.cv.delta.out.w5, "mult.cv.delta.out.w6"=mult.cv.delta.out.w6))
+    return(list("cor.out"=cor.out, "parcor.out"=parcor.out, "qval"=out.qvalue,"out.benhoch.pval.adjust"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.benhoch.cor"=out.benhoch.cor, "out.parcor"=out.parcor, "out.benhoch"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6, "mult.cv.delta.out.w5.summary"=mult.cv.delta.out.w5.summary, "mult.cv.delta.out.w6.summary"=mult.cv.delta.out.w6.summary, "mult.cv.delta.out.w5"=mult.cv.delta.out.w5, "mult.cv.delta.out.w6"=mult.cv.delta.out.w6))
 }

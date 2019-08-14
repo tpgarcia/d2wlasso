@@ -9,9 +9,9 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
   wt = c("one", "adapt", "q_cor", "q_parcor")[4],
   weight_fn = c("identity", "sqrt", "inverse_abs", "square")[1],
   include.z = TRUE, z.wt = 1000, thresh.q = TRUE, alpha = 0.15,
-  delta = 2, vfold = 10, lasso.delta.cv.mult = FALSE,
-  delta.cv.seed = NULL, ncv = 100, percents.range = c(50, 60, 70, 80,
-  90, 100))
+  alpha.bh = 0.05, delta = 2, lasso.delta.cv.mult = FALSE,
+  vfold = 10, ncv = 100, percents.range = c(50, 60, 70, 80, 90, 100),
+  delta.cv.seed = NULL)
 }
 \arguments{
 \item{x}{(n by m) matrix of main covariates where m is the number of covariates and n is the sample size}
@@ -30,15 +30,27 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
 
 \item{pi0.val}{A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.true is TRUE. Default is 0.9.}
 
-\item{wt}{the weights to be used for the weighted lasso. One of "one","adapt","q_cor" or "q_parcor". "one" gives no weight. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.}
+\item{wt}{The weights to be used for the weighted lasso. One of "one","adapt","q_cor" or "q_parcor". "one" gives no weight. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.}
 
-\item{weight_fn}{the function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".}
+\item{weight_fn}{The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".}
 
 \item{include.z}{logical. If TRUE, the additional covariate z is forced to be included in the model. Default is TRUE.}
 
 \item{z.wt}{constant for forcing z in the model. If z is not included in the model even if include.z is TRUE, try different value. Default is 1000.}
 
-\item{thresh.q}{logical.}
+\item{thresh.q}{logical. If TRUE, remove excessively small weights by using threshold to maintain stability. The threshold is set to 0.0001.}
+
+\item{alpha}{indicates cut-off for q-values (thresholding). That is, the covariate with q-value less than this cut-off is included in the model.}
+
+\item{alpha.bh}{indicates cut-off for Benjamini-Hochberg adjusted p-value (thresholding). That is, the covariate with BH-adjusted p-value less than this cut-off is included in the model.}
+
+\item{delta}{Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.}
+
+\item{lasso.delta.cv.mult}{logical. If TRUE, we run vfold cross-validation to select optimal delta multiple times (ncv times). Default is FALSE.}
+
+\item{vfold}{indicates the number of folds of the cross-validation for selecting delta.}
+
+\item{ncv}{indicates the number of cross-validation runs for selecting delta.}
 }
 \value{
 cor.out
