@@ -63,7 +63,7 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
    \item {pval} {p-value for each covariate}
 }
 
-qval: q-value as proposed in Storey and Tibshirani (2003)
+{qval} q-value as proposed in Storey and Tibshirani (2003)
 
 BH-pval: Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)
 
