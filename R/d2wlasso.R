@@ -25,6 +25,14 @@
 #'    \item {qval:} {q-value as proposed in Storey and Tibshirani (2003)}
 #'    \item {BH-pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
 #'    \item {pval:} {p-value for each covariate}
+#'    \item {out.cor:} {p-value for each covariate}
+#'    \item {out.benhoch.cor:} {p-value for each covariate}
+#'    \item {out.parcor:} {p-value for each covariate}
+#'    \item {out.benhoch:} {p-value for each covariate}
+#'    \item {out.w:} {p-value for each covariate}
+#'    \item {alpha:} {p-value for each covariate}
+#'    \item {alpha.bh:} {p-value for each covariate}
+#'    \item {delta:} {p-value for each covariate}
 #' }
 #' @return out.cor
 #' @return out.benhoch.cor
