@@ -53,9 +53,21 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
 \item{ncv}{indicates the number of cross-validation runs for selecting delta.}
 }
 \value{
-cor.out
+qval: q-value as proposed in Storey and Tibshirani (2003)
 
-parcor.out
+out.benhoch.pval.adjust: Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)
+
+pval: p-value for each covariate
+
+out.cor
+
+out.benhoch.cor
+
+out.parcor
+
+out.benhoch
+
+qval
 }
 \description{
 Implement structured variables selection with q-values

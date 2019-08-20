@@ -20,9 +20,12 @@
 #' @param vfold indicates the number of folds of the cross-validation for selecting delta.
 #' @param ncv indicates the number of cross-validation runs for selecting delta.
 #'
-#'
+#' \itemize{
+#'    \qval q-value as proposed in Storey and Tibshirani (2003)
+#'    \pval p-value for each covariate
+#' }
 #' @return qval: q-value as proposed in Storey and Tibshirani (2003)
-#' @return out.benhoch.pval.adjust: Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)
+#' @return BH-pval: Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)
 #' @return pval: p-value for each covariate
 #' @return out.cor
 #' @return out.benhoch.cor
@@ -205,5 +208,5 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
 
     }
 
-    return(list("qval"=out.qvalue,"out.benhoch.pval.adjust"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.benhoch.cor"=out.benhoch.cor, "out.parcor"=out.parcor, "out.benhoch"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6, "mult.cv.delta.out.w5.summary"=mult.cv.delta.out.w5.summary, "mult.cv.delta.out.w6.summary"=mult.cv.delta.out.w6.summary, "mult.cv.delta.out.w5"=mult.cv.delta.out.w5, "mult.cv.delta.out.w6"=mult.cv.delta.out.w6))
+    return(list("qval"=out.qvalue,"BH-pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.benhoch.cor"=out.benhoch.cor, "out.parcor"=out.parcor, "out.benhoch"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6, "mult.cv.delta.out.w5.summary"=mult.cv.delta.out.w5.summary, "mult.cv.delta.out.w6.summary"=mult.cv.delta.out.w6.summary, "mult.cv.delta.out.w5"=mult.cv.delta.out.w5, "mult.cv.delta.out.w6"=mult.cv.delta.out.w6))
 }
