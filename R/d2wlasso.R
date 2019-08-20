@@ -21,6 +21,8 @@
 #' @param ncv indicates the number of cross-validation runs for selecting delta.
 #'
 #' @return
+#' @param ncv indicates
+#' @return
 #' \describe{
 #'    \item{qval}{q-value as proposed in Storey and Tibshirani (2003)}
 #'    \item{pval}{p-value for each covariate}
