@@ -21,21 +21,11 @@
 #' @param ncv indicates the number of cross-validation runs for selecting delta.
 #'
 #' @return
-#' @param ncv indicates
-#' @return
-#' \describe{
-#'    \item{qval}{q-value as proposed in Storey and Tibshirani (2003)}
-#'    \item{pval}{p-value for each covariate}
-#' }
-#'
-#' @return
 #' \itemize{
-#'    \item {qval} {q-value as proposed in Storey and Tibshirani (2003)}
-#'    \item {pval} {p-value for each covariate}
+#'    \item {qval:} {q-value as proposed in Storey and Tibshirani (2003)}
+#'    \item {BH-pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
+#'    \item {pval:} {p-value for each covariate}
 #' }
-#' @return {qval} {q-value as proposed in Storey and Tibshirani (2003)}
-#' @return BH-pval: Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)
-#' @return pval: p-value for each covariate
 #' @return out.cor
 #' @return out.benhoch.cor
 #' @return out.parcor

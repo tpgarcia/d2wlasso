@@ -51,6 +51,8 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
 \item{vfold}{indicates the number of folds of the cross-validation for selecting delta.}
 
 \item{ncv}{indicates the number of cross-validation runs for selecting delta.}
+
+\item{ncv}{indicates}
 }
 \value{
 \describe{
