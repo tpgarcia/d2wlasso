@@ -50,12 +50,17 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
 
 \item{vfold}{indicates the number of folds of the cross-validation for selecting delta.}
 
-\item{ncv}{indicates the number of cross-validation runs for selecting delta.}
+\item{ncv}{indicates the number of cross-validation runs for selecting delta.
+
+\itemize{
+   \qval q-value as proposed in Storey and Tibshirani (2003)
+   \pval p-value for each covariate
+}}
 }
 \value{
 qval: q-value as proposed in Storey and Tibshirani (2003)
 
-out.benhoch.pval.adjust: Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)
+BH-pval: Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)
 
 pval: p-value for each covariate
 

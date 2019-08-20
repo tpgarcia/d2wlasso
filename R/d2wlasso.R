@@ -20,6 +20,7 @@
 #' @param vfold indicates the number of folds of the cross-validation for selecting delta.
 #' @param ncv indicates the number of cross-validation runs for selecting delta.
 #'
+#' @return
 #' \itemize{
 #'    \qval q-value as proposed in Storey and Tibshirani (2003)
 #'    \pval p-value for each covariate
