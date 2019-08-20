@@ -31,7 +31,7 @@
 #'    \item {qval} {q-value as proposed in Storey and Tibshirani (2003)}
 #'    \item {pval} {p-value for each covariate}
 #' }
-#' @return qval: q-value as proposed in Storey and Tibshirani (2003)
+#' @return {qval} q-value as proposed in Storey and Tibshirani (2003)
 #' @return BH-pval: Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)
 #' @return pval: p-value for each covariate
 #' @return out.cor

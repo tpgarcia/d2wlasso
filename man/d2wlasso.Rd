@@ -59,8 +59,8 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
 }
 
 \itemize{
-   \item qval q-value as proposed in Storey and Tibshirani (2003)
-   \item pval p-value for each covariate
+   \item {qval} {q-value as proposed in Storey and Tibshirani (2003)}
+   \item {pval} {p-value for each covariate}
 }
 
 qval: q-value as proposed in Storey and Tibshirani (2003)
