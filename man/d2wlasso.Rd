@@ -10,8 +10,7 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
   weight_fn = c("identity", "sqrt", "inverse_abs", "square")[1],
   include.z = TRUE, z.wt = 1000, thresh.q = TRUE, alpha = 0.15,
   alpha.bh = 0.05, delta = 2, lasso.delta.cv.mult = FALSE,
-  vfold = 10, ncv = 100, percents.range = c(50, 60, 70, 80, 90, 100),
-  delta.cv.seed = NULL)
+  vfold = 10, ncv = 100, delta.cv.seed = NULL)
 }
 \arguments{
 \item{x}{(n by m) matrix of main covariates where m is the number of covariates and n is the sample size}
@@ -51,6 +50,8 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
 \item{vfold}{indicates the number of folds of the cross-validation for selecting delta.}
 
 \item{ncv}{indicates the number of cross-validation runs for selecting delta.}
+
+\item{delta.cv.seed}{For reproducible cross-validation result, the seed can be fixed.}
 }
 \value{
 \itemize{
@@ -65,6 +66,10 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
    \item \strong{alpha:} {level of significance to compare with the q-values}
    \item \strong{alpha.bh:} {level of significance to compare with the Benjamini-Hochberg adjusted p-values}
    \item \strong{delta:} {the multiplier to the number of predictors in the penalized loss function for variable selection. The loss function is defined as: \code{ SSE/(sigma^2) - n + delta*p } where SSE denotes the residual sum of squares, sigma denotes the estimator of the model error variance, n is the sample size and p is the number of predictors in the selected model. }
+   \item \strong{cv.delta.w:} {the selected delta from the cross-validation for the weighted lasso with q-values}
+   \item \strong{cv.delta.adapt:} {the selected delta from the cross-validation for the adaptive lasso}
+   \item \strong{cv.out.w:} {the aggregated result of the cross-validation for the weighted lasso with q-values}
+   \item \strong{cv.out.adapt:} {the aggregated result of the cross-validation for the adaptive lasso}
 }
 }
 \description{
@@ -74,5 +79,12 @@ Implement structured variables selection with q-values
 x=matrix(rnorm(100*5, 0, 1),100,5)
 z <- matrix(rbinom(100, 1, 0.5),100,1)
 y=matrix(z[1,] + 2*x[1,] - 2*x[2,] + rnorm(100, 0, 1), 100)
-d2wlasso(x,z,y)
+dwl0 <- d2wlasso(x,z,y)
+dwl1 <- d2wlasso(x,z,y,delta=2)
+dwl2 <- d2wlasso(x,z,y,include.z=FALSE,delta=2)
+dwl3 <- d2wlasso(x,z,y,weight_fn = "sqrt")
+dwl4 <- d2wlasso(x,z,y,wt="adapt")
+dwlcv0 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3)
+dwlcv1 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
+dwlcv2 <- d2wlasso(x,z,y,weight_fn = "square",lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
 }
