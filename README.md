@@ -14,9 +14,21 @@ devtools::install_github("rakheon/d2wlasso", force = TRUE)
 
 ```
 # data generation
-x=matrix(rnorm(100*5, 0, 1),100,5)
+x = matrix(rnorm(100*5, 0, 1),100,5)
+z = matrix(rbinom(100, 1, 0.5),100,1)
+y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
 
 # variable selection with d2wlasso
+dwl0 <- d2wlasso(x,z,y)
+dwl1 <- d2wlasso(x,z,y,delta=2)
+dwl2 <- d2wlasso(x,z,y,include.z=FALSE,delta=2)
+dwl3 <- d2wlasso(x,z,y,weight_fn = "sqrt")
+dwl4 <- d2wlasso(x,z,y,wt="adapt")
+
+# select delta with cross-validation
+dwlcv0 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3)
+dwlcv1 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
+dwlcv2 <- d2wlasso(x,z,y,weight_fn = "square",lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
 
 
 ```
