@@ -25,14 +25,15 @@
 #'    \item {qval:} {q-value as proposed in Storey and Tibshirani (2003)}
 #'    \item {BH-pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
 #'    \item {pval:} {p-value for each covariate}
-#'    \item {out.cor:} {p-value for each covariate}
-#'    \item {out.benhoch.cor:} {p-value for each covariate}
-#'    \item {out.parcor:} {p-value for each covariate}
-#'    \item {out.benhoch:} {p-value for each covariate}
-#'    \item {out.w:} {p-value for each covariate}
-#'    \item {alpha:} {p-value for each covariate}
-#'    \item {alpha.bh:} {p-value for each covariate}
-#'    \item {delta:} {p-value for each covariate}
+#'    \item {out.cor:} {variable selection results for testing if a main covariate has an effect on the response variable, but NOT accounting for the additional fixed covariate z}
+#'    \item {out.parcor:} {variable selection results for testing if a main covariate has an effect on the response variable, but AFTER accounting for the additional fixed covariate z}
+#'    \item {out.benhoch.cor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values do not account for the additional fixed covariate z}
+#'    \item {out.benhoch.parcor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values account for the additional fixed covariate z}
+#'    \item {out.w:} {variable selection results from weighted lasso}
+#'    \item {alpha:} {level of significance to compare with the q-values}
+#'    \item {alpha.bh:} {level of significance to compare with the Benjamini-Hochberg adjusted p-values}
+#'    \item {delta:} {the multiplier to the number of predictors in the penalized loss function for variable selection. The loss function is defined as below:\\
+#'    $$SSE_p$$}
 #' }
 #' @return out.cor
 #' @return out.benhoch.cor
@@ -215,5 +216,5 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
 
     }
 
-    return(list("qval"=out.qvalue,"BH-pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.benhoch.cor"=out.benhoch.cor, "out.parcor"=out.parcor, "out.benhoch"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6, "mult.cv.delta.out.w5.summary"=mult.cv.delta.out.w5.summary, "mult.cv.delta.out.w6.summary"=mult.cv.delta.out.w6.summary, "mult.cv.delta.out.w5"=mult.cv.delta.out.w5, "mult.cv.delta.out.w6"=mult.cv.delta.out.w6))
+    return(list("qval"=out.qvalue,"BH-pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.parcor"=out.parcor, "out.benhoch.cor"=out.benhoch.cor, "out.benhoch.parcor"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6, "mult.cv.delta.out.w5.summary"=mult.cv.delta.out.w5.summary, "mult.cv.delta.out.w6.summary"=mult.cv.delta.out.w6.summary, "mult.cv.delta.out.w5"=mult.cv.delta.out.w5, "mult.cv.delta.out.w6"=mult.cv.delta.out.w6))
 }
