@@ -19,38 +19,44 @@
 #' @param lasso.delta.cv.mult logical. If TRUE, we run vfold cross-validation to select optimal delta multiple times (ncv times). Default is FALSE.
 #' @param vfold indicates the number of folds of the cross-validation for selecting delta.
 #' @param ncv indicates the number of cross-validation runs for selecting delta.
+#' @param delta.cv.seed For reproducible cross-validation result, the seed can be fixed.
 #'
 #' @return
 #' \itemize{
-#'    \item {qval:} {q-value as proposed in Storey and Tibshirani (2003)}
-#'    \item {BH-pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
-#'    \item {pval:} {p-value for each covariate}
-#'    \item {out.cor:} {variable selection results for testing if a main covariate has an effect on the response variable, but NOT accounting for the additional fixed covariate z}
-#'    \item {out.parcor:} {variable selection results for testing if a main covariate has an effect on the response variable, but AFTER accounting for the additional fixed covariate z}
-#'    \item {out.benhoch.cor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values do not account for the additional fixed covariate z}
-#'    \item {out.benhoch.parcor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values account for the additional fixed covariate z}
-#'    \item {out.w:} {variable selection results from weighted lasso}
-#'    \item {alpha:} {level of significance to compare with the q-values}
-#'    \item {alpha.bh:} {level of significance to compare with the Benjamini-Hochberg adjusted p-values}
-#'    \item {delta:} {the multiplier to the number of predictors in the penalized loss function for variable selection. The loss function is defined as below:\\
-#'    $$SSE_p$$}
+#'    \item \strong{qval:} {q-value as proposed in Storey and Tibshirani (2003)}
+#'    \item \strong{BH-pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
+#'    \item \strong{pval:} {p-value for each covariate}
+#'    \item \strong{out.cor:} {variable selection results for testing if a main covariate has an effect on the response variable, but NOT accounting for the additional fixed covariate z}
+#'    \item \strong{out.parcor:} {variable selection results for testing if a main covariate has an effect on the response variable, but AFTER accounting for the additional fixed covariate z}
+#'    \item \strong{out.benhoch.cor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values do not account for the additional fixed covariate z}
+#'    \item \strong{out.benhoch.parcor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values account for the additional fixed covariate z}
+#'    \item \strong{out.w:} {variable selection results from weighted lasso}
+#'    \item \strong{alpha:} {level of significance to compare with the q-values}
+#'    \item \strong{alpha.bh:} {level of significance to compare with the Benjamini-Hochberg adjusted p-values}
+#'    \item \strong{delta:} {the multiplier to the number of predictors in the penalized loss function for variable selection. The loss function is defined as: \code{ SSE/(sigma^2) - n + delta*p } where SSE denotes the residual sum of squares, sigma denotes the estimator of the model error variance, n is the sample size and p is the number of predictors in the selected model. }
+#'    \item \strong{cv.delta.w:} {the selected delta from the cross-validation for the weighted lasso with q-values}
+#'    \item \strong{cv.delta.adapt:} {the selected delta from the cross-validation for the adaptive lasso}
+#'    \item \strong{cv.out.w:} {the aggregated result of the cross-validation for the weighted lasso with q-values}
+#'    \item \strong{cv.out.adapt:} {the aggregated result of the cross-validation for the adaptive lasso}
 #' }
-#' @return out.cor
-#' @return out.benhoch.cor
-#' @return out.parcor
-#' @return out.benhoch
-#' @return qval
 #' @export
 #'
 #' @examples
 #' x=matrix(rnorm(100*5, 0, 1),100,5)
 #' z <- matrix(rbinom(100, 1, 0.5),100,1)
 #' y=matrix(z[1,] + 2*x[1,] - 2*x[2,] + rnorm(100, 0, 1), 100)
-#' d2wlasso(x,z,y)
+#' dwl0 <- d2wlasso(x,z,y)
+#' dwl1 <- d2wlasso(x,z,y,delta=2)
+#' dwl2 <- d2wlasso(x,z,y,include.z=FALSE,delta=2)
+#' dwl3 <- d2wlasso(x,z,y,weight_fn = "sqrt")
+#' dwl4 <- d2wlasso(x,z,y,wt="adapt")
+#' dwlcv0 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3)
+#' dwlcv1 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
+#' dwlcv1 <- d2wlasso(x,z,y,weight_fn = "square",lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
 d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","adapt","q_cor","q_parcor")[4],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,
-                     lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,percents.range=c(50,60,70,80,90,100),delta.cv.seed=NULL){
+                     lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL){
 
     # dimension setting
     n <- nrow(x)
@@ -161,9 +167,6 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
     mult.delta.w5 <- as.data.frame(matrix(0, nrow = 1, ncol = ncv,
                                           dimnames = list("delta", seq(1,ncv))))
 
-    mult.cv.delta.out.w5.summary <- as.data.frame(matrix(0,nrow=out.nrow,ncol=length(percents.range),
-                                                         dimnames = list(out.rownames,paste("w5.mult.cv.",percents.range,sep=""))))
-
     ## mult.cv.delta.out.w6 : stores results from weighted lasso when weights absolute value of partial correlations,
     ##           and weight function g3
 
@@ -173,21 +176,18 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
     mult.delta.w6 <- as.data.frame(matrix(0, nrow = 1, ncol = ncv,
                                           dimnames = list("delta", seq(1,ncv))))
 
-
-    mult.cv.delta.out.w6.summary <- as.data.frame(matrix(0,nrow=out.nrow,ncol=length(percents.range),
-                                                         dimnames = list(out.rownames,paste("w6.mult.cv.",percents.range,sep=""))))
-
     if(lasso.delta.cv.mult==TRUE){
-        if (!is.null(delta.cv.seed)){
-            set.seed(delta.cv.seed)
-        }
+
         include.diet <- TRUE
 
         ## Weights set to q-values after taking into account diet
         weights <- microbe.parcor.out.qvalues$qval.mat
+        if (!is.null(delta.cv.seed)){
+            set.seed(delta.cv.seed)
+        }
 
         for(v in 1:ncv){
-            mult.cv.delta.lasso.w5 <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,file="weight5_",
+            mult.cv.delta.lasso.w5 <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight5_",
                                                          include.diet=include.diet,diet.wt=z.wt,thresh.q=thresh.q,delta=delta,
                                                          cv.criterion="delta_cv",vfold=vfold)
             mult.cv.delta.out.w5[,j] <- mult.cv.delta.out.w5[,j] + as.matrix(mult.cv.delta.lasso.w5$interest)
@@ -196,6 +196,9 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
 
         ## Weights set to absolute value of partial correlations
         weights <- parcor.out$estimate
+        if (!is.null(delta.cv.seed)){
+            set.seed(delta.cv.seed)
+        }
 
         for(v in 1:ncv){
             mult.cv.delta.lasso.w6 <- lasso.computations(weights,microbes,phenotypes,g3,plots=FALSE,file="weight6_",
@@ -205,16 +208,7 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
             mult.delta.w6[,v] <- mult.delta.w6[,v] + mult.cv.delta.lasso.w6$delta.out
         }
 
-        for(v in 1:length(percents.range)){
-
-            ## Weights set to q-values after taking into account diet
-            mult.cv.delta.out.w5.summary[,v] <- org.mult.cv.delta(mult.cv.delta.out.w5,percents.range[v],ncv)
-
-            ## Weights set to absolute value of partial correlations
-            mult.cv.delta.out.w6.summary[,v] <- org.mult.cv.delta(mult.cv.delta.out.w6,percents.range[v],ncv)
-        }
-
     }
 
-    return(list("qval"=out.qvalue,"BH-pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.parcor"=out.parcor, "out.benhoch.cor"=out.benhoch.cor, "out.benhoch.parcor"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "mult.delta.w5"=mult.delta.w5, "mult.delta.w6"=mult.delta.w6, "mult.cv.delta.out.w5.summary"=mult.cv.delta.out.w5.summary, "mult.cv.delta.out.w6.summary"=mult.cv.delta.out.w6.summary, "mult.cv.delta.out.w5"=mult.cv.delta.out.w5, "mult.cv.delta.out.w6"=mult.cv.delta.out.w6))
+    return(list("qval"=out.qvalue,"BH-pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.parcor"=out.parcor, "out.benhoch.cor"=out.benhoch.cor, "out.benhoch.parcor"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "cv.delta.w"=mult.delta.w5, "cv.delta.adapt"=mult.delta.w6, "cv.out.w"=mult.cv.delta.out.w5, "cv.out.adapt"=mult.cv.delta.out.w6))
 }

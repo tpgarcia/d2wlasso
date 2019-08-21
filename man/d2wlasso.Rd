@@ -54,28 +54,18 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
 }
 \value{
 \itemize{
-   \item {qval:} {q-value as proposed in Storey and Tibshirani (2003)}
-   \item {BH-pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
-   \item {pval:} {p-value for each covariate}
-   \item {out.cor:} {p-value for each covariate}
-   \item {out.benhoch.cor:} {p-value for each covariate}
-   \item {out.parcor:} {p-value for each covariate}
-   \item {out.benhoch:} {p-value for each covariate}
-   \item {out.w:} {p-value for each covariate}
-   \item {alpha:} {p-value for each covariate}
-   \item {alpha.bh:} {p-value for each covariate}
-   \item {delta:} {p-value for each covariate}
+   \item \strong{qval:} {q-value as proposed in Storey and Tibshirani (2003)}
+   \item \strong{BH-pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
+   \item \strong{pval:} {p-value for each covariate}
+   \item \strong{out.cor:} {variable selection results for testing if a main covariate has an effect on the response variable, but NOT accounting for the additional fixed covariate z}
+   \item \strong{out.parcor:} {variable selection results for testing if a main covariate has an effect on the response variable, but AFTER accounting for the additional fixed covariate z}
+   \item \strong{out.benhoch.cor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values do not account for the additional fixed covariate z}
+   \item \strong{out.benhoch.parcor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values account for the additional fixed covariate z}
+   \item \strong{out.w:} {variable selection results from weighted lasso}
+   \item \strong{alpha:} {level of significance to compare with the q-values}
+   \item \strong{alpha.bh:} {level of significance to compare with the Benjamini-Hochberg adjusted p-values}
+   \item \strong{delta:} {the multiplier to the number of predictors in the penalized loss function for variable selection. The loss function is defined as: \code{ SSE/(sigma^2) - n + delta*p } where SSE denotes the residual sum of squares, sigma denotes the estimator of the model error variance, n is the sample size and p is the number of predictors in the selected model. }
 }
-
-out.cor
-
-out.benhoch.cor
-
-out.parcor
-
-out.benhoch
-
-qval
 }
 \description{
 Implement structured variables selection with q-values
