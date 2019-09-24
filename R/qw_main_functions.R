@@ -36,27 +36,29 @@ store.micro <- function(microbes){
 # When pearson correlation is 0 (because std. deviation is 0), I am setting
 # p-value  to 1.
 
-corr.pvalue <- function(x,y,method="pearson",alternative="two.sided",ttest="FALSE"){
+corr.pvalue <- function(x,y,method="pearson",alternative="two.sided",ttest=FALSE){
 	x <- as.numeric(x)
 	y <- as.numeric(y)
 
 	out <- cor.test(x,y,alternative=alternative,method=method,na.action=na.omit)
 	estimate <- out$estimate
 
-	if(ttest=="FALSE"){
+	if(ttest==FALSE){
 		p.value <- out$p.value
+		t.stat=NULL
 	} else {
 		y1 <- y
 		x1 <- x
 		summary.out <- summary(lm(y1~  x1))
 		p.value <- summary.out$coefficients["x1","Pr(>|t|)"]
+		t.stat <- summary.out$coefficients["x1","t value"]
 	}
-	list(p.value=p.value,estimate=estimate)
+	list(p.value=p.value,estimate=estimate,t.stat=t.stat)
 }
 
 
 
-parcorr.pvalue <- function(x,y,z,method="pearson",alternative="two.sided",ttest="FALSE"){
+parcorr.pvalue <- function(x,y,z,method="pearson",alternative="two.sided",ttest=FALSE){
 	x <- as.numeric(x)
 	y <- as.numeric(y)
 	z <- as.numeric(z)
@@ -66,43 +68,52 @@ parcorr.pvalue <- function(x,y,z,method="pearson",alternative="two.sided",ttest=
 	out <- corr.pvalue(xres,yres,method,alternative,ttest="FALSE")
 	estimate <- out$estimate
 
-	if(ttest=="FALSE"){
+	if(ttest==FALSE){
 		p.value <- out$p.value
+		t.stat <- NULL
 	} else {
 		y1 <- y
 		x1 <- x
 		summary.out <- summary(lm(y1 ~ factor(z) +  x1))
 		p.value <- summary.out$coefficients["x1","Pr(>|t|)"]
+		t.stat <- summary.out$coefficients["x1","t value"]
 	}
 
-	list(p.value=p.value,estimate=estimate)
+	list(p.value=p.value,estimate=estimate,t.stat=t.stat)
 }
 
 
 
-correlations <- function(microbes,phenotypes,partial="FALSE",ttest="FALSE"){
+correlations <- function(microbes,phenotypes,partial=FALSE,ttest=FALSE,format.data=TRUE){
 
-	data.phenotypes <- phenotypes
+    ## Formatting data
+    if(format.data==TRUE){
+        data.phenotypes <- phenotypes[-c(which(rownames(phenotypes)=="Diet"),which(rownames(phenotypes)=="Cohort")),]
+    } else {
+        data.phenotypes <- phenotypes
+    }
 	data.microbes <- microbes[-which(rownames(microbes)=="Diet"),]
 	diet <- microbes["Diet",]
 
 	# Setting up matrices to store Pearson correlations and p-values
 	correlation <- store.micropheno(data.microbes,data.phenotypes)
 	pvalues <- store.micropheno(data.microbes,data.phenotypes)
+	tvalues <- store.micropheno(data.microbes,data.phenotypes)
 
 	# Computing pearson correlations and p-values
 	for (i in 1: nrow(data.microbes)) {
 		for(j in 1:nrow(data.phenotypes)) {
-			if(partial=="TRUE"){
+			if(partial==TRUE){
 				tmp <- parcorr.pvalue(data.microbes[i,],data.phenotypes[j,],diet,ttest=ttest)
 			} else {
 				tmp <- corr.pvalue(data.microbes[i,],data.phenotypes[j,],ttest=ttest)
 			}
 			correlation[i,j] <- tmp$estimate
 			pvalues[i,j] <- tmp$p.value
+			tvalues[i,j] <- tmp$t.stat
 		}
 	}
-	list(estimate = correlation, pvalues = pvalues)
+	list(estimate = correlation, pvalues = pvalues,tvalues=tvalues)
 }
 
 
