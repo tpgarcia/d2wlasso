@@ -56,7 +56,7 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
 \value{
 \itemize{
    \item \strong{qval:} {q-value as proposed in Storey and Tibshirani (2003)}
-   \item \strong{BH-pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
+   \item \strong{bh.pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
    \item \strong{pval:} {p-value for each covariate}
    \item \strong{out.cor:} {variable selection results for testing if a main covariate has an effect on the response variable, but NOT accounting for the additional fixed covariate z}
    \item \strong{out.parcor:} {variable selection results for testing if a main covariate has an effect on the response variable, but AFTER accounting for the additional fixed covariate z}
