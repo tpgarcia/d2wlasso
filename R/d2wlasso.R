@@ -8,7 +8,7 @@
 #' @param plots logical. If TRUE, figures are plotted. Default is FALSE.
 #' @param pi0.true logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.
 #' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.true is TRUE. Default is 0.9.
-#' @param wt The weights to be used for the weighted lasso. One of "one","adapt","q_cor" or "q_parcor". "one" gives no weight. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
+#' @param wt The weights to be used for the weighted lasso. One of "one","t_val","p_val","bhp_val","adapt","q_cor" or "q_parcor". "one" gives no weight. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
 #' @param weight_fn The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
 #' @param include.z logical. If TRUE, the additional covariate z is forced to be included in the model. Default is TRUE.
 #' @param z.wt constant for forcing z in the model. If z is not included in the model even if include.z is TRUE, try different value. Default is 1000.
@@ -16,6 +16,7 @@
 #' @param alpha indicates cut-off for q-values (thresholding). That is, the covariate with q-value less than this cut-off is included in the model.
 #' @param alpha.bh indicates cut-off for Benjamini-Hochberg adjusted p-value (thresholding). That is, the covariate with BH-adjusted p-value less than this cut-off is included in the model.
 #' @param delta Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.
+#' @param robust indicates whether it is desired to make the estimate more robust for small p-values.
 #' @param lasso.delta.cv.mult logical. If TRUE, we run vfold cross-validation to select optimal delta multiple times (ncv times). Default is FALSE.
 #' @param vfold indicates the number of folds of the cross-validation for selecting delta.
 #' @param ncv indicates the number of cross-validation runs for selecting delta.
@@ -53,8 +54,8 @@
 #' dwlcv0 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3)
 #' dwlcv1 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
 #' dwlcv2 <- d2wlasso(x,z,y,weight_fn = "square",lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
-d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
-                     wt=c("one","adapt","q_cor","q_parcor")[4],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
+d2wlasso <- function(x,z,y,ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
+                     wt=c("one","t_val","p_val","bhp_val","adapt","q_cor","q_parcor")[7],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,robust=TRUE,q.old=FALSE,
                      lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL){
 
@@ -101,7 +102,7 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
     ##            accounting for diet
     ## That is, we test : H_0 : \beta_{x_j}=0
     microbe.cor.out.qvalues <- q.computations(cor.out, method=q_method,
-                                              plots=plots,file="cor",
+                                              plots=plots,file="cor",robust=robust,q.old=q.old,
                                               pi0.true=pi0.true,pi0.val=pi0.val)
     microbe.cor.out <- q.interest(microbe.cor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
     out.cor   <- c(0,t(microbe.cor.out$interest))
@@ -130,6 +131,14 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
     if (wt == "one"){
         ## No weights
         weights <- matrix(1,nrow=nrow(microbes)-1,ncol=nrow(phenotypes))
+    } else if (wt == "t_val"){
+        weights <- weight.tvalue
+    } else if (wt == "parcor"){
+        weights <- weight.parcor
+    } else if (wt == "p_val"){
+        weights <- weight.pvalue.noadj
+    } else if (wt == "bhp_val"){
+        weights <- weight.pvalue.benhoch
     } else if (wt == "adapt"){
         ## Weights set to absolute value of partial correlations
         weights <- parcor.out$estimate
@@ -167,7 +176,7 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
     out.w <- as.data.frame(matrix(0,nrow=out.nrow,ncol=1,
                                   dimnames = list(out.rownames,paste("w.delta.",delta,sep=""))))
 
-    if (wt == "adapt"){
+    if ((wt == "t_val")||(wt == "parcor")||(wt == "adapt")){
         lasso.w <- lasso.computations(weights,microbes,phenotypes,g3,plots=plots,file="weight_",
                                       include.diet=include.z,diet.wt=z.wt,corr.g=TRUE,
                                       delta=delta)
