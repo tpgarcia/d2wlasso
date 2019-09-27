@@ -55,7 +55,7 @@
 #' dwlcv2 <- d2wlasso(x,z,y,weight_fn = "square",lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
 d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","adapt","q_cor","q_parcor")[4],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
-                     include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,
+                     include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,robust=TRUE,q.old=FALSE,
                      lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL){
 
     # dimension setting
@@ -72,8 +72,30 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
     out.rownames <- rownames(microbes)
 
     # compute correlation and partial correlation (for taking into account z) between x and y
-    cor.out <- correlations(microbes,phenotypes,partial=FALSE,ttest=ttest)
-    parcor.out <- correlations(microbes,phenotypes,partial=TRUE,ttest=ttest)
+    cor.out <- correlations(microbes,phenotypes,partial=FALSE,ttest=ttest,format.data=FALSE)
+    parcor.out <- correlations(microbes,phenotypes,partial=TRUE,ttest=ttest,format.data=FALSE)
+    fstat.out <- ftests(microbes)
+
+    #####################
+    ## Get Weights: t-statistic, p-values, Benjamin-Hochberg p-values, q-values, partial correlations ##
+    #####################
+
+    ## t-values with \beta_k in y=diet + \beta_k * microbe_k
+    weight.tvalue <- parcor.out$tvalues
+    #out.tvalue[,j] <- parcor.out$tvalues
+
+    ## p-values with \beta_k in y=diet + \beta_k * microbe_k
+    weight.pvalue.noadj <- parcor.out$pvalues
+    #out.pvalue.noadj[,j] <- parcor.out$pvalues
+
+    ## Benjamini-Hochberg adjusted p-values from y=diet + \beta_k * microbe_k
+    benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=0.05)
+    weight.pvalue.benhoch <- benhoch.results$pval.adjust
+    #out.pvalue.benhoch[,j] <- benhoch.results$pval.adjust
+
+    ## partial correlations
+    weight.parcor <- parcor.out$estimate
+    #out.parcor.value[,j] <- parcor.out$estimate
 
     ## Results for testing if a microbe has an effect on phenotype, but NOT
     ##            accounting for diet
@@ -93,7 +115,7 @@ d2wlasso <- function(x,z,y,ttest=FALSE,q_method=c("bootstrap","smoother")[2],plo
     ## That is, we test : H_0 : \beta_{x_j|z}=0
     # compute q-value as used by JD Storey with some adjustments made
     microbe.parcor.out.qvalues <- q.computations(parcor.out,method=q_method,
-                                                 plots=plots,file="parcor",
+                                                 plots=plots,file="parcor",robust=robust,q.old=q.old,
                                                  pi0.true=pi0.true,pi0.val=pi0.val)
     out.qvalue <- c(0,t(microbe.parcor.out.qvalues$qval.mat))
     out.pvalue <- c(0,t(parcor.out$pvalues))

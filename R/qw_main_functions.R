@@ -393,8 +393,83 @@ qvalue.adj<-function (p = NULL, lambda = seq(0, 0.9, 0.05), pi0.method = "smooth
 }
 
 
+qvalue.old <- function(p, alpha=NULL, lam=NULL, robust=F,pi0.true=FALSE,pi0.val=0.9)
+{
+    #This is a function for estimating the q-values for a given set of p-values. The
+    #methodology comes from a series of recent papers on false discovery rates by John
+    #D. Storey et al. See http://www.stat.berkeley.edu/~storey/ for references to these
+    #papers. This function was written by John D. Storey. Copyright 2002 by John D. Storey.
+    #All rights are reserved and no responsibility is assumed for mistakes in or caused by
+    #the program.
+    #
+    #Input
+    #=============================================================================
+    #p: a vector of p-values (only necessary input)
+    #alpha: a level at which to control the FDR (optional)
+    #lam: the value of the tuning parameter to estimate pi0 (optional)
+    #robust: an indicator of whether it is desired to make the estimate more robust
+    #        for small p-values (optional)
+    #
+    #Output
+    #=============================================================================
+    #remarks: tells the user what options were used, and gives any relevant warnings
+    #pi0: an estimate of the proportion of null p-values
+    #qvalues: a vector of the estimated q-values (the main quantity of interest)
+    #pvalues: a vector of the original p-values
+    #significant: if alpha is specified, and indicator of whether the q-value fell below alpha
+    #    (taking all such q-values to be significant controls FDR at level alpha)
+
+    #This is just some pre-processing
+    m <- length(p)
+    #These next few functions are the various ways to automatically choose lam
+    #and estimate pi0
+    if(!is.null(lam)) {
+        pi0 <- mean(p>lam)/(1-lam)
+        remark <- "The user prespecified lam in the calculation of pi0."
+    }
+    else{
+        remark <- "A smoothing method was used in the calculation of pi0."
+        #library(modreg)
+        lam <- seq(0,0.95,0.01)
+        pi0 <- rep(0,length(lam))
+        for(i in 1:length(lam)) {
+            pi0[i] <- mean(p>lam[i])/(1-lam[i])
+        }
+        spi0 <- smooth.spline(lam,pi0,df=3,w=(1-lam))
+        pi0 <- predict(spi0,x=0.95)$y
+    }
+
+    # TG added, true pi0
+    if(pi0.true==TRUE){
+        pi0 <- pi0.val
+    }
+
+    #print(pi0)
+
+    #The q-values are actually calculated here
+    u <- order(p)
+    v <- rank(p)
+    qvalue <- pi0*m*p/v
+    if(robust) {
+        qvalue <- pi0*m*p/(v*(1-(1-p)^m))
+        remark <- c(remark, "The robust version of the q-value was calculated. See Storey JD (2002) JRSS-B 64: 479-498.")
+    }
+    qvalue[u[m]] <- min(qvalue[u[m]],1)
+    for(i in (m-1):1) {
+        qvalue[u[i]] <- min(qvalue[u[i]],qvalue[u[i+1]],1)
+    }
+    #Here the results are returned
+    if(!is.null(alpha)) {
+        list(remarks=remark, pi0=pi0, qvalue=qvalue, significant=(qvalue <= alpha), pvalue=p)
+    }
+    else {
+        list(remarks=remark, pi0=pi0, qvalue=qvalue, pvalue=p)
+    }
+}
+
+
 q.computations <- function(out, method=c("smoother","bootstrap")[2],
-				plots=TRUE,file="name",
+				plots=TRUE,file="name",robust=TRUE,q.old=FALSE,
 				pi0.true=FALSE,pi0.val=0.9){
 
 	qval.mat <- matrix(0,nrow=nrow(out$pvalues),ncol=ncol(out$pvalues))
@@ -407,8 +482,18 @@ q.computations <- function(out, method=c("smoother","bootstrap")[2],
 		pvalues <- out$pvalues[,i]
 		estimate <- out$estimate[,i]
 
-		qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),robust=FALSE,pi0.true=pi0.true,pi0.val=pi0.val)
-		qval <- qobj$qvalues
+		#qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),robust=FALSE,pi0.true=pi0.true,pi0.val=pi0.val)
+		#qval <- qobj$qvalues
+		if(q.old=="FALSE"){
+		    #print("bye")
+		    qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
+		    #qobj <- qvalue.adj(pvalues,pi0.method=method)
+		    qval <- qobj$qvalues
+		} else {
+		    #print("hi there")
+		    qobj <- qvalue.old(pvalues,robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
+		    qval <- qobj$qvalue
+		}
 		pi0 <- qobj$pi0
 		qval.mat[,i] <- qval
 
@@ -472,6 +557,57 @@ q.interest <- function(qval.mat,alpha=0.15, criteria = c("more","less")[2]){
 	list(interest=interest)
 }
 
+# Function to find minimum qvalues
+
+minqval <- function(out,method=c("smoother","bootstrap")[2]){
+
+    interest <- matrix(0,nrow=ncol(out$pvalues),ncol=1)
+    interest <- as.data.frame(interest)
+    rownames(interest) <- colnames(out$pvalues)
+
+    for(i in 1:nrow(interest)){
+        #print(i)
+        pvalues <- out$pvalues[,i]
+        qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.90,by=0.01))
+        #qobj <- qvalue.adj(pvalues,pi0.method=method)
+        qval <- qobj$qvalues
+        interest[i,] <- min(qval)
+    }
+    return(interest)
+}
+
+
+##########################
+# Bonferonni-Holm Method #
+##########################
+
+
+bon.holm.interest <- function(pvalues,alpha=0.05){
+
+    interest <- matrix(0,nrow=nrow(pvalues),ncol=ncol(pvalues))
+    interest <- as.data.frame(interest)
+    rownames(interest) <- rownames(pvalues)
+    colnames(interest) <- colnames(pvalues)
+
+    pval.adjust <- matrix(0,nrow=nrow(pvalues),ncol=ncol(pvalues))
+    pval.adjust <- as.data.frame(pval.adjust)
+    rownames(pval.adjust) <- rownames(pval.adjust)
+    colnames(pval.adjust) <- colnames(pval.adjust)
+
+    for(i in 1:ncol(interest)){
+        pval <- pvalues[,i]
+
+        # adjust p-values using bonferroni-holm method
+        pval.adjust[,i] <- p.adjust(pval,method="holm")
+
+        ind <- which(pval.adjust[,i] <= alpha)
+
+        if(length(ind)>0){
+            interest[ind,i] <- 1
+        }
+    }
+    list(interest=interest,pval.adjust=pval.adjust)
+}
 
 #############################
 # Benjamini-Hochberg Method #

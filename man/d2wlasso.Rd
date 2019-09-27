@@ -9,8 +9,9 @@ d2wlasso(x, z, y, ttest = FALSE, q_method = c("bootstrap",
   wt = c("one", "adapt", "q_cor", "q_parcor")[4],
   weight_fn = c("identity", "sqrt", "inverse_abs", "square")[1],
   include.z = TRUE, z.wt = 1000, thresh.q = TRUE, alpha = 0.15,
-  alpha.bh = 0.05, delta = 2, lasso.delta.cv.mult = FALSE,
-  vfold = 10, ncv = 100, delta.cv.seed = NULL)
+  alpha.bh = 0.05, delta = 2, robust = TRUE, q.old = FALSE,
+  lasso.delta.cv.mult = FALSE, vfold = 10, ncv = 100,
+  delta.cv.seed = NULL)
 }
 \arguments{
 \item{x}{(n by m) matrix of main covariates where m is the number of covariates and n is the sample size}
