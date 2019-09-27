@@ -8,7 +8,7 @@
 #' @param plots logical. If TRUE, figures are plotted. Default is FALSE.
 #' @param pi0.true logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.
 #' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.true is TRUE. Default is 0.9.
-#' @param wt The weights to be used for the weighted lasso. One of "one","t_val","p_val","bhp_val","adapt","q_cor" or "q_parcor". "one" gives no weight. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
+#' @param wt The weights to be used for the weighted lasso. One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor". "one" gives no weight. "t_val" gives weight of the inverse absolute t-statistics of the regression coefficients. "parcor" gives weight of the inverse absolute partial correlation between the main covariate and the response after accounting for z. "p_val" gives p-value of each predictor's coefficient as weights. "bhp_val" gives Benjamini-Hochberg adjusted p-value of each predictor's coefficient as weights. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
 #' @param weight_fn The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
 #' @param include.z logical. If TRUE, the additional covariate z is forced to be included in the model. Default is TRUE.
 #' @param z.wt constant for forcing z in the model. If z is not included in the model even if include.z is TRUE, try different value. Default is 1000.
@@ -55,7 +55,7 @@
 #' dwlcv1 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
 #' dwlcv2 <- d2wlasso(x,z,y,weight_fn = "square",lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
 d2wlasso <- function(x,z,y,ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
-                     wt=c("one","t_val","p_val","bhp_val","adapt","q_cor","q_parcor")[7],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
+                     wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,robust=TRUE,q.old=FALSE,
                      lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL){
 

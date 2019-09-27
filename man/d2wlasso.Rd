@@ -6,7 +6,7 @@
 \usage{
 d2wlasso(x, z, y, ttest = TRUE, q_method = c("bootstrap",
   "smoother")[2], plots = FALSE, pi0.true = FALSE, pi0.val = 0.9,
-  wt = c("one", "t_val", "p_val", "bhp_val", "adapt", "q_cor",
+  wt = c("one", "t_val", "parcor", "p_val", "bhp_val", "adapt", "q_cor",
   "q_parcor")[7], weight_fn = c("identity", "sqrt", "inverse_abs",
   "square")[1], include.z = TRUE, z.wt = 1000, thresh.q = TRUE,
   alpha = 0.15, alpha.bh = 0.05, delta = 2, robust = TRUE,
@@ -30,7 +30,7 @@ d2wlasso(x, z, y, ttest = TRUE, q_method = c("bootstrap",
 
 \item{pi0.val}{A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.true is TRUE. Default is 0.9.}
 
-\item{wt}{The weights to be used for the weighted lasso. One of "one","t_val","p_val","bhp_val","adapt","q_cor" or "q_parcor". "one" gives no weight. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.}
+\item{wt}{The weights to be used for the weighted lasso. One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor". "one" gives no weight. "t_val" gives weight of the inverse absolute t-statistics of the regression coefficients. "parcor" gives weight of the inverse absolute partial correlation between the main covariate and the response after accounting for z. "p_val" gives p-value of each predictor's coefficient as weights. "bhp_val" gives Benjamini-Hochberg adjusted p-value of each predictor's coefficient as weights. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.}
 
 \item{weight_fn}{The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".}
 
