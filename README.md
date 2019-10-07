@@ -3,6 +3,7 @@ The R package `d2wlasso` implements structured variable selection with q-values.
 
 The reference for the original pliable lasso can be found at:
 * [Structured variable selection with q-values](https://doi.org/10.1093/biostatistics/kxt012) by Tanya P. Garcia et al (2013).
+* [Influence of Measures of Significance based Weights in the Weighted Lasso](https://www.statindex.org/articles/285259) by Tanya P. Garcia and Samuel Müller (2014).
 
 ## Installation
 
@@ -24,6 +25,8 @@ dwl1 <- d2wlasso(x,z,y,delta=2)
 dwl2 <- d2wlasso(x,z,y,include.z=FALSE,delta=2)
 dwl3 <- d2wlasso(x,z,y,weight_fn = "sqrt")
 dwl4 <- d2wlasso(x,z,y,wt="adapt")
+dwl5 <- d2wlasso(x,z,y,wt="t_val")
+dwl6 <- d2wlasso(x,z,y,wt="q_parcor")
 
 # select delta with cross-validation
 dwlcv0 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3)
