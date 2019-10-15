@@ -959,49 +959,51 @@ lasso.computations <- function(weights,XX,response,g,plots=TRUE,file="name",incl
 ## Cross-Validation function to select delta ##
 ###############################################
 
-cv.delta <- function(y1,X1,K=10){
-	# sequence of delta values
-	delta.cv <- seq(0.75,2,by=0.1)
+cv.delta <- function(y1,X1,K=10,est.MSE=c("TRUE","est.var","step")[2]){
+    ## sequence of delta values
+    delta.cv <- seq(0.75,2,by=0.1)
+    ##delta.cv <- seq(0.1,2,by=0.1)
 
-	# Randomly partition the data
-	all.folds <- cv.folds(length(y1), K)
+    ## Randomly partition the data
+    all.folds <- cv.folds(length(y1), K)
 
-	# Matrix to store residuals
-	residmat <- matrix(0, length(delta.cv), K)
+    ## Matrix to store residuals
+    residmat <- matrix(0, length(delta.cv), K)
 
-	for(j in seq(K)){
-		# data set to omit
-		omit <- all.folds[[j]]
+    for(j in seq(K)){
+        ## data set to omit
+        omit <- all.folds[[j]]
 
-		# Run Lasso with after removing omit data
-		wLasso.out <- lasso.procedure(y1[-omit],X1[-omit,,drop=FALSE])$wLasso.out
+        ## Run Lasso with after removing omit data
+        wLasso.out <- lasso.procedure(y1[-omit],X1[-omit,,drop=FALSE])$wLasso.out
 
-		for(d in 1:length(delta.cv)){
+        for(d in 1:length(delta.cv)){
 
-			# Find best-fitting model for specified delta
-			beta.omit <- lasso.delta.choice(wLasso.out,y1[-omit],X1[-omit,,drop=FALSE],delta=delta.cv[d])
+            ## Find best-fitting model for specified delta
+            beta.omit <- lasso.delta.choice(wLasso.out,y1[-omit],X1[-omit,,drop=FALSE],delta=delta.cv[d],est.MSE=est.MSE)
 
-			# Find final fit with data omitted
-			fit <- X1[omit,,drop=FALSE] %*% beta.omit$predict.out$coefficients
+            ## Find final fit with data omitted
+            fit <- X1[omit,,drop=FALSE] %*% beta.omit$predict.out$coefficients
 
-			# Store residual
-			residmat[d,j] <-  apply((y1[omit] - fit)^2, 2, sum)
-		}
-	}
+            ## Store residual
+            residmat[d,j] <-  apply((y1[omit] - fit)^2, 2, sum)
 
-	cv <- apply(residmat,1,mean)
+        }
 
-	# Check which delta's lead to min(cv)
-	delta.ind <- which(cv==min(cv))
-	delta.opt <- delta.cv[delta.ind]
-      delta <- mean(delta.opt)		## takes average of delta values
+    }
 
-      wLasso.out <- lasso.procedure(y1,X1)$wLasso.out
-	predict.out <- lasso.delta.choice(wLasso.out,y1,X1,delta=delta)$predict.out
-	list(predict.out=predict.out,delta=delta)
+    cv <- apply(residmat,1,mean)
+
+    ## Check which delta's lead to min(cv)
+    delta.ind <- which(cv==min(cv))
+    delta.opt <- delta.cv[delta.ind]
+
+    delta <- mean(delta.opt)		## takes average of delta values
+
+    wLasso.out <- lasso.procedure(y1,X1)$wLasso.out
+    predict.out <- lasso.delta.choice(wLasso.out,y1,X1,delta=delta,est.MSE=est.MSE)$predict.out
+    list(predict.out=predict.out,delta=delta)
 }
-
-
 
 lasso.procedure <- function(y1,X1){
 	# Setup
@@ -1022,33 +1024,55 @@ lasso.procedure <- function(y1,X1){
 	list(wLasso.out=wLasso.out)
 }
 
+lasso.delta.choice <- function(wLasso.out,y1,X1,delta,est.MSE=c(TRUE,"est.var","step")[2]){
+    # Setup
+    N <- length(y1)
 
-lasso.delta.choice <- function(wLasso.out,y1,X1,delta){
-	# Setup
-	N <- length(y1)
+    p = dim(X1)[2]
 
-	p = dim(X1)[2]
+    s = length(wLasso.out$df)
+    p.pos = NULL
 
-	s = length(wLasso.out$df)
-	p.pos = NULL
+    RSS = NULL
+    for (i in 1:s){
+        RSS[i] = sum((y1-predict(wLasso.out, X1, s=i, type = c("fit"))$fit)**2)
+        p.pre = predict(wLasso.out, X1, s=i, type = c("coefficients"))$coefficients
+        p.pos = c(p.pos,length(p.pre[abs(p.pre)>0]))
+    }
 
-	RSS = NULL
-	for (i in 1:s){
- 			RSS[i] = sum((y1-predict(wLasso.out, X1, s=i, type = c("fit"))$fit)**2)
- 			p.pre = predict(wLasso.out, X1, s=i, type = c("coefficients"))$coefficients
- 			p.pos = c(p.pos,length(p.pre[abs(p.pre)>0]))
-	}
+    ## Get estimated MSE
+    if(est.MSE=="TRUE"){
+        MSE <- 0.5
+        ##print(MSE)
+    } else if(est.MSE=="est.var") {
+        MSE <- sd(as.vector(y1)) * sqrt( N / (N-1) )
+        MSE <- MSE^2
+        ##print(MSE)
+    } else {
+        ## Get estimated MSE from best fit of forward stepwise regression with AIC as selection criterion
+        X2 <- data.frame(X1)
+        colnames(X2)[1] <- "Fixed"
+        full.lm <- lm(y1~.,data=X2)
+        start.lm <- lm(y1~-1 + Diet,data=X2)
+        lowest.step.forward <- step(lm(y1 ~ -1+Diet, data=X2),
+                                    list(lower=start.lm,upper=full.lm), direction='forward',trace=FALSE)
+        MSE <- summary(lowest.step.forward)$sigma
+        ##print(MSE)
+        MSE <- summary(lowest.step.forward)$sigma^2
+        ##	print(MSE)
+        if(MSE < 1e-5){
+            MSE <-  sd(as.vector(y1)) * sqrt( N / (N-1) )
+            MSE <- MSE^2
+        }
+    }
 
-	MSE <- sd(as.vector(y1)) * sqrt( N / (N-1) )
-	MSE <- MSE^2
-
-	p.min = which.min(RSS/MSE+delta*p.pos)
+    p.min = which.min(RSS/MSE+delta*p.pos)
 
 
-	## final best descriptive model
-	predict.out <- predict(wLasso.out, X1, s=p.min, type = c("coefficients"))
+    ## final best descriptive model
+    predict.out <- predict(wLasso.out, X1, s=p.min, type = c("coefficients"))
 
-	list(wLasso.out=wLasso.out,predict.out=predict.out)
+    list(wLasso.out=wLasso.out,predict.out=predict.out)
 }
 
 # Function to get R^2 value
