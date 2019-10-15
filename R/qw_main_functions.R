@@ -871,16 +871,14 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",plots=FALSE,include.die
         predict.out <- list(coefficients=wLasso.fit$beta)
         delta.out <- delta
     }
-    #print(abs(predict.out$coefficients))
-    #print(which(abs(predict.out$coefficients)>1e-10))
     ind <- which(as.logical(abs(predict.out$coefficients)>1e-10))
     ##ind <- which(predict.out$coefficients!=0)
     sig.variables <- rep(0,nrow(XX))
     sig.variables[ind] <- 1
     sign.of.variables <- rep(0,nrow(XX))
-    ind.pos <- which(predict.out$coefficients >0)
+    ind.pos <- which(as.logical(predict.out$coefficients >0))
     sign.of.variables[ind.pos] <- 1
-    ind.neg <- which(predict.out$coefficients <0)
+    ind.neg <- which(as.logical(predict.out$coefficients <0))
     sign.of.variables[ind.neg] <- -1
     if(plots==TRUE){
         postscript(paste(file,"_lasso1.eps",sep=""))
