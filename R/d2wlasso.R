@@ -56,7 +56,7 @@
 #' dwlcv0 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3)
 #' dwlcv1 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
 #' dwlcv2 <- d2wlasso(x,z,y,weight_fn = "square",lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
-d2wlasso <- function(x,z,y,ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
+d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox")[1],ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,robust=TRUE,q.old=FALSE,
                      lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL){
@@ -68,16 +68,18 @@ d2wlasso <- function(x,z,y,ttest=TRUE,q_method=c("bootstrap","smoother")[2],plot
 
     # arranging input data
     X <- cbind(z, x)
-    colnames(X) <- c("Diet",paste("X_",seq(1,m),sep=""))
+    colnames(X) <- c("Fixed",paste("X_",seq(1,m),sep=""))
     microbes <- t(X)
-    phenotypes <- t(y)
+    phenotypes <- list(yy=t(y),delta=cox.delta)
     out.nrow <- nrow(microbes)
     out.rownames <- rownames(microbes)
+    #print("here")
 
     # compute correlation and partial correlation (for taking into account z) between x and y
-    cor.out <- correlations(microbes,phenotypes,partial=FALSE,ttest=ttest,format.data=FALSE)
-    parcor.out <- correlations(microbes,phenotypes,partial=TRUE,ttest=ttest,format.data=FALSE)
-    fstat.out <- ftests(microbes)
+    cor.out <- correlations(factor.z,microbes,phenotypes,partial=FALSE,ttest=ttest,format.data=FALSE,reg.type=reg.type)
+    parcor.out <- correlations(factor.z,microbes,phenotypes,partial=TRUE,ttest=ttest,format.data=FALSE,reg.type=reg.type)
+    fstat.out <- ftests(factor.z,microbes)
+    #print(cor.out)
 
     #####################
     ## Get Weights: t-statistic, p-values, Benjamin-Hochberg p-values, q-values, partial correlations ##

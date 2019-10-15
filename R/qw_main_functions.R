@@ -36,7 +36,7 @@ store.micro <- function(microbes){
 # When pearson correlation is 0 (because std. deviation is 0), I am setting
 # p-value  to 1.
 
-corr.pvalue <- function(x,y,method="pearson",alternative="two.sided",ttest=FALSE){
+#corr.pvalue <- function(x,y,method="pearson",alternative="two.sided",ttest=FALSE){
 	x <- as.numeric(x)
 	y <- as.numeric(y)
 
@@ -58,7 +58,7 @@ corr.pvalue <- function(x,y,method="pearson",alternative="two.sided",ttest=FALSE
 
 
 
-parcorr.pvalue <- function(x,y,z,method="pearson",alternative="two.sided",ttest=FALSE){
+#parcorr.pvalue <- function(x,y,z,method="pearson",alternative="two.sided",ttest=FALSE){
 	x <- as.numeric(x)
 	y <- as.numeric(y)
 	z <- as.numeric(z)
@@ -82,18 +82,132 @@ parcorr.pvalue <- function(x,y,z,method="pearson",alternative="two.sided",ttest=
 	list(p.value=p.value,estimate=estimate,t.stat=t.stat)
 }
 
+corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest=FALSE,reg.type){
+    ##print(reg.type)
+    x <- as.numeric(x)
+    y <- as.numeric(y)
+    delta.use <- as.numeric(delta)
+
+    if(reg.type=="linear"){
+        out <- cor.test(x,y,alternative=alternative,method=method,na.action=na.omit)
+        estimate <- out$estimate
+    } else {
+        estimate <- 0
+    }
+
+    if(ttest==FALSE & reg.type=="linear"){
+        p.value <- out$p.value
+        t.stat=NULL
+    } else {
+        y1 <- y
+        x1 <- x
+        delta1 <- delta.use
+
+        if(reg.type=="linear"){
+            #######################
+            ## linear regression ##
+            #######################
+            summary.out <- summary(lm(y1~  x1))
+            p.value <- summary.out$coefficients["x1","Pr(>|t|)"]
+            t.stat <- summary.out$coefficients["x1","t value"]
+            ##summary.out <- summary(lm(y~x))
+            ##p.value <- summary.out$coefficients["x","Pr(>|t|)"]
+        } else {
+            #########################
+            ## survival regression ##
+            #########################
+            survival.data <- list(time=y1,status=delta1,x1=x1)
+            summary.out <- summary(coxph(Surv(time,status)~ x1,data=survival.data))
+            p.value <- summary.out$coefficients["x1","Pr(>|z|)"]
+            t.stat  <- summary.out$coefficients["x1","z"]
+        }
+
+    }
+    list(p.value=p.value,estimate=estimate,t.stat=t.stat)
+}
 
 
-correlations <- function(microbes,phenotypes,partial=FALSE,ttest=FALSE,format.data=TRUE){
+parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternative="two.sided",ttest=FALSE,reg.type){
+    x <- as.numeric(x)
+    y <- as.numeric(y)
+    z <- as.numeric(z)
+    delta.use <- as.numeric(delta)
+
+    if(reg.type=="linear"){
+        if(factor.z==TRUE){
+            xres <- residuals(lm(x~factor(z)))
+            yres <- residuals(lm(y~factor(z)))
+        } else {
+            xres <- residuals(lm(x~z))
+            yres <- residuals(lm(y~z))
+        }
+        out <- corr.pvalue(xres,yres,delta.use,method,alternative,ttest=FALSE,reg.type=reg.type)
+        estimate <- out$estimate
+    } else {
+        estimate <- 0
+    }
+
+    if(ttest==FALSE & reg.type=="linear"){
+        p.value <- out$p.value
+        t.stat <- NULL
+    } else {
+        y1 <- y
+        x1 <- x
+        delta1 <- delta.use
+
+        if(reg.type=="linear"){
+            #######################
+            ## linear regression ##
+            #######################
+
+            if(factor.z==TRUE){
+                summary.out <- summary(lm(y1 ~ factor(z) +  x1))  ## may have to change due to nature of z!!
+            } else {
+                summary.out <- summary(lm(y1 ~ z +  x1))  ## may have to change due to nature of z!!
+            }
+
+            p.value <- summary.out$coefficients["x1","Pr(>|t|)"]
+            t.stat <- summary.out$coefficients["x1","t value"]
+
+            ## Or using reduced sum of squares:
+            ##model.full <- lm(y1~z + x1)
+            ##model.red  <- lm(y1~z)
+            ##anova.out <- anova(model.full,model.red)
+            ##p.value <- anova.out[-1,"Pr(>F)"]
+
+            ##summary.out <- summary(lm(y ~ z +  x))
+            ##p.value <- summary.out$coefficients["x","Pr(>|t|)"]
+        } else {
+            #########################
+            ## survival regression ##
+            #########################
+            survival.data <- list(time=y1,status=delta1,z=z,x1=x1)
+            if(factor.z==TRUE){
+                summary.out <- summary(coxph(Surv(time,status)~ factor(z) + x1,data=survival.data))
+            } else{
+                summary.out <- summary(coxph(Surv(time,status)~ z + x1,data=survival.data))
+            }
+            p.value <- summary.out$coefficients["x1","Pr(>|z|)"]
+            t.stat  <- summary.out$coefficients["x1","z"]
+        }
+    }
+
+
+    list(p.value=p.value,estimate=estimate,t.stat=t.stat)
+}
+
+correlations <- function(factor.z,microbes,phenotypes,partial=FALSE,ttest=FALSE,format.data=TRUE,reg.type){
 
     ## Formatting data
+    data.response <- phenotypes$yy
+    data.delta <- phenotypes$delta
     #if(format.data==TRUE){
-    #    data.phenotypes <- phenotypes[-c(which(rownames(phenotypes)=="Diet"),which(rownames(phenotypes)=="Cohort")),]
+    #    data.phenotypes <- data.response[-c(which(rownames(phenotypes)=="Fixed"),which(rownames(phenotypes)=="Cohort")),]
     #} else {
-        data.phenotypes <- phenotypes
+        data.phenotypes <- data.response
     #}
-	data.microbes <- microbes[-which(rownames(microbes)=="Diet"),]
-	diet <- microbes["Diet",]
+	data.microbes <- microbes[-which(rownames(microbes)=="Fixed"),]
+	diet <- microbes["Fixed",]
 
 	# Setting up matrices to store Pearson correlations and p-values
 	correlation <- store.micropheno(data.microbes,data.phenotypes)
@@ -104,9 +218,9 @@ correlations <- function(microbes,phenotypes,partial=FALSE,ttest=FALSE,format.da
 	for (i in 1: nrow(data.microbes)) {
 		for(j in 1:nrow(data.phenotypes)) {
 			if(partial==TRUE){
-				tmp <- parcorr.pvalue(data.microbes[i,],data.phenotypes[j,],diet,ttest=ttest)
+				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.microbes[i,],y=data.phenotypes[j,],z=diet,delta=data.delta[j,],ttest=ttest,reg.type=reg.type)
 			} else {
-				tmp <- corr.pvalue(data.microbes[i,],data.phenotypes[j,],ttest=ttest)
+				tmp <- corr.pvalue(x=data.microbes[i,],y=data.phenotypes[j,],delta=data.delta[j,],ttest=ttest,reg.type=reg.type)
 			}
 			correlation[i,j] <- tmp$estimate
 			pvalues[i,j] <- tmp$p.value
@@ -188,6 +302,25 @@ ftests <- function(microbes){
     # Computing pearson correlations and p-values
     for (i in 1: nrow(data.microbes)) {
         tmp <- fstat.pvalue(data.microbes[i,],diet)
+        fstat[i,] <- tmp$Fstat
+        pvalues[i,] <- tmp$p.value
+    }
+
+    list(estimate = fstat, pvalues = pvalues)
+}
+
+ftests <- function(factor.z,XX){
+    # Formatting data
+    diet <- XX["Fixed",]
+    data.XX <- XX[-which(row.names(XX)=="Fixed"),]
+
+    # Setting up matrices to store F-statistics and p-values
+    fstat <- store.micro(data.XX)
+    pvalues <- store.micro(data.XX)
+
+    # Computing pearson correlations and p-values
+    for (i in 1: nrow(data.XX)) {
+        tmp <- fstat.pvalue(factor.z,data.XX[i,],diet)
         fstat[i,] <- tmp$Fstat
         pvalues[i,] <- tmp$p.value
     }
@@ -765,30 +898,244 @@ lasso <- function(weights,phenotype,microbe,g,file="file",plots="FALSE",include.
 lasso.computations <- function(weights,microbes,phenotypes,g,plots=TRUE,file="name",include.diet="TRUE",
 					diet.wt=100,thresh.q=FALSE,corr.g=FALSE,delta=2,
 					cv.criterion=FALSE,vfold=10){
-
 	interest <- matrix(0,nrow=nrow(microbes),ncol=nrow(phenotypes))
 	interest <- as.data.frame(interest)
 	rownames(interest) <- rownames(microbes)
 	colnames(interest) <- rownames(phenotypes)
-
 	entry.var <- array(0,dim=c(nrow(phenotypes),nrow(microbes)))
-
 	delta.out <- matrix(0,nrow=1,ncol=nrow(phenotypes))
-
 	for(i in 1:ncol(interest)){
 		lasso.out <- lasso(weights[,i],phenotypes[i,],microbes,g,file=paste(file,rownames(phenotypes)[i],sep=""),
 					plots=plots,include.diet=include.diet,
 					diet.wt=diet.wt,thresh.q=thresh.q,corr.g=corr.g,delta=delta,
 					cv.criterion=cv.criterion,vfold=vfold)
 		interest[,i] <- lasso.out$sig.variables
-
 		entry.var[i,] <- lasso.out$entry.variables
-
 		delta.out[,i] <- lasso.out$delta.out
-
 	}
 	list(interest=interest,entry.var=entry.var,delta.out=delta.out)
+					}
+
+lasso <- function(weights,yy,XX,data.delta,g,file="file",plots=FALSE,include.diet=TRUE,
+                  diet.wt=1000,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y=TRUE,
+                  est.MSE=c("TRUE","est.var","step")[2],
+                  cv.criterion=c(FALSE,"delta_cv")[1],vfold=10){
+    #print("lasso")
+    #print(yy)
+    y <- t(yy)
+    #print(y)
+    X <- t(XX)
+    if(!is.null(data.delta)){
+        data.delta <- t(data.delta)
+    }
+    N <- length(y)
+    y1 <- y
+    #  if(std.y==TRUE){
+    #    ## Standardize y
+    #    y1 <- make.std(y)
+    #  } else {
+    #    ## Centered response
+    #    y1 <-  make.center(y)
+    #  }
+    # Standardized design matrix X
+    X1 <- apply(X,2,make.std)
+    weights.use <- g(weights)
+    # Get rid of small weights
+    if(thresh.q==TRUE){
+        for(i in 1:length(weights)){
+            weights.use[i] <- max(0.0001,abs(weights.use)[i])
+        }
+    }
+    # Be sure to include diet?
+    if(include.diet==TRUE){
+        wts <- c(1e-5,weights.use)
+    } else {
+        wts <- c(1,weights.use)
+    }
+    X1 <- X1 %*% diag(1/wts)
+    if(is.null(data.delta)){
+        ## Fix use.Gram
+        if(ncol(X1)>500){
+            use.Gram <- FALSE
+        } else {
+            use.Gram <- TRUE
+        }
+        ## Run Lasso
+        wLasso.out <-  lars(X1, y1, type = c("lasso"),
+                            trace = FALSE, normalize = FALSE, intercept = FALSE, use.Gram = use.Gram)
+        ## entry in Lasso
+        entry.variables <- as.numeric(wLasso.out$entry)
+        ##order.variables <- as.numeric(wLasso.out$actions)
+        order.variables <- 0
+        if(cv.criterion==TRUE){
+            ## good implementation, mode="step"
+            wLasso.cv <- cv.lars(X1, y1, type = c("lasso"), K = vfold,
+                                 trace = FALSE, normalize = FALSE, intercept= FALSE,
+                                 plot.it=FALSE,mode="step",use.Gram=use.Gram)
+            bestindex <- wLasso.cv$index[which.min(wLasso.cv$cv)]
+            ## final best descriptive model
+            predict.out <- predict(wLasso.out, X1,s=bestindex, type = "coefficients", mode="step")
+            delta.out <- delta
+        } else if(cv.criterion=="delta_cv"){
+            cv.out <- cv.delta(y1,X1,K=vfold,est.MSE=est.MSE)
+            predict.out <- cv.out$predict.out
+            delta.out <- cv.out$delta
+        } else {
+            ## Samuel's corrections 11/9/2011
+            ## use Cp-like criterion to find best descriptive model
+            p = dim(X1)[2]
+            s = length(wLasso.out$df)
+            p.pos = NULL
+            RSS = NULL
+            for (i in 1:s){
+                RSS[i] = sum((y1-predict(wLasso.out, X1, s=i, type = c("fit"))$fit)**2)
+                p.pre = predict(wLasso.out, X1, s=i, type = c("coefficients"))$coefficients
+                p.pos = c(p.pos,length(p.pre[abs(p.pre)>0]))
+            }
+            ## Get estimated MSE
+            if(est.MSE=="TRUE"){
+                MSE <- 0.5
+                ##print(MSE)
+            } else if(est.MSE=="est.var") {
+                MSE <- sd(as.vector(y1)) * sqrt( N / (N-1) )
+                MSE <- MSE^2
+                ##print(MSE)
+            } else {
+                ## Get estimated MSE from best fit of forward stepwise regression with AIC as selection criterion
+                X2 <- data.frame(X1)
+                colnames(X2)[1] <- "Fixed"
+                full.lm <- lm(y1~.,data=X2)
+                start.lm <- lm(y1~-1 + Diet,data=X2)
+                lowest.step.forward <- step(lm(y1 ~ -1+Diet, data=X2),
+                                            list(lower=start.lm,upper=full.lm), direction='forward',trace=FALSE)
+                MSE <- summary(lowest.step.forward)$sigma
+                ##print(MSE)
+                MSE <- summary(lowest.step.forward)$sigma^2
+                ##	print(MSE)
+                if(MSE < 1e-5){
+                    MSE <-  sd(as.vector(y1)) * sqrt( N / (N-1) )
+                    MSE <- MSE^2
+                }
+            }
+            p.min = which.min(RSS/MSE+delta*p.pos)
+            ## final best descriptive model
+            predict.out <- predict(wLasso.out, X1, s=p.min, type = c("coefficients"))
+            delta.out <- delta
+        }
+    } else {
+        if(include.diet==TRUE){
+            penalty <- c(0,rep(1,ncol(X1)-1))
+        } else {
+            penalty <- rep(1,ncol(X1))
+        }
+        ## Run Lasso
+        ytmp <- cbind(time=y1,status=data.delta)
+        colnames(ytmp) <- c("time","status")
+        ## entry in Lasso
+        entry.variables <- 0 ## not available
+        order.variables <- 0 ## not available
+        if(cv.criterion==TRUE){
+            wLasso.cv <- cv.glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,penalty.factor=penalty)
+            lambda.opt <- wLasso.cv$lambda.min
+        } else if(cv.criterion=="delta_cv"){
+            ## not used
+            # cv.out <- cv.delta(y1,X1,K=vfold,est.MSE=est.MSE)
+            # predict.out <- cv.out$predict.out
+            # delta.out <- cv.out$delta
+        } else {
+            wLasso.out <-  glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,penalty.factor=penalty)
+            ## BIC/Deviance criterion: deviance + k*log(n)
+            deviance <- deviance(wLasso.out)
+            p.min <- which.min(deviance + wLasso.out$df*log(N))
+            lambda.opt <- wLasso.out$lambda[p.min]
+        }
+        wLasso.fit <- glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,lambda=lambda.opt)
+        ## final best descriptive model
+        predict.out <- list(coefficients=wLasso.fit$beta)
+        delta.out <- delta
+    }
+    ind <- which(abs(predict.out$coefficients)>1e-10)
+    ##ind <- which(predict.out$coefficients!=0)
+    sig.variables <- rep(0,nrow(XX))
+    sig.variables[ind] <- 1
+    sign.of.variables <- rep(0,nrow(XX))
+    ind.pos <- which(predict.out$coefficients >0)
+    sign.of.variables[ind.pos] <- 1
+    ind.neg <- which(predict.out$coefficients <0)
+    sign.of.variables[ind.neg] <- -1
+    if(plots==TRUE){
+        postscript(paste(file,"_lasso1.eps",sep=""))
+        plot(wLasso.out,cex.axis=1.5,cex.lab=1.5)
+        dev.off()
+        postscript(paste(file,"_lasso2.eps",sep=""))
+        ##x11()
+        ##plot(s,RSS+2*(s),type="l",cex.axis=1.5,cex.lab=1.5)
+        ##abline(v=s.min,lty=2)
+        ## Samuel's correction 11/9/2011
+        par(mar=c(5, 4, 4, 2)+1)
+        plot(1:s,RSS+2*(p.pos),type="l",cex.axis=1.5,cex.lab=1.5,ylab=substitute(M[n](that,p),
+                                                                                 list(that=delta)), xlab="Steps")
+        abline(v=p.min,lty=2)
+        dev.off()
+    }
+    list(order.variables=order.variables,sig.variables=sig.variables,
+         sign.of.variables=sign.of.variables,entry.variables=entry.variables,delta.out=delta.out)
 }
+
+lasso.computations <- function(weights,XX,response,g,plots=TRUE,file="name",include.diet=TRUE,
+                               format.data = TRUE,
+                               diet.wt=100,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y="TRUE",
+                               est.MSE=c("TRUE","est.var","step")[2],
+                               cv.criterion=FALSE,vfold=10){
+    #print(response)
+    data.response <- response$yy
+    data.delta <- response$delta
+    #print(data.response)
+    #if(format.data==TRUE){
+    #    data.response <- data.response[-c(1,2),]
+    #} else {
+        data.response <- data.response
+    #}
+    interest <- matrix(0,nrow=nrow(XX),ncol=nrow(data.response))
+    interest <- as.data.frame(interest)
+    rownames(interest) <- rownames(XX)
+    colnames(interest) <- rownames(data.response)
+
+    interest.sign <- interest		# matrix to store sign of lasso coefficients
+
+    R2.val <- matrix(0,nrow=nrow(data.response),ncol=1)
+    R2.val <- as.data.frame(R2.val)
+    colnames(R2.val) <- "R2"
+    rownames(R2.val) <- rownames(data.response)
+
+    order.var <- array(0,dim=c(nrow(data.response),300))
+
+    entry.var <- array(0,dim=c(nrow(data.response),nrow(XX)))
+
+    delta.out <- matrix(0,nrow=1,ncol=nrow(data.response))
+
+    for(i in 1:ncol(interest)){
+        #print(data.response)
+        lasso.out <- lasso(weights[,i],data.response[i,],XX,data.delta[i,],g,
+                           file=paste(file,rownames(data.response)[i],sep=""),
+                           plots=plots,include.diet=include.diet,
+                           diet.wt=diet.wt,thresh.q=thresh.q,corr.g=corr.g,delta=delta,std.y=std.y,
+                           est.MSE=est.MSE,
+                           cv.criterion=cv.criterion,vfold=vfold)
+        interest[,i] <- lasso.out$sig.variables
+        interest.sign[,i] <- lasso.out$sign.of.variables
+        R2.val[i,]   <- get.R2(interest[,i],XX,data.response[i,])
+
+        order.var[i,1:length(lasso.out$order.variables)] <- lasso.out$order.variables
+        entry.var[i,] <- lasso.out$entry.variables
+
+        delta.out[,i] <- lasso.out$delta.out
+
+    }
+    list(interest=interest,order.var=order.var,R2.val=R2.val,interest.sign=interest.sign,
+         entry.var=entry.var,delta.out=delta.out)
+}
+
 
 
 ###############################################
@@ -836,6 +1183,7 @@ cv.delta <- function(y1,X1,K=10){
 	predict.out <- lasso.delta.choice(wLasso.out,y1,X1,delta=delta)$predict.out
 	list(predict.out=predict.out,delta=delta)
 }
+
 
 
 lasso.procedure <- function(y1,X1){
