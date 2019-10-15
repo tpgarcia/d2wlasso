@@ -222,8 +222,12 @@ correlations.pcor <- function(microbes,phenotypes,partial="FALSE",ttest="FALSE",
 # Function to get F-test statistics and p-values #
 ##################################################
 
-fstat.pvalue <- function(microbe,diet){
-    diet <- factor(as.numeric(diet))
+fstat.pvalue <- function(factor.z,microbe,diet){
+    if(factor.z==TRUE){
+        diet <- factor(as.numeric(diet))
+    } else {
+        diet <- as.numeric(diet)
+    }
     microbe <- as.numeric(microbe)
 
     # Assuming variances in both diet groups are the same
