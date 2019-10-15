@@ -192,13 +192,13 @@ correlations <- function(factor.z,microbes,phenotypes,partial=FALSE,ttest=FALSE,
 correlations.pcor <- function(microbes,phenotypes,partial="FALSE",ttest="FALSE",format.data=TRUE){
     ## Formatting data
     if(format.data==TRUE){
-        data.phenotypes <- phenotypes[-c(which(rownames(phenotypes)=="Diet"),which(rownames(phenotypes)=="Cohort")),]
+        data.phenotypes <- phenotypes[-c(which(rownames(phenotypes)=="Fixed"),which(rownames(phenotypes)=="Cohort")),]
     } else {
         data.phenotypes <- phenotypes
     }
 
-    data.microbes <- microbes[-which(rownames(microbes)=="Diet"),]
-    diet <- microbes["Diet",]
+    data.microbes <- microbes[-which(rownames(microbes)=="Fixed"),]
+    diet <- microbes["Fixed",]
 
     ## Setting up matrices to store Pearson correlations and p-values
     correlation <- store.micropheno(data.microbes,data.phenotypes)
