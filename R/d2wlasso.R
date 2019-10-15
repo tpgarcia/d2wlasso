@@ -3,6 +3,9 @@
 #' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size
 #' @param z (n by 1) matrix of additional fixed covariate affecting response variable
 #' @param y (n by 1) matrix of response variable
+#' @param cox.delta (n by 1) matrix of status for survival analysis
+#' @param factor.z logical. If TRUE, the additional fixed variable z is considered
+#' @param reg.type indicates the model for fitting. Either "linear" or "cox".
 #' @param ttest logical. If TRUE, p-value for each covariate is computed from the linear regression and this does not require normality of the covariates. If FALSE, p-value is computed as the p-value of the correlation coefficient. Default is FALSE.
 #' @param q_method indicates the method for choosing optimal tuning parameter in the q-value computation as proposed in Storey and Tibshirani (2003). One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
 #' @param plots logical. If TRUE, figures are plotted. Default is FALSE.
@@ -56,6 +59,12 @@
 #' dwlcv0 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3)
 #' dwlcv1 <- d2wlasso(x,z,y,lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
 #' dwlcv2 <- d2wlasso(x,z,y,weight_fn = "square",lasso.delta.cv.mult = TRUE, ncv = 3, delta.cv.seed = 1)
+#'
+#' x <- matrix(rnorm(100*5, 0, 1),100,5)
+#' z <- matrix(rbinom(100, 1, 0.5),100,1)
+#' y <- matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
+#' cox.delta <- matrix(1,nrow=length(y),ncol=1)
+#' dwlcox1 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox",delta=2)
 d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox")[1],ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,robust=TRUE,q.old=FALSE,
@@ -70,7 +79,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
     X <- cbind(z, x)
     colnames(X) <- c("Fixed",paste("X_",seq(1,m),sep=""))
     microbes <- t(X)
-    phenotypes <- list(yy=t(y),delta=cox.delta)
+    phenotypes <- list(yy=t(y),delta=t(cox.delta))
     out.nrow <- nrow(microbes)
     out.rownames <- rownames(microbes)
     #print("here")

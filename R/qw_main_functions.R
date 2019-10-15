@@ -9,6 +9,8 @@
 library(xtable)		# to create LaTeX tables
 library(lars)		# for LASSO approach
 library(plotrix)		# for computing standard errors of mean in simulation study
+library(survival)   # for survival analysis
+library(glmnet)     # for ridge regression
 
 
 #########################################################
@@ -1029,7 +1031,9 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",plots=FALSE,include.die
             penalty <- rep(1,ncol(X1))
         }
         ## Run Lasso
-        ytmp <- cbind(time=y1,status=data.delta)
+        #ytmp <- cbind(time=y1,status=data.delta)
+        ytmp <- cbind(time=t(y1),status=t(data.delta))
+        print(ytmp)
         colnames(ytmp) <- c("time","status")
         ## entry in Lasso
         entry.variables <- 0 ## not available
