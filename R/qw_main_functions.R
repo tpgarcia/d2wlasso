@@ -1050,3 +1050,22 @@ lasso.delta.choice <- function(wLasso.out,y1,X1,delta){
 
 	list(wLasso.out=wLasso.out,predict.out=predict.out)
 }
+
+# Function to get R^2 value
+get.R2 <- function(sig,XX,response){
+    if(sum(sig)==0){
+        return("NA")
+    } else {
+        Xtmp <- t(XX[which(sig==1),])
+        if(length(Xtmp)==dim(Xtmp)[2]){
+            X <- make.std(as.numeric(Xtmp))
+        } else {
+            X <- apply(Xtmp,2,make.std)
+        }
+
+        y <- make.std(as.numeric(response))
+        out <- summary(lm(y~X))
+        R2 <- out$r.squared
+        return(R2)
+    }
+}
