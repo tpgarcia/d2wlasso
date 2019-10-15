@@ -846,7 +846,7 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",plots=FALSE,include.die
         ## Run Lasso
         #ytmp <- cbind(time=y1,status=data.delta)
         ytmp <- cbind(time=t(y1),status=t(data.delta))
-        print(ytmp)
+        #print(ytmp)
         colnames(ytmp) <- c("time","status")
         ## entry in Lasso
         entry.variables <- 0 ## not available
@@ -871,7 +871,9 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",plots=FALSE,include.die
         predict.out <- list(coefficients=wLasso.fit$beta)
         delta.out <- delta
     }
-    ind <- which(abs(predict.out$coefficients)>1e-10)
+    #print(abs(predict.out$coefficients))
+    #print(which(abs(predict.out$coefficients)>1e-10))
+    ind <- which(as.logical(abs(predict.out$coefficients)>1e-10))
     ##ind <- which(predict.out$coefficients!=0)
     sig.variables <- rep(0,nrow(XX))
     sig.variables[ind] <- 1
