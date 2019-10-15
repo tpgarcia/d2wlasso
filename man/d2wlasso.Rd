@@ -24,7 +24,7 @@ d2wlasso(x, z, y, cox.delta = NULL, factor.z = TRUE,
 
 \item{cox.delta}{(n by 1) matrix of status for survival analysis}
 
-\item{factor.z}{logical. If TRUE, the additional fixed variable z is considered}
+\item{factor.z}{logical. If TRUE, the additional fixed variable z is used as factor}
 
 \item{reg.type}{indicates the model for fitting. Either "linear" or "cox".}
 

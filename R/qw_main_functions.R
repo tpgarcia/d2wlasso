@@ -10,6 +10,7 @@ library(xtable)		# to create LaTeX tables
 library(lars)		# for LASSO approach
 library(plotrix)		# for computing standard errors of mean in simulation study
 library(survival)   # for survival analysis
+library(MASS) # for ridge regression
 library(glmnet)     # for ridge regression
 
 
