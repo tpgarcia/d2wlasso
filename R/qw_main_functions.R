@@ -1093,3 +1093,444 @@ get.R2 <- function(sig,XX,response){
         return(R2)
     }
 }
+
+
+
+#################################
+## Exclusion-frequency weights ##
+#################################
+
+##############################################
+## Function to determine size of partitions ##
+##############################################
+
+partition.size <- function(n,p,k){
+    lo <- floor(p/k)
+    hi <- ceiling(p/k)
+
+    constraints <- c(lo,hi)
+
+    ## We require that q_l < n for each l
+    index <- which(constraints<n)
+
+    if(length(index)< 2){
+        return("k too low")
+    }
+
+    constraints <- constraints[index]
+
+
+    ## Each q_l is such that : lo <= q_l <= hi
+    #tmp <- t(matrix(rep(constraints,k),nrow=k,ncol=2,byrow=TRUE))
+
+    ## Determining different q_l values
+    #combinations <- as.matrix(do.call(`expand.grid`,as.data.frame(tmp)))
+
+    ## Determine which combinations are such that \sum q_l =p
+    #combinations <- combinations[which(apply(combinations,1,sum)==p),]
+    #groups <- as.vector(combinations[1,])
+
+    combinations <- rep(floor(p/k),k)
+    if(sum(combinations)!=p){
+        tmp.diff <- p-sum(combinations)
+        combinations[1:tmp.diff] <- combinations[1:tmp.diff]+1
+    }
+    groups <- combinations
+
+    return(groups)
+}
+
+## determine partition size without requiring q_l < n
+partition.size.new <- function(p,k){
+    lo <- floor(p/k)
+    hi <- ceiling(p/k)
+
+    constraints <- c(lo,hi)
+
+    ## Each q_l is such that : lo <= q_l <= hi
+    #tmp <- t(matrix(rep(constraints,k),nrow=k,ncol=2,byrow=TRUE))
+
+    ## Determining different q_l values
+    #combinations <- as.matrix(do.call(`expand.grid`,as.data.frame(tmp)))
+
+    ## Determine which combinations are such that \sum q_l =p
+    #combinations <- combinations[which(apply(combinations,1,sum)==p),]
+    #groups <- as.vector(combinations[1,])
+
+    combinations <- rep(floor(p/k),k)
+    if(sum(combinations)!=p){
+        tmp.diff <- p-sum(combinations)
+        combinations[1:tmp.diff] <- combinations[1:tmp.diff]+1
+    }
+    groups <- combinations
+
+    return(groups)
+}
+
+
+###############################################
+## Function to randomly partition data index ##
+###############################################
+random.partition <- function(n,p,k){
+    ## Size of each partition group
+    if(p!=k){
+        size.groups <- partition.size(n,p,k)
+    } else {
+        size.groups <- rep(1,k)
+    }
+
+    ## Name of each group
+    names <- paste("group",seq(1,k),sep="")
+    cut.by <- rep(names, times = size.groups)
+
+    ## Get random index
+    rand.index <- split(sample(1:p, p), cut.by)
+
+    return(rand.index)
+}
+
+index.sort.partition <- function(n,k,beta.sort.ix){
+    p <- length(beta.sort.ix)
+
+    ## Size of each partition group
+    size.groups <- partition.size(n,p,k)
+
+    ## Name of each group
+    names <- seq(1,k)
+    index.sort <- rep(names, times = size.groups)
+
+    names(index.sort) <- paste("X_",beta.sort.ix,sep="")
+    return(index.sort)
+
+}
+
+## get sizes of fixed covariates partition
+fixed.size <- function(fixed.covariates,k){
+    whole.groups <- floor(length(fixed.covariates)/k)
+    group.size <- rep(whole.groups,k)
+
+    tmp.diff <- abs(sum(group.size)-length(fixed.covariates))
+
+}
+
+## Function to ensure certain covariates are in each group, and the rest are randomly placed
+fixed.plus.random.partition <- function(fixed.covariates,n,p,k){
+    ## Size of each partition group: minus fixed.covariates
+    size.groups <- partition.size(n,p-length(fixed.covariates),k)
+
+    ## Name of each group
+    names <- paste("group",seq(1,k),sep="")
+    cut.by <- rep(names, times = size.groups)
+
+    ## Get all covariates that will be randomly sampled (i.e., remove fixed.covariates)
+    all <- 1:p
+    covariates.not.fixed <- all[!all%in%fixed.covariates]
+
+    ## Get random index for covariates.not.fixed
+    rand.index.covariates.not.fixed <- split(sample(covariates.not.fixed, length(covariates.not.fixed)), cut.by)
+
+    ## Put fixed covariates back in
+    fixed.cut.by <-rep(names,times=partition.size.new(length(fixed.covariates),k))
+    fixed.covariates.partition <- split(fixed.covariates,fixed.cut.by)
+
+    rand.index <- appendList(rand.index.covariates.not.fixed,fixed.covariates.partition)
+
+    return(rand.index)
+}
+
+## function to append lists
+appendList <- function (x, val){
+    stopifnot(is.list(x), is.list(val))
+    xnames <- names(x)
+    for (v in names(val)) {
+        x[[v]] <- if (v %in% xnames && is.list(x[[v]]) && is.list(val[[v]]))
+            appendList(x[[v]], val[[v]])
+        else c(x[[v]], val[[v]])
+    }
+    x
+}
+
+## Ridge regresssion
+ridge.regression <- function(XX,response){
+    ##mydata <- data.frame(cbind(t(response),t(XX)))
+    #### center data
+    ##mydata <- apply(mydata,2,make.center)
+    ##xnam.orig <- paste("X_",1:(nrow(XX)-1),sep="")
+    ##xnam <- c("Fixed",xnam.orig)
+    ##fmla <- as.formula(paste("response~0+",paste(xnam,collapse="+")))
+    ##out <-lm.ridge(fmla,data=mydata,lambda=seq(0.00001,25,0.1))
+
+    ## Center data
+    X <- t(XX)
+    X <- apply(X,2,make.center)
+
+    yy <- response$yy
+    delta <- response$delta
+
+    if(is.null(delta)){
+        #######################
+        ## linear regression ##
+        #######################
+        y <- t(yy)
+        ##y <- apply(y,2,make.center)
+        family <- "gaussian"
+        grouped <- FALSE
+    } else {
+        yy <- as.numeric(yy)
+        delta <- as.numeric(delta)
+        y <- cbind(time=yy,status=delta)
+        colnames(y) <- c("time","status")
+        family <- "cox"
+        grouped <- TRUE
+    }
+
+    ## Find optimal lambda value
+    cv.out <- cv.glmnet(X,y,standardize=FALSE,family=family,alpha=0,grouped=grouped)
+    lambda.opt <- cv.out$lambda.min
+
+    ## Ridge regression
+    ridge.out <- glmnet(X,y,standardize=FALSE,family=family,alpha=0,lambda=lambda.opt)
+    beta.values <- ridge.out$beta[-1,]  ## remove diet
+
+    return(beta.values)
+}
+
+## We partition based on ascending values of ridge regression estimates
+ridge.sort.partition <- function(k,XX,response){
+    ## Get parameter estimates from ridge regression
+    beta.values <- ridge.regression(XX,response)
+
+    ## Sort beta.values in decreasing order
+    beta.sort <- sort(abs(beta.values),decreasing=TRUE,index.return=TRUE)
+
+    ## index of ordering
+    beta.index <- beta.sort$ix
+
+    ## Partition based on decreasing order
+    rand.index <- sort.partition(beta.index,k)
+
+    list(rand.index=rand.index,beta.index=beta.index)
+}
+
+
+
+## We partition based on sorting the ridge regression estimates
+sort.partition <- function(beta.index,k){
+    ## Name of each group
+    names <- paste("group",seq(1,k),sep="")
+
+    ## Get rand.index labels
+    rand.index <- vector("list",length(names))
+    names(rand.index) <- names
+
+    ## Sort indices for each group
+    tmp <-1
+    size.groups <- NULL
+    tmp.index <- NULL
+    for(j in 1:k){
+        indices <- seq(tmp,length(beta.index),by=k)
+        size.groups <- c(size.groups,length(indices))
+        tmp.index <- c(tmp.index,indices)
+        tmp <- tmp + 1
+    }
+
+    ## Put groups together
+    cut.by <- rep(names, times = size.groups)
+
+    ## Get random index
+    rand.index <- split(beta.index[tmp.index], cut.by)
+
+    return(rand.index)
+}
+
+
+
+## Function to do designed partitioning
+## index.group : variable designating which variable belongs to which group
+designed.partition <- function(index.group,k){
+    cluster <- index.group
+
+    ## Name of each group
+    names <- paste("group",seq(1,k),sep="")
+
+    ## Get k-means partition of beta values
+    rand.index <- vector("list",length(names))
+    names(rand.index) <- names
+
+    for(j in 1:k){
+        cluster.tmp <- as.numeric(which(cluster==j))
+        size.groups <- partition.size.new(length(cluster.tmp),k)
+        cut.by <- rep(names, times = size.groups)
+        rand.index.tmp <- split(sample(cluster.tmp,length(cluster.tmp)), cut.by)
+        ##rand.index <- mapply(c,rand.index,rand.index.tmp,SIMPLIFY=FALSE)
+        rand.index <- appendList(rand.index,rand.index.tmp)
+    }
+
+    ## Below won't work
+    ##index.val <-1:length(index.group)
+    ##mydf <- data.frame(index.val,index.group)
+    ##rand.index <- vector("list",length(names))
+    ##names(rand.index) <- names
+
+    ##size.big.groups <- partition.size(n=ncol(XX),p=nrow(XX)-1,k=k)
+    ##for(s in 1:k){
+    ##  size.cluster <- partition.size.new(size.big.groups[s],k)
+    ## tmp <- stratified(mydf,"index.group",size=size.cluster)
+    ##  selected.group <- tmp[,"index.val"]
+    ##  rand.index[[s]] <- selected.group
+
+    ## Update mydf
+    ## mydf <- mydf[-selected.group,]
+    ##}
+
+    return(rand.index)
+}
+
+
+columns.to.list <- function( df ) {
+    ll<-apply(df,2,list)
+    ll<-lapply(ll,unlist)
+    return(ll)
+}
+
+
+## Function to do step AIC on group subset
+step.selection <- function(factor.z,index,XX,response,type=c("AIC","BIC")[1],
+                           direction=c("both","forward","backward")[3],real_data){
+
+    if(real_data==FALSE){
+        xnam.orig <- paste("X_",index,sep="")
+    } else {
+        xnam.orig <- rownames(XX[index+1,])
+    }
+
+    if(factor.z==TRUE){
+        xnam <- c("factor(Fixed)",xnam.orig)
+    } else {
+        xnam <- c("Fixed",xnam.orig)
+    }
+
+    yy <- response$yy
+    delta <- response$delta
+
+    if(is.null(delta)){
+        #######################
+        ## linear regression ##
+        #######################
+        mydata <- data.frame(cbind(t(yy),t(XX)))
+        fmla <- as.formula(paste("response~",paste(xnam,collapse="+")))
+        fit <- lm(fmla,data=mydata)
+    } else {
+        #########################
+        ## survival regression ##
+        #########################
+        X <- data.frame(t(XX))
+        tmp.list <- columns.to.list(X)
+        mydata <- list(time=as.numeric(yy),status=as.numeric(delta))
+        mydata <- appendList(mydata,tmp.list)
+        fmla <- as.formula(paste("Surv(time,status)~",paste(xnam,collapse="+")))
+        fit <- coxph(fmla,data=mydata)
+    }
+    ##print(fmla)
+
+
+    if(type=="AIC"){
+        deg.free <- 2
+    } else {
+        deg.free <- log(length(yy))
+    }
+
+    if(factor.z==TRUE){
+        step.reg <- step(fit,k=deg.free,direction=direction,
+                         scope = list(lower = ~ factor(Fixed)),trace=FALSE,data=mydata)
+    } else {
+        step.reg <- step(fit,k=deg.free,direction=direction,
+                         scope = list(lower = ~ Fixed),trace=FALSE,data=mydata)
+    }
+
+    ## XX selected
+    results <- intersect(names(step.reg$coefficients),xnam.orig)
+
+    ## Store results
+    out <- data.frame(rep(0,nrow(XX)-1))
+    rownames(out) <- rownames(XX)[-1]
+    colnames(out) <- "results"
+    out[xnam.orig,] <- as.numeric(!xnam.orig%in%results)
+    return(out)
+}
+
+
+
+
+## Function to do step AIC on group subset
+step.selection.inclusion <- function(factor.z,index,XX,response,type=c("AIC","BIC")[1],
+                                     direction=c("both","forward","backward")[3],real_data){
+
+    if(real_data==FALSE){
+        xnam.orig <- paste("X_",index,sep="")
+    } else {
+        xnam.orig <- rownames(XX[index+1,])
+    }
+
+    if(factor.z==TRUE){
+        xnam <- c("factor(Fixed)",xnam.orig)
+    } else {
+        xnam <- c("Fixed",xnam.orig)
+    }
+
+    yy <- response$yy
+    delta <- response$delta
+
+    if(is.null(delta)){
+        #######################
+        ## linear regression ##
+        #######################
+        mydata <- data.frame(cbind(t(yy),t(XX)))
+        fmla <- as.formula(paste("response~",paste(xnam,collapse="+")))
+        fit <- lm(fmla,data=mydata)
+    } else {
+        #########################
+        ## survival regression ##
+        #########################
+        X <- data.frame(t(XX))
+        tmp.list <- columns.to.list(X)
+        mydata <- list(time=as.numeric(yy),status=as.numeric(delta))
+        mydata <- appendList(mydata,tmp.list)
+        fmla <- as.formula(paste("Surv(time,status)~",
+                                 paste(xnam,collapse="+")))
+        fit <- coxph(fmla,data=mydata)
+    }
+    ##print(fmla)
+    ## go here for forward selection example: http://msekce.karlin.mff.cuni.cz/~pesta/NMFM404/ph.html
+
+
+
+    if(type=="AIC"){
+        deg.free <- 2
+    } else {
+        deg.free <- log(length(yy))
+    }
+
+    if(factor.z==TRUE){
+        step.reg <- step(fit,k=deg.free,direction=direction,
+                         scope = list(lower = ~ factor(Fixed)),trace=FALSE,data=mydata)
+    } else {
+        step.reg <- step(fit,k=deg.free,direction=direction,
+                         scope = list(lower = ~ Fixed),trace=FALSE,data=mydata)
+    }
+
+    ## XX selected
+    results <- intersect(names(step.reg$coefficients),xnam)
+
+    ## Store results
+    out <- data.frame(rep(0,nrow(XX)))
+    rownames(out) <- rownames(XX)
+    colnames(out) <- "results"
+    out[xnam,] <- as.numeric(xnam%in%results)
+    return(out)
+}
+
+
+
+
+

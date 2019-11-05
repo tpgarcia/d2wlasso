@@ -68,7 +68,16 @@
 d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox")[1],ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,robust=TRUE,q.old=FALSE,
-                     lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL){
+                     lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL,
+                     run.aic.bic=TRUE,
+                     #run.fixed.aic.bic=TRUE,
+                     run.kmeans.aic.bic=TRUE,
+                     run.kquart.aic.bic=TRUE,
+                     run.sort.aic.bic=TRUE,
+                     run.aic=TRUE,
+                     run.bic=TRUE,
+                     nboot=100,k=4,k.split=k,direction="backward"){
+    real_data = TRUE
 
     # dimension setting
     n <- nrow(x)
@@ -146,6 +155,11 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
     benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=alpha.bh)
     out.benhoch <- c(1,t(benhoch.results$interest))
     out.benhoch.pval.adjust <- c(0,t(benhoch.results$pval.adjust))
+
+    ## Results for Cox with Exclusion-frequency weights ##
+    out.aic.boot <- NULL; out.bic.boot <- NULL#; out.fixed.aic.boot <- NULL; out.fixed.bic.boot <- NULL
+    out.kmeans.aic.boot <- NULL; out.kmeans.bic.boot <- NULL; out.kquart.aic.boot <- NULL; out.kquart.bic.boot <- NULL
+    out.sort.aic.boot <- NULL; out.sort.bic.boot <- NULL
 
     if (wt == "one"){
         ## No weights
@@ -260,5 +274,234 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
 
     }
 
-    return(list("qval"=out.qvalue,"bh.pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.parcor"=out.parcor, "out.benhoch.cor"=out.benhoch.cor, "out.benhoch.parcor"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "cv.delta.w"=mult.delta.w5, "cv.delta.adapt"=mult.delta.w6, "cv.out.w"=mult.cv.delta.out.w5, "cv.out.adapt"=mult.cv.delta.out.w6))
+    ## exclusion frequency weights
+
+    if (reg.type=="cox"){
+
+    ## Store weights for each bootstrap
+    tmp2.store <- as.data.frame(matrix(0, nrow = (out.nrow-1), ncol = nboot,
+                                       dimnames = list(out.rownames[-1],
+                                                       seq(1,nboot))))
+
+    weight.aic.boot <- tmp2.store
+    weight.bic.boot <- tmp2.store
+
+    weight.fixed.aic.boot <- tmp2.store
+    weight.fixed.bic.boot <- tmp2.store
+
+    weight.kmeans.aic.boot <- tmp2.store
+    weight.kmeans.bic.boot <- tmp2.store
+
+    weight.kquart.aic.boot <- tmp2.store
+    weight.kquart.bic.boot <- tmp2.store
+
+    weight.sort.aic.boot <- tmp2.store
+    weight.sort.bic.boot <- tmp2.store
+
+    if(run.kmeans.aic.bic==TRUE | run.kquart.aic.bic==TRUE |  run.sort.aic.bic==TRUE){
+
+        ## Get parameter estimates from ridge regression
+        beta.values <- ridge.regression(microbes,phenotypes)
+
+        if(run.kmeans.aic.bic==TRUE){
+            ## K-means clustering
+            kmeans.out <- kmeans(beta.values,centers=k.split,iter.max=100)
+            index.group.kmeans <- kmeans.out$cluster
+        }
+
+        if(run.kquart.aic.bic==TRUE){
+
+            ## K-quart clustering
+            index.group.kquart <- cut(beta.values, breaks=quantile(beta.values,
+                                                                   probs=seq(0,1, by=1/k.split)),include.lowest=TRUE)
+            index.group.kquart <- as.numeric(factor(index.group.kquart, labels=1:k.split))
+        }
+
+        if(run.sort.aic.bic==TRUE){
+
+            ## K-sort clustering
+            beta.sort <- sort(abs(beta.values),decreasing=TRUE,index.return=TRUE)
+            sort.beta.index <- beta.sort$ix
+
+            ## index of ordering
+            index.group.sort <- index.sort.partition(n=ncol(microbes),k=k,sort.beta.index)
+        }
+    }
+
+    for(b in 1:nboot){
+        ##print(b)
+        if(run.aic.bic==TRUE){
+            ## Randomly partition the index
+            rand.index <- random.partition(n=ncol(microbes),p=nrow(microbes)-1,k=k)
+        }
+
+        #if(run.fixed.aic.bic==TRUE){
+            ## Ensure fixed covariates are in the partition + randomly partition the rest
+        #    rand.fixed.index <- fixed.plus.random.partition(fixed.covariates,n=ncol(microbes),p=nrow(microbes)-1,k=k)
+        #}
+
+        if(run.kmeans.aic.bic==TRUE){
+            ## Partition the index using k-means
+            kmeans.rand.index <- designed.partition(index.group.kmeans,k=k)
+        }
+
+        if(run.kquart.aic.bic==TRUE){
+            ## Partition the index using k-quartile
+            kquart.rand.index <- designed.partition(index.group.kquart,k=k)
+        }
+
+        if(run.sort.aic.bic==TRUE){
+            ## Partition the index using k-quartile
+            sort.rand.index <- designed.partition(index.group.sort,k=k)
+
+            ## Measures how often the largest beta from ridge regression is in the true,
+            ##  non-zero beta coefficients
+            #beta.index.sort[sort.beta.index[1]+1,j] <- as.numeric(sort.beta.index[1]%in%fixed.covariates)
+        }
+
+        ## Apply stepwise AIC to each group
+        for(l in 1:k){
+            ##print(l)
+            if(run.aic.bic==TRUE){
+                ## Random partitioning
+                index <- as.numeric(unlist(rand.index[l]))
+                if(length(index)!=0){
+
+                    if(run.aic==TRUE){
+                        weight.aic.boot[,b] <- weight.aic.boot[,b] +
+                            step.selection(factor.z,index,microbes,phenotypes,type="AIC",
+                                           direction=direction,
+                                           real_data=real_data)
+                    }
+
+                    if(run.bic==TRUE){
+                        weight.bic.boot[,b] <- weight.bic.boot[,b] +
+                            step.selection(factor.z,index,microbes,phenotypes,type="BIC",
+                                           direction=direction,
+                                           real_data=real_data)
+                    }
+                }
+            }
+            if (FALSE){
+            if(run.fixed.aic.bic==TRUE){
+                ## Fixed + Random partitioning
+                index <- as.numeric(unlist(rand.fixed.index[l]))
+                if(length(index)!=0){
+                    if(run.aic==TRUE){
+                        weight.fixed.aic.boot[,b] <- weight.fixed.aic.boot[,b] +
+                            step.selection(factor.z,index,
+                                           microbes,phenotypes,type="AIC",
+                                           direction=direction,
+                                           real_data=real_data)
+                    }
+
+                    if(run.bic==TRUE){
+                        weight.fixed.bic.boot[,b] <- weight.fixed.bic.boot[,b] + step.selection(factor.z,index,
+                                                                                                microbes,phenotypes,type="BIC",
+                                                                                                direction=direction,
+                                                                                                real_data=real_data)
+                    }
+                }
+            }
+            }
+            if(run.kmeans.aic.bic==TRUE){
+                ## k-means partitioning
+                index <- as.numeric(unlist(kmeans.rand.index[l]))
+                if(length(index)!=0){
+                    if(run.aic==TRUE){
+                        weight.kmeans.aic.boot[,b] <- weight.kmeans.aic.boot[,b] +
+                            step.selection(factor.z,index,microbes,phenotypes,
+                                           type="AIC",
+                                           direction=direction,
+                                           real_data=real_data)
+                    }
+
+                    if(run.bic==TRUE){
+                        weight.kmeans.bic.boot[,b] <- weight.kmeans.bic.boot[,b] +
+                            step.selection(factor.z,index,microbes,phenotypes,
+                                           type="BIC",
+                                           direction=direction,
+                                           real_data=real_data)
+                    }
+                }
+            }
+
+            if(run.kquart.aic.bic==TRUE){
+                ## k-quartile partitioning
+                index <- as.numeric(unlist(kquart.rand.index[l]))
+
+                if(length(index)!=0){
+                    if(run.aic==TRUE){
+                        weight.kquart.aic.boot[,b] <- weight.kquart.aic.boot[,b] +
+                            step.selection(factor.z,index,microbes,phenotypes,
+                                           type="AIC",
+                                           direction=direction,
+                                           real_data=real_data)
+                    }
+
+                    if(run.bic==TRUE){
+                        weight.kquart.bic.boot[,b] <- weight.kquart.bic.boot[,b] +
+                            step.selection(factor.z,index,microbes,phenotypes,
+                                           type="BIC",
+                                           direction=direction,
+                                           real_data=real_data)
+                    }
+                }
+            }
+
+            if(run.sort.aic.bic==TRUE){
+                ## sorted partitioning
+                index <- as.numeric(unlist(sort.rand.index[l]))
+
+                if(length(index)!=0){
+                    if(run.aic==TRUE){
+                        weight.sort.aic.boot[,b] <- weight.sort.aic.boot[,b] +
+                            step.selection(factor.z,index,microbes,phenotypes,
+                                           type="AIC",
+                                           direction=direction,
+                                           real_data=real_data)
+                    }
+                    if(run.bic==TRUE){
+                        weight.sort.bic.boot[,b] <- weight.sort.bic.boot[,b] +
+                            step.selection(factor.z,index,microbes,phenotypes,
+                                           type="BIC",
+                                           direction=direction,
+                                           real_data=real_data)
+                    }
+                }
+            }
+        }
+    }
+
+    if(run.aic.bic==TRUE){
+        out.aic.boot <- apply(weight.aic.boot,1,sum)/nboot
+        out.bic.boot <- apply(weight.bic.boot,1,sum)/nboot
+    }
+
+    #if(run.fixed.aic.bic==TRUE){
+    #    out.fixed.aic.boot <- apply(weight.fixed.aic.boot,1,sum)/nboot
+    #    out.fixed.bic.boot <- apply(weight.fixed.bic.boot,1,sum)/nboot
+    #}
+
+    if(run.kmeans.aic.bic==TRUE){
+        out.kmeans.aic.boot <- apply(weight.kmeans.aic.boot,1,sum)/nboot
+        out.kmeans.bic.boot <- apply(weight.kmeans.bic.boot,1,sum)/nboot
+    }
+
+    if(run.kquart.aic.bic==TRUE){
+        out.kquart.aic.boot <- apply(weight.kquart.aic.boot,1,sum)/nboot
+        out.kquart.bic.boot <- apply(weight.kquart.bic.boot,1,sum)/nboot
+    }
+
+    if(run.sort.aic.bic==TRUE){
+        out.sort.aic.boot <- apply(weight.sort.aic.boot,1,sum)/nboot
+        out.sort.bic.boot <- apply(weight.sort.bic.boot,1,sum)/nboot
+    }
+
+    }
+
+    return(list("qval"=out.qvalue,"bh.pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.parcor"=out.parcor, "out.benhoch.cor"=out.benhoch.cor, "out.benhoch.parcor"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "cv.delta.w"=mult.delta.w5, "cv.delta.adapt"=mult.delta.w6, "cv.out.w"=mult.cv.delta.out.w5, "cv.out.adapt"=mult.cv.delta.out.w6,
+                "out.aic.boot"=out.aic.boot, "out.bic.boot"=out.bic.boot,# "out.fixed.aic.boot"=out.fixed.aic.boot, "out.fixed.bic.boot"=out.fixed.bic.boot,
+                "out.kmeans.aic.boot"=out.kmeans.aic.boot, "out.kmeans.bic.boot"=out.kmeans.bic.boot, "out.kquart.aic.boot"=out.kquart.aic.boot, "out.kquart.bic.boot"=out.kquart.bic.boot,
+                "out.sort.aic.boot"=out.sort.aic.boot, "out.sort.bic.boot"=out.sort.bic.boot))
 }
