@@ -851,6 +851,7 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",plots=FALSE,include.die
         ## entry in Lasso
         entry.variables <- 0 ## not available
         order.variables <- 0 ## not available
+
         if(cv.criterion==TRUE){
             wLasso.cv <- cv.glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,penalty.factor=penalty)
             lambda.opt <- wLasso.cv$lambda.min

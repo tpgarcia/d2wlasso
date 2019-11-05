@@ -13,7 +13,10 @@ d2wlasso(x, z, y, cox.delta = NULL, factor.z = TRUE,
   include.z = TRUE, z.wt = 1000, thresh.q = TRUE, alpha = 0.15,
   alpha.bh = 0.05, delta = 2, robust = TRUE, q.old = FALSE,
   lasso.delta.cv.mult = FALSE, vfold = 10, ncv = 100,
-  delta.cv.seed = NULL)
+  delta.cv.seed = NULL, run.aic.bic = TRUE,
+  run.kmeans.aic.bic = TRUE, run.kquart.aic.bic = TRUE,
+  run.sort.aic.bic = TRUE, run.aic = TRUE, run.bic = TRUE,
+  nboot = 100, k = 4, k.split = k, direction = "backward")
 }
 \arguments{
 \item{x}{(n by m) matrix of main covariates where m is the number of covariates and n is the sample size}
@@ -26,7 +29,7 @@ d2wlasso(x, z, y, cox.delta = NULL, factor.z = TRUE,
 
 \item{factor.z}{logical. If TRUE, the additional fixed variable z is used as factor}
 
-\item{reg.type}{indicates the model for fitting. Either "linear" or "cox".}
+\item{reg.type}{indicates the model for fitting. Either "linear" or "cox". Default is "linear".}
 
 \item{ttest}{logical. If TRUE, p-value for each covariate is computed from the linear regression and this does not require normality of the covariates. If FALSE, p-value is computed as the p-value of the correlation coefficient. Default is FALSE.}
 

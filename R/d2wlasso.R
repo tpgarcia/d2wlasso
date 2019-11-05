@@ -24,6 +24,13 @@
 #' @param vfold indicates the number of folds of the cross-validation for selecting delta.
 #' @param ncv indicates the number of cross-validation runs for selecting delta.
 #' @param delta.cv.seed For reproducible cross-validation result, the seed can be fixed.
+#' @param run.aic.bic If TRUE, the Cox regression with exclusion frequency-based weights is performed with randomly partitioning the index
+#' @param run.kmeans.aic.bic If TRUE, the Cox regression with exclusion frequency-based weights is performed with partitioning the index using k-means
+#' @param run.kquart.aic.bic If TRUE, the Cox regression with exclusion frequency-based weights is performed with partitioning the index using k-quartile
+#' @param run.sort.aic.bic If TRUE, the Cox regression with exclusion frequency-based weights is performed with partitioning the index using sorted partition
+#' @param nboot indicates the number of bootstrap samples for the Cox regression with exclusion frequency-based weights
+#' @param k indicates the number of partitions for the Cox regression with exclusion frequency-based weights. Default is 4.
+#' @param direction indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".
 #'
 #' @return
 #' \itemize{
@@ -42,6 +49,14 @@
 #'    \item \strong{cv.delta.adapt:} {the selected delta from the cross-validation for the adaptive lasso}
 #'    \item \strong{cv.out.w:} {the aggregated result of the cross-validation for the weighted lasso with q-values}
 #'    \item \strong{cv.out.adapt:} {the aggregated result of the cross-validation for the adaptive lasso}
+#'    \item \strong{out.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+#'    \item \strong{out.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+#'    \item \strong{out.kmeans.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+#'    \item \strong{out.kmeans.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+#'    \item \strong{out.kquart.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+#'    \item \strong{out.kquart.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+#'    \item \strong{out.sort.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+#'    \item \strong{out.sort.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
 #' }
 #' @export
 #'
@@ -68,16 +83,20 @@
 d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox")[1],ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,robust=TRUE,q.old=FALSE,
-                     lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL,
+                     lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL,#cv.criterion=FALSE,
                      run.aic.bic=TRUE,
                      #run.fixed.aic.bic=TRUE,
                      run.kmeans.aic.bic=TRUE,
                      run.kquart.aic.bic=TRUE,
                      run.sort.aic.bic=TRUE,
-                     run.aic=TRUE,
-                     run.bic=TRUE,
-                     nboot=100,k=4,k.split=k,direction="backward"){
+                     #run.aic=TRUE,
+                     #run.bic=TRUE,
+                     nboot=100,k=4,#k.split=k,
+                     direction="backward"){
     real_data = TRUE
+    k.split=k
+    run.aic = TRUE
+    run.bic = TRUE
 
     # dimension setting
     n <- nrow(x)
@@ -253,7 +272,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
         for(v in 1:ncv){
             mult.cv.delta.lasso.w5 <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight5_",
                                                          include.diet=include.diet,diet.wt=z.wt,thresh.q=thresh.q,delta=delta,
-                                                         cv.criterion="delta_cv",vfold=vfold)
+                                                         cv.criterion=FALSE,vfold=vfold)
             mult.cv.delta.out.w5[,j] <- mult.cv.delta.out.w5[,j] + as.matrix(mult.cv.delta.lasso.w5$interest)
             mult.delta.w5[,v] <- mult.delta.w5[,v] + mult.cv.delta.lasso.w5$delta.out
         }
@@ -267,7 +286,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
         for(v in 1:ncv){
             mult.cv.delta.lasso.w6 <- lasso.computations(weights,microbes,phenotypes,g3,plots=FALSE,file="weight6_",
                                                          include.diet=include.diet,diet.wt=z.wt,corr.g=TRUE,delta=delta,
-                                                         cv.criterion="delta_cv",vfold=vfold)
+                                                         cv.criterion=FALSE,vfold=vfold)
             mult.cv.delta.out.w6[,j] <- mult.cv.delta.out.w6[,j] + as.matrix(mult.cv.delta.lasso.w6$interest)
             mult.delta.w6[,v] <- mult.delta.w6[,v] + mult.cv.delta.lasso.w6$delta.out
         }
