@@ -5,7 +5,7 @@
 #' @param y (n by 1) matrix of response variable
 #' @param cox.delta (n by 1) matrix of status for survival analysis
 #' @param factor.z logical. If TRUE, the additional fixed variable z is used as factor
-#' @param reg.type indicates the model for fitting. Either "linear" or "cox".
+#' @param reg.type indicates the model for fitting. Either "linear" or "cox". Default is "linear".
 #' @param ttest logical. If TRUE, p-value for each covariate is computed from the linear regression and this does not require normality of the covariates. If FALSE, p-value is computed as the p-value of the correlation coefficient. Default is FALSE.
 #' @param q_method indicates the method for choosing optimal tuning parameter in the q-value computation as proposed in Storey and Tibshirani (2003). One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
 #' @param plots logical. If TRUE, figures are plotted. Default is FALSE.
@@ -79,8 +79,10 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
     X <- cbind(z, x)
     colnames(X) <- c("Fixed",paste("X_",seq(1,m),sep=""))
     microbes <- t(X)
-    if (is.null(cox.delta)){
+    if (reg.type=="linear"){
         phenotypes <- list(yy=t(y),delta=NULL)
+    } else if (length(cox.delta)!=length(y)){
+        stop("length of y should be equal to length of cox.delta")
     } else {
         phenotypes <- list(yy=t(y),delta=t(cox.delta))
     }
