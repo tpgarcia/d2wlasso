@@ -98,14 +98,14 @@ d2wlasso(x, z, y, cox.delta = NULL, factor.z = TRUE,
    \item \strong{cv.delta.adapt:} {the selected delta from the cross-validation for the adaptive lasso}
    \item \strong{cv.out.w:} {the aggregated result of the cross-validation for the weighted lasso with q-values}
    \item \strong{cv.out.adapt:} {the aggregated result of the cross-validation for the adaptive lasso}
-   \item \strong{out.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-   \item \strong{out.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-   \item \strong{out.kmeans.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-   \item \strong{out.kmeans.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-   \item \strong{out.kquart.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-   \item \strong{out.kquart.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-   \item \strong{out.sort.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-   \item \strong{out.sort.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+   \item \strong{w.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from random partitioning}
+   \item \strong{w.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from random partitioning}
+   \item \strong{w.kmeans.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from k-means partitioning}
+   \item \strong{w.kmeans.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from k-means partitioning}
+   \item \strong{w.kquart.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from k-quartile partitioning}
+   \item \strong{w.kquart.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from k-quartile partitioning}
+   \item \strong{w.sort.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from sorted partitioning}
+   \item \strong{w.sort.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from sorted partitioning}
 }
 }
 \description{
@@ -117,7 +117,7 @@ z = matrix(rbinom(100, 1, 0.5),100,1)
 y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
 dwl0 <- d2wlasso(x,z,y)
 dwl1 <- d2wlasso(x,z,y,delta=2)
-dwl2 <- d2wlasso(x,z,y,include.z=FALSE,delta=2)
+dwl2 <- d2wlasso(x,z,y,include.z=FALSE)
 dwl3 <- d2wlasso(x,z,y,weight_fn = "sqrt")
 dwl4 <- d2wlasso(x,z,y,wt="adapt")
 dwl5 <- d2wlasso(x,z,y,wt="t_val")
@@ -130,5 +130,8 @@ x <- matrix(rnorm(100*5, 0, 1),100,5)
 z <- matrix(rbinom(100, 1, 0.5),100,1)
 y <- matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
 cox.delta <- matrix(1,nrow=length(y),ncol=1)
-dwlcox1 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox",delta=2)
+dwlcox1 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox")
+dwlcox2 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox", nboot = 50)
+dwlcox3 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox", wt="t_val")
+dwlcoxcv1 <- d2wlasso(x,z,y,cox.delta = cox.delta,reg.type = "cox",lasso.delta.cv.mult = TRUE, ncv = 3, nboot = 50)
 }

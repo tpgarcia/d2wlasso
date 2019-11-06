@@ -4,6 +4,7 @@ The R package `d2wlasso` implements structured variable selection with q-values.
 The reference for the original pliable lasso can be found at:
 * [Structured variable selection with q-values](https://doi.org/10.1093/biostatistics/kxt012) by Tanya P. Garcia et al (2013).
 * [Influence of Measures of Significance based Weights in the Weighted Lasso](https://www.statindex.org/articles/285259) by Tanya P. Garcia and Samuel Müller (2014).
+* [Cox regression with exclusion frequency-based weights to identify neuroimaging markers relevant to Huntington’s disease onset](https://projecteuclid.org/euclid.aoas/1483606854) by Tanya P. Garcia and Samuel Müller (2016).
 
 ## Installation
 
