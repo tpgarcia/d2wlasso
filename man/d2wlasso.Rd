@@ -15,8 +15,8 @@ d2wlasso(x, z, y, cox.delta = NULL, factor.z = TRUE,
   lasso.delta.cv.mult = FALSE, vfold = 10, ncv = 100,
   delta.cv.seed = NULL, run.aic.bic = TRUE,
   run.kmeans.aic.bic = TRUE, run.kquart.aic.bic = TRUE,
-  run.sort.aic.bic = TRUE, run.aic = TRUE, run.bic = TRUE,
-  nboot = 100, k = 4, k.split = k, direction = "backward")
+  run.sort.aic.bic = TRUE, nboot = 100, k = 4,
+  direction = "backward")
 }
 \arguments{
 \item{x}{(n by m) matrix of main covariates where m is the number of covariates and n is the sample size}
@@ -66,6 +66,20 @@ d2wlasso(x, z, y, cox.delta = NULL, factor.z = TRUE,
 \item{ncv}{indicates the number of cross-validation runs for selecting delta.}
 
 \item{delta.cv.seed}{For reproducible cross-validation result, the seed can be fixed.}
+
+\item{run.aic.bic}{If TRUE, the Cox regression with exclusion frequency-based weights is performed with randomly partitioning the index}
+
+\item{run.kmeans.aic.bic}{If TRUE, the Cox regression with exclusion frequency-based weights is performed with partitioning the index using k-means}
+
+\item{run.kquart.aic.bic}{If TRUE, the Cox regression with exclusion frequency-based weights is performed with partitioning the index using k-quartile}
+
+\item{run.sort.aic.bic}{If TRUE, the Cox regression with exclusion frequency-based weights is performed with partitioning the index using sorted partition}
+
+\item{nboot}{indicates the number of bootstrap samples for the Cox regression with exclusion frequency-based weights}
+
+\item{k}{indicates the number of partitions for the Cox regression with exclusion frequency-based weights. Default is 4.}
+
+\item{direction}{indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".}
 }
 \value{
 \itemize{
@@ -84,6 +98,14 @@ d2wlasso(x, z, y, cox.delta = NULL, factor.z = TRUE,
    \item \strong{cv.delta.adapt:} {the selected delta from the cross-validation for the adaptive lasso}
    \item \strong{cv.out.w:} {the aggregated result of the cross-validation for the weighted lasso with q-values}
    \item \strong{cv.out.adapt:} {the aggregated result of the cross-validation for the adaptive lasso}
+   \item \strong{out.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+   \item \strong{out.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+   \item \strong{out.kmeans.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+   \item \strong{out.kmeans.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+   \item \strong{out.kquart.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+   \item \strong{out.kquart.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+   \item \strong{out.sort.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+   \item \strong{out.sort.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
 }
 }
 \description{

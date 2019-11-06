@@ -49,14 +49,14 @@
 #'    \item \strong{cv.delta.adapt:} {the selected delta from the cross-validation for the adaptive lasso}
 #'    \item \strong{cv.out.w:} {the aggregated result of the cross-validation for the weighted lasso with q-values}
 #'    \item \strong{cv.out.adapt:} {the aggregated result of the cross-validation for the adaptive lasso}
-#'    \item \strong{out.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-#'    \item \strong{out.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-#'    \item \strong{out.kmeans.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-#'    \item \strong{out.kmeans.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-#'    \item \strong{out.kquart.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-#'    \item \strong{out.kquart.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-#'    \item \strong{out.sort.aic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
-#'    \item \strong{out.sort.bic.boot:} {the aggregated result of the cross-validation for the adaptive lasso}
+#'    \item \strong{w.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from random partitioning}
+#'    \item \strong{w.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from random partitioning}
+#'    \item \strong{w.kmeans.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from k-means partitioning}
+#'    \item \strong{w.kmeans.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from k-means partitioning}
+#'    \item \strong{w.kquart.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from k-quartile partitioning}
+#'    \item \strong{w.kquart.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from k-quartile partitioning}
+#'    \item \strong{w.sort.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from sorted partitioning}
+#'    \item \strong{w.sort.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from sorted partitioning}
 #' }
 #' @export
 #'
@@ -97,6 +97,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
     k.split=k
     run.aic = TRUE
     run.bic = TRUE
+    cv.criterion=FALSE
 
     # dimension setting
     n <- nrow(x)
@@ -137,7 +138,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
     #out.pvalue.noadj[,j] <- parcor.out$pvalues
 
     ## Benjamini-Hochberg adjusted p-values from y=diet + \beta_k * microbe_k
-    benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=0.05)
+    benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=alpha)
     weight.pvalue.benhoch <- benhoch.results$pval.adjust
     #out.pvalue.benhoch[,j] <- benhoch.results$pval.adjust
 
@@ -179,6 +180,9 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
     out.aic.boot <- NULL; out.bic.boot <- NULL#; out.fixed.aic.boot <- NULL; out.fixed.bic.boot <- NULL
     out.kmeans.aic.boot <- NULL; out.kmeans.bic.boot <- NULL; out.kquart.aic.boot <- NULL; out.kquart.bic.boot <- NULL
     out.sort.aic.boot <- NULL; out.sort.bic.boot <- NULL
+    w.aic.boot <- NULL; w.bic.boot <- NULL#; w.fixed.aic.boot <- NULL; w.fixed.bic.boot <- NULL
+    w.kmeans.aic.boot <- NULL; w.kmeans.bic.boot <- NULL; w.kquart.aic.boot <- NULL; w.kquart.bic.boot <- NULL
+    w.sort.aic.boot <- NULL; w.sort.bic.boot <- NULL
 
     if (wt == "one"){
         ## No weights
@@ -517,10 +521,131 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
         out.sort.bic.boot <- apply(weight.sort.bic.boot,1,sum)/nboot
     }
 
+    # Lasso fitting with exclusion frequency weights
+
+    if(run.aic.bic==TRUE){
+        ## weights are exclusion frequency (random partitioning)
+
+        #if(run.aic==TRUE){
+            weights <- data.frame(out.aic.boot)
+            colnames(weights) <- "response"
+            rownames(weights) <- out.rownames[-1]
+            lasso.aic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+                                                   file="weight_pval_aic_boot_",
+                                                   include.diet=include.z,format.data=format.data,
+                                                   diet.wt=diet.wt,
+                                                   thresh.q=thresh.q,delta=delta,
+                                                   std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
+            w.aic.boot <- lasso.aic.bvalue$interest
+        #}
+
+        #if(run.bic==TRUE){
+            weights <- data.frame(out.bic.boot)
+            colnames(weights) <- "response"
+            rownames(weights) <- out.rownames[-1]
+            lasso.bic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+                                                   file="weight_pval_bic_boot_",
+                                                   include.diet=include.z,format.data=format.data,
+                                                   diet.wt=diet.wt,
+                                                   thresh.q=thresh.q,delta=delta,
+                                                   std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
+            w.bic.boot <- lasso.bic.bvalue$interest
+        #}
+    }
+
+    if(run.kmeans.aic.bic==TRUE){
+        ## weights are exclusion frequency (designed partitioning-kmeans)
+        #if(run.aic==TRUE){
+            weights <- data.frame(out.kmeans.aic.boot)
+            colnames(weights) <- "response"
+            rownames(weights) <- out.rownames[-1]
+            lasso.kmeans.aic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+                                                          file="weight_pval_kmeans_aic_boot_",
+                                                          include.diet=include.z,format.data=format.data,
+                                                          diet.wt=diet.wt,
+                                                          thresh.q=thresh.q,delta=delta,
+                                                          std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
+            w.kmeans.aic.boot <- lasso.kmeans.aic.bvalue$interest
+        #}
+
+        #if(run.bic==TRUE){
+            weights <- data.frame(out.kmeans.bic.boot)
+            colnames(weights) <- "response"
+            rownames(weights) <- out.rownames[-1]
+            lasso.kmeans.bic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+                                                          file="weight_pval_kmeans_bic_boot_",
+                                                          include.diet=include.z,format.data=format.data,
+                                                          diet.wt=diet.wt,
+                                                          thresh.q=thresh.q,delta=delta,
+                                                          std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
+            w.kmeans.bic.boot <- lasso.kmeans.bic.bvalue$interest
+        #}
+    }
+
+    if(run.kquart.aic.bic==TRUE){
+        ## weights are exclusion frequency (designed partitioning-k quartiles)
+        #if(run.aic==TRUE){
+            weights <- data.frame(out.kquart.aic.boot)
+            colnames(weights) <- "response"
+            rownames(weights) <- out.rownames[-1]
+            lasso.kquart.aic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+                                                          file="weight_pval_kquart_aic_boot_",
+                                                          include.diet=include.z,format.data=format.data,
+                                                          diet.wt=diet.wt,
+                                                          thresh.q=thresh.q,delta=delta,
+                                                          std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
+            w.kquart.aic.boot <- lasso.kquart.aic.bvalue$interest
+        #}
+
+        #if(run.bic==TRUE){
+            weights <- data.frame(out.kquart.bic.boot)
+            colnames(weights) <- "response"
+            rownames(weights) <- out.rownames[-1]
+            lasso.kquart.bic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+                                                          file="weight_pval_kquart_bic_boot_",
+                                                          include.diet=include.z,format.data=format.data,
+                                                          diet.wt=diet.wt,
+                                                          thresh.q=thresh.q,delta=delta,
+                                                          std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
+            w.kquart.bic.boot <- lasso.kquart.bic.bvalue$interest
+        #}
+    }
+
+    if(run.sort.aic.bic==TRUE){
+        ## weights are exclusion frequency (designed partitioning-k quartiles)
+        #if(run.aic==TRUE){
+            weights <- data.frame(out.sort.aic.boot)
+            colnames(weights) <- "response"
+            rownames(weights) <- out.rownames[-1]
+            lasso.sort.aic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+                                                        file="weight_pval_sort_aic_boot_",
+                                                        include.diet=include.z,format.data=format.data,
+                                                        diet.wt=diet.wt,
+                                                        thresh.q=thresh.q,delta=delta,
+                                                        std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
+            w.sort.aic.boot <- lasso.sort.aic.bvalue$interest
+        #}
+
+        #if(run.bic==TRUE){
+            weights <- data.frame(out.sort.bic.boot)
+            colnames(weights) <- "response"
+            rownames(weights) <- out.rownames[-1]
+            lasso.sort.bic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+                                                        file="weight_pval_sort_bic_boot_",
+                                                        include.diet=include.z,format.data=format.data,
+                                                        diet.wt=diet.wt,
+                                                        thresh.q=thresh.q,delta=delta,
+                                                        std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
+            w.sort.bic.boot <- lasso.sort.bic.bvalue$interest
+        #}
+    }
+
     }
 
     return(list("qval"=out.qvalue,"bh.pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.parcor"=out.parcor, "out.benhoch.cor"=out.benhoch.cor, "out.benhoch.parcor"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "cv.delta.w"=mult.delta.w5, "cv.delta.adapt"=mult.delta.w6, "cv.out.w"=mult.cv.delta.out.w5, "cv.out.adapt"=mult.cv.delta.out.w6,
-                "out.aic.boot"=out.aic.boot, "out.bic.boot"=out.bic.boot,# "out.fixed.aic.boot"=out.fixed.aic.boot, "out.fixed.bic.boot"=out.fixed.bic.boot,
-                "out.kmeans.aic.boot"=out.kmeans.aic.boot, "out.kmeans.bic.boot"=out.kmeans.bic.boot, "out.kquart.aic.boot"=out.kquart.aic.boot, "out.kquart.bic.boot"=out.kquart.bic.boot,
-                "out.sort.aic.boot"=out.sort.aic.boot, "out.sort.bic.boot"=out.sort.bic.boot))
+                #"out.aic.boot"=out.aic.boot, "out.bic.boot"=out.bic.boot,# "out.fixed.aic.boot"=out.fixed.aic.boot, "out.fixed.bic.boot"=out.fixed.bic.boot,
+                #"out.kmeans.aic.boot"=out.kmeans.aic.boot, "out.kmeans.bic.boot"=out.kmeans.bic.boot, "out.kquart.aic.boot"=out.kquart.aic.boot, "out.kquart.bic.boot"=out.kquart.bic.boot,
+                #"out.sort.aic.boot"=out.sort.aic.boot, "out.sort.bic.boot"=out.sort.bic.boot,
+                "w.aic.boot"=w.aic.boot, "w.bic.boot"=w.bic.boot, "w.kmeans.aic.boot"=w.kmeans.aic.boot, "w.kmeans.bic.boot"=w.kmeans.bic.boot,
+                "w.kquart.aic.boot"=w.kquart.aic.boot, "w.kquart.bic.boot"=w.kquart.bic.boot, "w.sort.aic.boot"=w.sort.aic.boot, "w.sort.bic.boot"=w.sort.bic.boot))
 }
