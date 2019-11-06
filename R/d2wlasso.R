@@ -64,8 +64,7 @@
 #' x = matrix(rnorm(100*5, 0, 1),100,5)
 #' z = matrix(rbinom(100, 1, 0.5),100,1)
 #' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
-#' dwl0 <- d2wlasso(x,z,y)
-#' dwl1 <- d2wlasso(x,z,y,delta=2)
+#' dwl1 <- d2wlasso(x,z,y)
 #' dwl2 <- d2wlasso(x,z,y,include.z=FALSE,delta=2)
 #' dwl3 <- d2wlasso(x,z,y,weight_fn = "sqrt")
 #' dwl4 <- d2wlasso(x,z,y,wt="adapt")
@@ -79,7 +78,10 @@
 #' z <- matrix(rbinom(100, 1, 0.5),100,1)
 #' y <- matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
 #' cox.delta <- matrix(1,nrow=length(y),ncol=1)
-#' dwlcox1 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox",delta=2)
+#' dwlcox1 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox")
+#' dwlcox2 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox", nboot = 50)
+#' dwlcox3 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox", wt="t_val")
+#' dwlcoxcv1 <- d2wlasso(x,z,y,cox.delta = cox.delta,reg.type = "cox",lasso.delta.cv.mult = TRUE, ncv = 3, nboot = 50)
 d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox")[1],ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,robust=TRUE,q.old=FALSE,
