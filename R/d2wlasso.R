@@ -30,7 +30,7 @@
 #' @param run.sort.aic.bic If TRUE, the Cox regression with exclusion frequency-based weights is performed with partitioning the index using sorted partition
 #' @param nboot indicates the number of bootstrap samples for the Cox regression with exclusion frequency-based weights
 #' @param k indicates the number of partitions for the Cox regression with exclusion frequency-based weights. Default is 4.
-#' @param direction indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".
+#' @param direction indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward". "Hi there everyone."
 #'
 #' @return
 #' \itemize{
