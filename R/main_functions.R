@@ -736,14 +736,14 @@ library(glmnet)     # for ridge regression
 ## Function for making data frames for storing results ##
 #########################################################
 
-store.micropheno <- function(XX,response){
+store.xy <- function(XX,response){
 	out <- as.data.frame(matrix(0,nrow=ncol(XX),ncol=ncol(response$yy)))
 	rownames(out) <- colnames(XX)
 	colnames(out) <- colnames(response$yy)
 	return(out)
 }
 
-store.micro <- function(XX){
+store.x <- function(XX){
 	out <- as.data.frame(rep(0,ncol(XX)))
 	rownames(out) <- colnames(XX)
 	return(out)
@@ -883,9 +883,9 @@ correlations <- function(factor.z,x,z,response,partial=FALSE,ttest=FALSE,regress
 	data.z <- z
 
 	# Setting up matrices to store Pearson correlations and p-values
-	correlation <- store.micropheno(x,data.response)
-	pvalues <- store.micropheno(data.XX,data.response)
-	tvalues <- store.micropheno(data.XX,data.response)
+	correlation <- store.xy(data.XX,data.response)
+	pvalues <- store.xy(data.XX,data.response)
+	tvalues <- store.xy(data.XX,data.response)
 
 	# Computing pearson correlations and p-values
 	for (i in 1: ncol(data.XX)) {
@@ -915,8 +915,8 @@ correlations.pcor <- function(XX,response,partial="FALSE",ttest="FALSE"){
     diet <- XX[,"Fixed"]
 
     ## Setting up matrices to store Pearson correlations and p-values
-    correlation <- store.micropheno(data.XX,data.response)
-    pvalues <- store.micropheno(data.XX,data.response)
+    correlation <- store.xy(data.XX,data.response)
+    pvalues <- store.xy(data.XX,data.response)
 
     ## Computing pearson correlations and p-values
     for (i in 1: ncol(data.XX)) {
@@ -969,8 +969,8 @@ ftests <- function(factor.z,XX){
     data.XX <- XX[,-which(row.names(XX)=="Fixed")]
 
     # Setting up matrices to store F-statistics and p-values
-    fstat <- store.micro(data.XX)
-    pvalues <- store.micro(data.XX)
+    fstat <- store.x(data.XX)
+    pvalues <- store.x(data.XX)
 
     # Computing pearson correlations and p-values
     for (i in 1: ncol(data.XX)) {
