@@ -133,9 +133,6 @@ d2wlasso <- function(x,z,y,
                      k=4,
                      direction="backward"){
 
-    k.split=k
-    run.aic = TRUE
-    run.bic = TRUE
     cv.criterion=FALSE
 
     #################################
@@ -301,6 +298,89 @@ d2wlasso <- function(x,z,y,
         } else {
             warning("Your choice of weight.type requires z to be non-NULL.")
         }
+    } else if(weight.type=="exfrequency.kmeans" |
+              weight.type=="exfrequency.kquartiles"|
+              weight.type=="exfrequency.ksorted"){
+
+        k.split=k
+        run.aic = TRUE
+        run.bic = TRUE
+
+
+        ## Store weights for each bootstrap
+        if(!is.null(z)){
+            tmp2.store <- as.data.frame(matrix(0, nrow = (number.of.covariates-1), ncol = nboot,
+                                           dimnames = list(covariate.names[-1],
+                                                           seq(1,nboot))))
+        } else {
+            tmp2.store <- as.data.frame(matrix(0, nrow = number.of.covariates, ncol = nboot,
+                                               dimnames = list(covariate.names,
+                                                               seq(1,nboot))))
+        }
+        weight.aic.boot <- tmp2.store
+        weight.bic.boot <- tmp2.store
+
+        weight.fixed.aic.boot <- tmp2.store
+        weight.fixed.bic.boot <- tmp2.store
+
+        weight.kmeans.aic.boot <- tmp2.store
+        weight.kmeans.bic.boot <- tmp2.store
+
+        weight.kquart.aic.boot <- tmp2.store
+        weight.kquart.bic.boot <- tmp2.store
+
+        weight.sort.aic.boot <- tmp2.store
+        weight.sort.bic.boot <- tmp2.store
+
+        run.kmeans.aic.bic <- FALSE
+        run.kquart.aic.bic <- FALSE
+        run.sort.aic.bic <- FALSE
+
+        if(weight.type=="exfrequency.kmeans"){
+            run.kmeans.aic.bic <- TRUE
+        }
+
+        if(weight.type=="exfrequency.kquartiles"){
+            run.kquart.aic.bic <- TRUE
+        }
+
+        if(weight.type=="exfrequency.ksorted"){
+            run.sort.aic.bic <- TRUE
+        }
+
+        #####################################
+        ## Compute intermediary quantities ##
+        #####################################
+        if(run.kmeans.aic.bic==TRUE | run.kquart.aic.bic==TRUE |  run.sort.aic.bic==TRUE){
+
+            ## Get parameter estimates from ridge regression
+            beta.values <- ridge.regression(XX,response)
+
+            if(run.kmeans.aic.bic==TRUE){
+                ## K-means clustering
+                kmeans.out <- kmeans(beta.values,centers=k.split,iter.max=100)
+                index.group.kmeans <- kmeans.out$cluster
+            }
+
+            if(run.kquart.aic.bic==TRUE){
+
+                ## K-quart clustering
+                index.group.kquart <- cut(beta.values, breaks=quantile(beta.values,
+                                                                       probs=seq(0,1, by=1/k.split)),include.lowest=TRUE)
+                index.group.kquart <- as.numeric(factor(index.group.kquart, labels=1:k.split))
+            }
+
+            if(run.sort.aic.bic==TRUE){
+
+                ## K-sort clustering
+                beta.sort <- sort(abs(beta.values),decreasing=TRUE,index.return=TRUE)
+                sort.beta.index <- beta.sort$ix
+
+                ## index of ordering
+                index.group.sort <- index.sort.partition(n=nrow(XX),k=k,sort.beta.index)
+            }
+        }
+
     }
 
 
@@ -349,212 +429,20 @@ d2wlasso <- function(x,z,y,
                                                          include.diet=include.diet,diet.wt=z.wt,corr.g=TRUE,delta=delta,
                                                          cv.criterion=FALSE,vfold=vfold)
             lasso.w <- lasso.w + as.matrix(lasso.w.tmp$interest)
-            mult.delta.w6[,v] <- mult.delta.w6[,v] + mult.cv.delta.lasso.w6$delta.out
+            ##mult.delta.w6[,v] <- mult.delta.w6[,v] + mult.cv.delta.lasso.w6$delta.out
         }
 
+        weighted.lasso <- lasso.w
     }
-
-
 
 
     ## exclusion frequency weights
 
     if (regression.type=="cox"){
 
-        ## Store weights for each bootstrap
-        tmp2.store <- as.data.frame(matrix(0, nrow = (number.of.covariates-1), ncol = nboot,
-                                           dimnames = list(out.rownames[-1],
-                                                           seq(1,nboot))))
 
-        weight.aic.boot <- tmp2.store
-        weight.bic.boot <- tmp2.store
 
-        weight.fixed.aic.boot <- tmp2.store
-        weight.fixed.bic.boot <- tmp2.store
 
-        weight.kmeans.aic.boot <- tmp2.store
-        weight.kmeans.bic.boot <- tmp2.store
-
-        weight.kquart.aic.boot <- tmp2.store
-        weight.kquart.bic.boot <- tmp2.store
-
-        weight.sort.aic.boot <- tmp2.store
-        weight.sort.bic.boot <- tmp2.store
-
-        if(run.kmeans.aic.bic==TRUE | run.kquart.aic.bic==TRUE |  run.sort.aic.bic==TRUE){
-
-            ## Get parameter estimates from ridge regression
-            beta.values <- ridge.regression(XX,response)
-
-            if(run.kmeans.aic.bic==TRUE){
-                ## K-means clustering
-                kmeans.out <- kmeans(beta.values,centers=k.split,iter.max=100)
-                index.group.kmeans <- kmeans.out$cluster
-            }
-
-            if(run.kquart.aic.bic==TRUE){
-
-                ## K-quart clustering
-                index.group.kquart <- cut(beta.values, breaks=quantile(beta.values,
-                                                                       probs=seq(0,1, by=1/k.split)),include.lowest=TRUE)
-                index.group.kquart <- as.numeric(factor(index.group.kquart, labels=1:k.split))
-            }
-
-            if(run.sort.aic.bic==TRUE){
-
-                ## K-sort clustering
-                beta.sort <- sort(abs(beta.values),decreasing=TRUE,index.return=TRUE)
-                sort.beta.index <- beta.sort$ix
-
-                ## index of ordering
-                index.group.sort <- index.sort.partition(n=nrow(XX),k=k,sort.beta.index)
-            }
-        }
-
-        for(b in 1:nboot){
-            ##print(b)
-            if(run.aic.bic==TRUE){
-                ## Randomly partition the index
-                rand.index <- random.partition(n=nrow(XX),p=ncol(XX)-1,k=k)
-            }
-
-            #if(run.fixed.aic.bic==TRUE){
-            ## Ensure fixed covariates are in the partition + randomly partition the rest
-            #    rand.fixed.index <- fixed.plus.random.partition(fixed.covariates,n=nrow(XX),p=ncol(XX)-1,k=k)
-            #}
-
-            if(run.kmeans.aic.bic==TRUE){
-                ## Partition the index using k-means
-                kmeans.rand.index <- designed.partition(index.group.kmeans,k=k)
-            }
-
-            if(run.kquart.aic.bic==TRUE){
-                ## Partition the index using k-quartile
-                kquart.rand.index <- designed.partition(index.group.kquart,k=k)
-            }
-
-            if(run.sort.aic.bic==TRUE){
-                ## Partition the index using k-quartile
-                sort.rand.index <- designed.partition(index.group.sort,k=k)
-
-                ## Measures how often the largest beta from ridge regression is in the true,
-                ##  non-zero beta coefficients
-                #beta.index.sort[sort.beta.index[1]+1,j] <- as.numeric(sort.beta.index[1]%in%fixed.covariates)
-            }
-
-            ## Apply stepwise AIC to each group
-            for(l in 1:k){
-                ##print(l)
-                if(run.aic.bic==TRUE){
-                    ## Random partitioning
-                    index <- as.numeric(unlist(rand.index[l]))
-                    if(length(index)!=0){
-
-                        if(run.aic==TRUE){
-                            weight.aic.boot[,b] <- weight.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,response,type="AIC",
-                                               direction=direction,
-                                               real_data=real_data)
-                        }
-
-                        if(run.bic==TRUE){
-                            weight.bic.boot[,b] <- weight.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,response,type="BIC",
-                                               direction=direction,
-                                               real_data=real_data)
-                        }
-                    }
-                }
-                if (FALSE){
-                    if(run.fixed.aic.bic==TRUE){
-                        ## Fixed + Random partitioning
-                        index <- as.numeric(unlist(rand.fixed.index[l]))
-                        if(length(index)!=0){
-                            if(run.aic==TRUE){
-                                weight.fixed.aic.boot[,b] <- weight.fixed.aic.boot[,b] +
-                                    step.selection(factor.z,index,
-                                                   XX,response,type="AIC",
-                                                   direction=direction,
-                                                   real_data=real_data)
-                            }
-
-                            if(run.bic==TRUE){
-                                weight.fixed.bic.boot[,b] <- weight.fixed.bic.boot[,b] + step.selection(factor.z,index,
-                                                                                                        XX,response,type="BIC",
-                                                                                                        direction=direction,
-                                                                                                        real_data=real_data)
-                            }
-                        }
-                    }
-                }
-                if(run.kmeans.aic.bic==TRUE){
-                    ## k-means partitioning
-                    index <- as.numeric(unlist(kmeans.rand.index[l]))
-                    if(length(index)!=0){
-                        if(run.aic==TRUE){
-                            weight.kmeans.aic.boot[,b] <- weight.kmeans.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,response,
-                                               type="AIC",
-                                               direction=direction,
-                                               real_data=real_data)
-                        }
-
-                        if(run.bic==TRUE){
-                            weight.kmeans.bic.boot[,b] <- weight.kmeans.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,response,
-                                               type="BIC",
-                                               direction=direction,
-                                               real_data=real_data)
-                        }
-                    }
-                }
-
-                if(run.kquart.aic.bic==TRUE){
-                    ## k-quartile partitioning
-                    index <- as.numeric(unlist(kquart.rand.index[l]))
-
-                    if(length(index)!=0){
-                        if(run.aic==TRUE){
-                            weight.kquart.aic.boot[,b] <- weight.kquart.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,response,
-                                               type="AIC",
-                                               direction=direction,
-                                               real_data=real_data)
-                        }
-
-                        if(run.bic==TRUE){
-                            weight.kquart.bic.boot[,b] <- weight.kquart.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,response,
-                                               type="BIC",
-                                               direction=direction,
-                                               real_data=real_data)
-                        }
-                    }
-                }
-
-                if(run.sort.aic.bic==TRUE){
-                    ## sorted partitioning
-                    index <- as.numeric(unlist(sort.rand.index[l]))
-
-                    if(length(index)!=0){
-                        if(run.aic==TRUE){
-                            weight.sort.aic.boot[,b] <- weight.sort.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,response,
-                                               type="AIC",
-                                               direction=direction,
-                                               real_data=real_data)
-                        }
-                        if(run.bic==TRUE){
-                            weight.sort.bic.boot[,b] <- weight.sort.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,response,
-                                               type="BIC",
-                                               direction=direction,
-                                               real_data=real_data)
-                        }
-                    }
-                }
-            }
-        }
 
         if(run.aic.bic==TRUE){
             out.aic.boot <- apply(weight.aic.boot,1,sum)/nboot
