@@ -11,7 +11,7 @@
 #'
 #' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
 #' @param z (n by 1) matrix of additional fixed covariate affecting response variable. This covariate should
-#' always be selected.
+#' always be selected. Can be NULL.
 #' @param y (n by K) a matrix corresponding to K response variables. If \code{regression.type} is "cox",
 #' \code{y} contains the observed event times for each of the k response types, k=1,...,K.
 #' @param cox.delta (n by K) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
@@ -105,6 +105,7 @@ d2wlasso <- function(x,z,y,
                      cox.delta=NULL,
                      factor.z=TRUE,
                      regression.type=c("linear","cox")[1],
+
                      ttest=TRUE,
                      q_method=c("bootstrap","smoother")[2],
                      plots=FALSE,
@@ -141,21 +142,32 @@ d2wlasso <- function(x,z,y,
     # Store the dimensions of x, z ##
     #################################
     n <- nrow(x)
-    m0 <- ncol(z)
     m <- ncol(x)
+
+    if(!is.null(z)){
+        m0 <- ncol(z)
+    } else {
+        m0 <- 0
+    }
 
     #########################
     # arranging input data ##
     #########################
-    XX <- cbind(z, x)
+    if(!is.null(z)){
+        XX <- cbind(z, x)
+    } else {
+        XX <- x
+    }
 
     ## allocate names to X
     colnames_use <- NULL
-    if(is.null(colnames(z))){
-        colnames_use <- c(colnames_use,"Fixed")
-        colnames(z) <- "Fixed"
-    } else {
-        colnames_use <- c(colnames_use,colnames(z))
+    if(!is.null(z)){
+        if(is.null(colnames(z))){
+            colnames_use <- c(colnames_use,"Fixed")
+            colnames(z) <- "Fixed"
+        } else {
+            colnames_use <- c(colnames_use,colnames(z))
+        }
     }
 
     if(is.null(colnames(x))){
@@ -182,98 +194,115 @@ d2wlasso <- function(x,z,y,
     covariate.names <- colnames(XX)
 
 
-    ############################################################################################
-    # compute correlation and partial correlation (for taking into account z) between x and y ##
-    ############################################################################################
+    ############################################################
+    ##                                                        ##
+    ##                                                        ##
+    ##          COMPUTE THE WEIGHTS                           ##
+    ##                                                        ##
+    ##                                                        ##
+    ############################################################
+    if(weight.type=="one"){
+        ## Unit weights
+        weights <- matrix(1,nrow=ncol(XX)-1,ncol=ncol(response$yy))
+    } else if(weight.type=="corr.estimate" |
+       weight.type=="corr.pvalue" |
+       weight.type=="corr.bh.pvalue" |
+       weight.type=="corr.tstat"|
+       weight.type=="corr.qvalue"){
 
-    cor.out <- correlations(factor.z,x,z,response,partial=FALSE,ttest=ttest,
-                            regression.type=regression.type)
+        ####################################
+        ## compute correlation of x and y ##
+        ####################################
+        cor.out <- correlations(factor.z,x,z,response,partial=FALSE,ttest=ttest,
+                                regression.type=regression.type)
 
-    parcor.out <- correlations(factor.z,x,z,response,partial=TRUE,ttest=ttest,
-                               regression.type=regression.type)
+        #########################
+        ## Extract the weights ##
+        #########################
+        if(weight.type=="corr.tstat"){
+            ## t-values with \beta_k in y= \beta_k * x_k
+            weights <- cor.out$tvalues
+            threshold.selection <- NULL
+        } else if(weight.type=="corr.pvalue"){
+            ## p-values with \beta_k in y= \beta_k * x_k
+            weights <- cor.out$pvalues
 
-    fstat.out <- ftests(factor.z,x,z)
+        } else if(weight.type=="corr.estimate"){
+            ## partial correlations
+            weights <- cor.out$estimate
+            threshold.selection <- NULL
+        } else if(weight.type=="corr.bh.pvalue"){
+            ## Benjamini-Hochberg adjusted p-values from y=z + \beta_k * x_k
+            benhoch.results <- ben.hoch.interest(cor.out$pvalues,alpha=alpha.bh)
+            weights <- benhoch.results$pval.adjust
+        } else if(weight.type=="corr.qvalue"){
 
-    #####################
-    ## Get Weights: t-statistic, p-values, Benjamin-Hochberg p-values, q-values, partial correlations ##
-    #####################
-
-    ## t-values with \beta_k in y=diet + \beta_k * microbe_k
-    weight.tvalue <- parcor.out$tvalues
-    #out.tvalue[,j] <- parcor.out$tvalues
-
-    ## p-values with \beta_k in y=diet + \beta_k * microbe_k
-    weight.pvalue.noadj <- parcor.out$pvalues
-    #out.pvalue.noadj[,j] <- parcor.out$pvalues
-
-    ## Benjamini-Hochberg adjusted p-values from y=diet + \beta_k * microbe_k
-    benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=alpha)
-    weight.pvalue.benhoch <- benhoch.results$pval.adjust
-    #out.pvalue.benhoch[,j] <- benhoch.results$pval.adjust
-
-    ## partial correlations
-    weight.parcor <- parcor.out$estimate
-    #out.parcor.value[,j] <- parcor.out$estimate
-
-    ## Results for testing if a microbe has an effect on phenotype, but NOT
-    ##            accounting for diet
-    ## That is, we test : H_0 : \beta_{x_j}=0
-    microbe.cor.out.qvalues <- q.computations(cor.out, method=q_method,
+            ## Results for testing if a x_k has an effect on y, but NOT
+            ##            accounting for z
+            ## That is, we test : H_0 : \beta_{x_k}=0
+            qvalues.results <- q.computations(cor.out, method=q_method,
                                               plots=plots,file="cor",robust=robust,q.old=q.old,
                                               pi0.true=pi0.true,pi0.val=pi0.val)
-    microbe.cor.out <- q.interest(microbe.cor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
-    out.cor   <- c(0,t(microbe.cor.out$interest))
 
-    ## Results from Benjamini-Hochberg adjusted p-values when p-values do not account for diet
-    benhoch.cor.results <- ben.hoch.interest(cor.out$pvalues,alpha=alpha.bh)
-    out.benhoch.cor <- c(0,t(benhoch.cor.results$interest))
+            weights <- qvalues.results$qval.mat
+            threshold.selection <- q.interest(weights,alpha=alpha,criteria="less")
+            if(!is.null(z)){
+                ## we ignore z
+                threshold.selection <- c(0,t(threshold.selection$interest))
+            }
 
-    ## Results for testing if a microbe has an effect on phenotype, but AFTER
-    ##            accounting for diet
-    ## That is, we test : H_0 : \beta_{x_j|z}=0
-    # compute q-value as used by JD Storey with some adjustments made
-    microbe.parcor.out.qvalues <- q.computations(parcor.out,method=q_method,
-                                                 plots=plots,file="parcor",robust=robust,q.old=q.old,
-                                                 pi0.true=pi0.true,pi0.val=pi0.val)
-    out.qvalue <- c(0,t(microbe.parcor.out.qvalues$qval.mat))
-    out.pvalue <- c(0,t(parcor.out$pvalues))
-    q.out <- q.interest(microbe.parcor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
-    out.parcor <- c(1,t(q.out$interest))
+        }
 
-    ## Results for Benjamini-Hochberg Method ##
-    benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=alpha.bh)
-    out.benhoch <- c(1,t(benhoch.results$interest))
-    out.benhoch.pval.adjust <- c(0,t(benhoch.results$pval.adjust))
 
-    ## Results for Cox with Exclusion-frequency weights ##
-    out.aic.boot <- NULL; out.bic.boot <- NULL#; out.fixed.aic.boot <- NULL; out.fixed.bic.boot <- NULL
-    out.kmeans.aic.boot <- NULL; out.kmeans.bic.boot <- NULL; out.kquart.aic.boot <- NULL; out.kquart.bic.boot <- NULL
-    out.sort.aic.boot <- NULL; out.sort.bic.boot <- NULL
-    w.aic.boot <- NULL; w.bic.boot <- NULL#; w.fixed.aic.boot <- NULL; w.fixed.bic.boot <- NULL
-    w.kmeans.aic.boot <- NULL; w.kmeans.bic.boot <- NULL; w.kquart.aic.boot <- NULL; w.kquart.bic.boot <- NULL
-    w.sort.aic.boot <- NULL; w.sort.bic.boot <- NULL
+    } else if(weight.type=="parcor.estimate" |
+              weight.type=="parcor.pvalue" |
+              weight.type=="parcor.bh.pvalue" |
+              weight.type=="parcor.tstat"|
+              weight.type=="parcor.qvalue"){
+        ##################################################################
+        ## compute partial correlation of x and y after adjusting for z ##
+        ##################################################################
 
-    if (wt == "one"){
-        ## No weights
-        weights <- matrix(1,nrow=ncol(XX)-1,ncol=ncol(response$yy))
-    } else if (wt == "t_val"){
-        weights <- weight.tvalue
-    } else if (wt == "parcor"){
-        weights <- weight.parcor
-    } else if (wt == "p_val"){
-        weights <- weight.pvalue.noadj
-    } else if (wt == "bhp_val"){
-        weights <- weight.pvalue.benhoch
-    } else if (wt == "adapt"){
-        ## Weights set to absolute value of partial correlations
-        weights <- parcor.out$estimate
-    } else if (wt == "q_cor"){
-        ## Weights set to q-values BEFORE taking into account diet
-        weights <- microbe.cor.out.qvalues$qval.mat
-    } else {
-        ## Weights set to q-values after taking into account diet
-        weights <- microbe.parcor.out.qvalues$qval.mat
+        if(!is.null(z)){
+            parcor.out <- correlations(factor.z,x,z,response,partial=TRUE,ttest=ttest,
+                                       regression.type=regression.type)
+
+            #########################
+            ## Extract the weights ##
+            #########################
+            if(weight.type=="parcor.tstat"){
+                ## t-values with \beta_k in y=z + \beta_k * x_k
+                weights <- parcor.out$tvalues
+            } else if(weight.type=="parcor.pvalue"){
+                ## p-values with \beta_k in y=z + \beta_k * x_k
+                weights <- parcor.out$pvalues
+            } else if(weight.type=="parcor.estimate"){
+                ## partial correlations
+                weights <- parcor.out$estimate
+            } else if(weight.type=="parcor.bh.pvalue"){
+                ## Benjamini-Hochberg adjusted p-values from y=z + \beta_k * x_k
+                benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=alpha.bh)
+                weights <- benhoch.results$pval.adjust
+                threshold.selection <- c(1,t(benhoch.results$interest))
+
+            } else if(weight.type=="parcor.qvalue"){
+                ## Results for testing if a microbe has an effect on phenotype, but AFTER
+                ##            accounting for diet
+                ## That is, we test : H_0 : \beta_{x_j|z}=0
+                # compute q-value as used by JD Storey with some adjustments made
+                qvalues.results <- q.computations(parcor.out,method=q_method,
+                                                             plots=plots,file="parcor",robust=robust,q.old=q.old,
+                                                             pi0.true=pi0.true,pi0.val=pi0.val)
+                weights <- qvalues.results$qval.mat
+                threshold.selection <- q.interest(microbe.parcor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
+                threshold.selection <- c(1,t(threshold.selection$interest))
+
+            }
+        } else {
+            warning("Your choice of weight.type requires z to be non-NULL.")
+        }
     }
+
 
     ## Weight functions
     g1 <- function(x){
@@ -298,73 +327,35 @@ d2wlasso <- function(x,z,y,
         g <- g1
     }
 
-    out.w <- as.data.frame(matrix(0,nrow=number.of.covariates,ncol=1,
-                                  dimnames = list(out.rownames,paste("w.delta.",delta,sep=""))))
-
-    if ((wt == "t_val")||(wt == "parcor")||(wt == "adapt")){
-        lasso.w <- lasso.computations(weights,XX,response,g3,plots=plots,file="weight_",
-                                      include.diet=include.z,diet.wt=z.wt,corr.g=TRUE,
-                                      delta=delta)
-    } else {
+    ############################################################
+    ##                                                        ##
+    ##                                                        ##
+    ##          COMPUTE THE WEIGHTED LASSO RESULTS            ##
+    ##                                                        ##
+    ##                                                        ##
+    ############################################################
+    if(lasso.delta.cv.mult==FALSE){
         lasso.w <- lasso.computations(weights,XX,response,g,plots=plots,file="weight_",
                                       include.diet=include.z,diet.wt=z.wt,thresh.q=thresh.q,
                                       delta=delta)
-    }
-    out.w <- as.matrix(lasso.w$interest)
+        weighted.lasso <- as.matrix(lasso.w$interest)
 
-    ## mult.cv.delta.out.w5 : stores results from weighted lasso when weights are set to q-values AFTER taking into account diet,
-    ##           and weight function g1
+    } else if(lasso.delta.cv.mult==TRUE){
 
-    nsimu = 1; j = 1
-
-    mult.cv.delta.out.w5 <- as.data.frame(matrix(0,nrow=number.of.covariates,ncol=nsimu,
-                                                 dimnames = list(out.rownames,paste("w5.mult.nsimu.",seq(1,nsimu),sep=""))))
-
-    mult.delta.w5 <- as.data.frame(matrix(0, nrow = 1, ncol = ncv,
-                                          dimnames = list("delta", seq(1,ncv))))
-
-    ## mult.cv.delta.out.w6 : stores results from weighted lasso when weights absolute value of partial correlations,
-    ##           and weight function g3
-
-    mult.cv.delta.out.w6 <- as.data.frame(matrix(0,nrow=number.of.covariates,ncol=nsimu,
-                                                 dimnames = list(out.rownames,paste("w6.mult.nsimu.",seq(1,nsimu),sep=""))))
-
-    mult.delta.w6 <- as.data.frame(matrix(0, nrow = 1, ncol = ncv,
-                                          dimnames = list("delta", seq(1,ncv))))
-
-    if(lasso.delta.cv.mult==TRUE){
-
-        include.diet <- TRUE
-
-        ## Weights set to q-values after taking into account diet
-        weights <- microbe.parcor.out.qvalues$qval.mat
-        if (!is.null(delta.cv.seed)){
-            set.seed(delta.cv.seed)
-        }
+        lasso.w <-0
 
         for(v in 1:ncv){
-            mult.cv.delta.lasso.w5 <- lasso.computations(weights,XX,response,g,plots=FALSE,file="weight5_",
-                                                         include.diet=include.diet,diet.wt=z.wt,thresh.q=thresh.q,delta=delta,
-                                                         cv.criterion=FALSE,vfold=vfold)
-            mult.cv.delta.out.w5[,j] <- mult.cv.delta.out.w5[,j] + as.matrix(mult.cv.delta.lasso.w5$interest)
-            mult.delta.w5[,v] <- mult.delta.w5[,v] + mult.cv.delta.lasso.w5$delta.out
-        }
-
-        ## Weights set to absolute value of partial correlations
-        weights <- parcor.out$estimate
-        if (!is.null(delta.cv.seed)){
-            set.seed(delta.cv.seed)
-        }
-
-        for(v in 1:ncv){
-            mult.cv.delta.lasso.w6 <- lasso.computations(weights,XX,response,g3,plots=FALSE,file="weight6_",
+            lasso.w.tmp <- lasso.computations(weights,XX,response,g3,plots=FALSE,file="weight6_",
                                                          include.diet=include.diet,diet.wt=z.wt,corr.g=TRUE,delta=delta,
                                                          cv.criterion=FALSE,vfold=vfold)
-            mult.cv.delta.out.w6[,j] <- mult.cv.delta.out.w6[,j] + as.matrix(mult.cv.delta.lasso.w6$interest)
+            lasso.w <- lasso.w + as.matrix(lasso.w.tmp$interest)
             mult.delta.w6[,v] <- mult.delta.w6[,v] + mult.cv.delta.lasso.w6$delta.out
         }
 
     }
+
+
+
 
     ## exclusion frequency weights
 
@@ -1278,12 +1269,10 @@ q.computations <- function(out, method=c("smoother","bootstrap")[2],
 		#qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),robust=FALSE,pi0.true=pi0.true,pi0.val=pi0.val)
 		#qval <- qobj$qvalues
 		if(q.old=="FALSE"){
-		    #print("bye")
-		    qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
-		    #qobj <- qvalue.adj(pvalues,pi0.method=method)
+		    qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),
+		                       robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
 		    qval <- qobj$qvalues
 		} else {
-		    #print("hi there")
 		    qobj <- qvalue.old(pvalues,robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
 		    qval <- qobj$qvalue
 		}
@@ -1405,8 +1394,8 @@ bon.holm.interest <- function(pvalues,alpha=0.05){
 #############################
 # Benjamini-Hochberg Method #
 #############################
-
-
+# EXPORT
+#' @importFrom stats p.adjust
 ben.hoch.interest <- function(pvalues,alpha=0.05){
 
   interest <- matrix(0,nrow=nrow(pvalues),ncol=ncol(pvalues))
@@ -1423,7 +1412,7 @@ ben.hoch.interest <- function(pvalues,alpha=0.05){
     pval <- pvalues[,i]
 
     ## adjust p-values using Benjamini-Hochberg method
-    pval.adjust[,i] <- p.adjust(pval,method="BH")
+    pval.adjust[,i] <- stats::p.adjust(pval,method="BH")
 
     ind <- which(pval.adjust[,i] <= alpha)
 
@@ -1431,7 +1420,7 @@ ben.hoch.interest <- function(pvalues,alpha=0.05){
       interest[ind,i] <- 1
     }
   }
-  list(interest=interest,pval.adjust=pval.adjust)
+  return(list(interest=interest,pval.adjust=pval.adjust))
 }
 
 
