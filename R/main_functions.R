@@ -192,7 +192,7 @@ d2wlasso <- function(x,z,y,
     parcor.out <- correlations(factor.z,x,z,response,partial=TRUE,ttest=ttest,
                                regression.type=regression.type)
 
-    fstat.out <- ftests(factor.z,XX)
+    fstat.out <- ftests(factor.z,x,z)
 
     #####################
     ## Get Weights: t-statistic, p-values, Benjamin-Hochberg p-values, q-values, partial correlations ##
@@ -947,37 +947,32 @@ correlations.pcor <- function(XX,response,partial="FALSE",ttest="FALSE"){
 ##################################################
 # Function to get F-test statistics and p-values #
 ##################################################
-
-fstat.pvalue <- function(factor.z,microbe,diet){
+# EXPORT
+fstat.pvalue <- function(factor.z,x,z){
     if(factor.z==TRUE){
-        diet <- factor(as.numeric(diet))
+        z <- factor(as.numeric(z))
     } else {
-        diet <- as.numeric(diet)
+        z <- as.numeric(z)
     }
-    microbe <- as.numeric(microbe)
-
-    # Assuming variances in both diet groups are the same
-    #microbe.lm <- lm(microbe ~ diet,na.action=na.omit)
-    #microbe.anova <- anova(microbe.lm)
-    #stat <- microbe.anova$F[1]
-    #p.value <- microbe.anova$Pr[1]
+    x <- as.numeric(x)
 
     # Assuming variances in both diet groups are different
-    microbe.ttest <- t.test(microbe ~ diet)
-    stat <- microbe.ttest$statistic
-    p.value <- microbe.ttest$p.value
+    result <- t.test(x ~ z)
+    stat <- result$statistic
+    p.value <- result$p.value
 
     #if(is.na(Fstat)){
     #	Fstat <- NA
     #	p.value <- 1
     #}
-    list(Fstat = stat, p.value = p.value)
+    return(list(Fstat = stat, p.value = p.value))
 }
 
-ftests <- function(factor.z,XX){
+# EXPORT
+ftests <- function(factor.z,x,z){
     # Formatting data
-    diet <- XX[,"Fixed"]
-    data.XX <- XX[,-which(row.names(XX)=="Fixed")]
+    data.z <- z
+    data.XX <- x
 
     # Setting up matrices to store F-statistics and p-values
     fstat <- store.x(data.XX)
@@ -985,12 +980,12 @@ ftests <- function(factor.z,XX){
 
     # Computing pearson correlations and p-values
     for (i in 1: ncol(data.XX)) {
-        tmp <- fstat.pvalue(factor.z,data.XX[,i],diet)
+        tmp <- fstat.pvalue(factor.z,data.XX[,i],z)
         fstat[i,] <- tmp$Fstat
         pvalues[i,] <- tmp$p.value
     }
 
-    list(estimate = fstat, pvalues = pvalues)
+    return(list(estimate = fstat, pvalues = pvalues))
 }
 
 
