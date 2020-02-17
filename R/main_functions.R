@@ -181,10 +181,10 @@ d2wlasso <- function(x,z,y,
 
     # compute correlation and partial correlation (for taking into account z) between x and y
     cor.out <- correlations(factor.z,XX,response,partial=FALSE,ttest=ttest,
-                            format.data=FALSE,regression.type=regression.type)
+                            regression.type=regression.type)
 
     parcor.out <- correlations(factor.z,XX,response,partial=TRUE,ttest=ttest,
-                               format.data=FALSE,regression.type=regression.type)
+                               regression.type=regression.type)
     fstat.out <- ftests(factor.z,XX)
     #print(cor.out)
 
@@ -595,7 +595,7 @@ d2wlasso <- function(x,z,y,
             rownames(weights) <- out.rownames[-1]
             lasso.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                    file="weight_pval_aic_boot_",
-                                                   include.diet=include.z,format.data=format.data,
+                                                   include.diet=include.z,
                                                    diet.wt=diet.wt,
                                                    thresh.q=thresh.q,delta=delta,
                                                    std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
@@ -608,7 +608,7 @@ d2wlasso <- function(x,z,y,
             rownames(weights) <- out.rownames[-1]
             lasso.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                    file="weight_pval_bic_boot_",
-                                                   include.diet=include.z,format.data=format.data,
+                                                   include.diet=include.z,
                                                    diet.wt=diet.wt,
                                                    thresh.q=thresh.q,delta=delta,
                                                    std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
@@ -624,7 +624,7 @@ d2wlasso <- function(x,z,y,
             rownames(weights) <- out.rownames[-1]
             lasso.kmeans.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                           file="weight_pval_kmeans_aic_boot_",
-                                                          include.diet=include.z,format.data=format.data,
+                                                          include.diet=include.z,
                                                           diet.wt=diet.wt,
                                                           thresh.q=thresh.q,delta=delta,
                                                           std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
@@ -637,7 +637,7 @@ d2wlasso <- function(x,z,y,
             rownames(weights) <- out.rownames[-1]
             lasso.kmeans.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                           file="weight_pval_kmeans_bic_boot_",
-                                                          include.diet=include.z,format.data=format.data,
+                                                          include.diet=include.z,
                                                           diet.wt=diet.wt,
                                                           thresh.q=thresh.q,delta=delta,
                                                           std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
@@ -653,7 +653,7 @@ d2wlasso <- function(x,z,y,
             rownames(weights) <- out.rownames[-1]
             lasso.kquart.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                           file="weight_pval_kquart_aic_boot_",
-                                                          include.diet=include.z,format.data=format.data,
+                                                          include.diet=include.z,
                                                           diet.wt=diet.wt,
                                                           thresh.q=thresh.q,delta=delta,
                                                           std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
@@ -666,7 +666,7 @@ d2wlasso <- function(x,z,y,
             rownames(weights) <- out.rownames[-1]
             lasso.kquart.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                           file="weight_pval_kquart_bic_boot_",
-                                                          include.diet=include.z,format.data=format.data,
+                                                          include.diet=include.z,
                                                           diet.wt=diet.wt,
                                                           thresh.q=thresh.q,delta=delta,
                                                           std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
@@ -682,7 +682,7 @@ d2wlasso <- function(x,z,y,
             rownames(weights) <- out.rownames[-1]
             lasso.sort.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                         file="weight_pval_sort_aic_boot_",
-                                                        include.diet=include.z,format.data=format.data,
+                                                        include.diet=include.z,
                                                         diet.wt=diet.wt,
                                                         thresh.q=thresh.q,delta=delta,
                                                         std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
@@ -695,7 +695,7 @@ d2wlasso <- function(x,z,y,
             rownames(weights) <- out.rownames[-1]
             lasso.sort.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                         file="weight_pval_sort_bic_boot_",
-                                                        include.diet=include.z,format.data=format.data,
+                                                        include.diet=include.z,
                                                         diet.wt=diet.wt,
                                                         thresh.q=thresh.q,delta=delta,
                                                         std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
@@ -866,7 +866,7 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
     list(p.value=p.value,estimate=estimate,t.stat=t.stat)
 }
 
-correlations <- function(factor.z,XX,response,partial=FALSE,ttest=FALSE,format.data=TRUE,regression.type){
+correlations <- function(factor.z,XX,response,partial=FALSE,ttest=FALSE,regression.type){
 
     ## Formatting data
     data.response <- response$yy
@@ -898,7 +898,7 @@ correlations <- function(factor.z,XX,response,partial=FALSE,ttest=FALSE,format.d
 
 # function to compute partial correlations using pcor.R
 
-correlations.pcor <- function(XX,response,partial="FALSE",ttest="FALSE",format.data=TRUE){
+correlations.pcor <- function(XX,response,partial="FALSE",ttest="FALSE"){
     ## Formatting data
     data.response <- response$yy
 
@@ -1606,19 +1606,13 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",plots=FALSE,include.die
 }
 
 lasso.computations <- function(weights,XX,response,g,plots=TRUE,file="name",include.diet=TRUE,
-                               format.data = TRUE,
                                diet.wt=100,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y="TRUE",
                                est.MSE=c("TRUE","est.var","step")[2],
                                cv.criterion=FALSE,vfold=10){
     #print(response)
     data.response <- response$yy
     data.delta <- response$delta
-    #print(data.response)
-    #if(format.data==TRUE){
-    #    data.response <- data.response[-c(1,2),]
-    #} else {
-        data.response <- data.response
-    #}
+
     interest <- matrix(0,nrow=nrow(XX),ncol=nrow(data.response))
     interest <- as.data.frame(interest)
     rownames(interest) <- rownames(XX)
