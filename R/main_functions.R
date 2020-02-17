@@ -1,15 +1,22 @@
-##############################################################
-## R code for "Structured Variable Selection with q-values" ##
-##############################################################
+####################################
+####################################
+##
+##
+## Functions for the main method
+##
+####################################
+####################################
 
 #' Implement structured variables selection with q-values
 #'
-#' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size
-#' @param z (n by 1) matrix of additional fixed covariate affecting response variable
-#' @param y (n by 1) matrix of response variable
+#' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
+#' @param z (n by 1) matrix of additional fixed covariate affecting response variable. This covariate should
+#' always be selected.
+#' @param y (n by 1) a numeric vector corresponding to the response variable. If \code{regression.type} is "cox",
+#' \code{y} contains the observed event times.
 #' @param cox.delta (n by 1) matrix of status for survival analysis
-#' @param factor.z logical. If TRUE, the additional fixed variable z is used as factor
-#' @param reg.type indicates the model for fitting. Either "linear" or "cox". Default is "linear".
+#' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
+#' @param regression.type indicates the model for fitting. Either "linear" or "cox". Default is "linear".
 #' @param ttest logical. If TRUE, p-value for each covariate is computed from the linear regression and this does not require normality of the covariates. If FALSE, p-value is computed as the p-value of the correlation coefficient. Default is FALSE.
 #' @param q_method indicates the method for choosing optimal tuning parameter in the q-value computation as proposed in Storey and Tibshirani (2003). One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
 #' @param plots logical. If TRUE, figures are plotted. Default is FALSE.
@@ -84,11 +91,11 @@
 #' z <- matrix(rbinom(100, 1, 0.5),100,1)
 #' y <- matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
 #' cox.delta <- matrix(1,nrow=length(y),ncol=1)
-#' dwlcox1 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox")
-#' dwlcox2 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox", nboot = 50)
-#' dwlcox3 <- d2wlasso(x,z,y,cox.delta = cox.delta, reg.type = "cox", wt="t_val")
-#' dwlcoxcv1 <- d2wlasso(x,z,y,cox.delta = cox.delta,reg.type = "cox",lasso.delta.cv.mult = TRUE, ncv = 3, nboot = 50)
-d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox")[1],ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
+#' dwlcox1 <- d2wlasso(x,z,y,cox.delta = cox.delta, regression.type = "cox")
+#' dwlcox2 <- d2wlasso(x,z,y,cox.delta = cox.delta, regression.type = "cox", nboot = 50)
+#' dwlcox3 <- d2wlasso(x,z,y,cox.delta = cox.delta, regression.type = "cox", wt="t_val")
+#' dwlcoxcv1 <- d2wlasso(x,z,y,cox.delta = cox.delta,regression.type = "cox",lasso.delta.cv.mult = TRUE, ncv = 3, nboot = 50)
+d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,regression.type=c("linear","cox")[1],ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
                      wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,robust=TRUE,q.old=FALSE,
                      lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL,#cv.criterion=FALSE,
@@ -116,7 +123,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
     X <- cbind(z, x)
     colnames(X) <- c("Fixed",paste("X_",seq(1,m),sep=""))
     microbes <- t(X)
-    if (reg.type=="linear"){
+    if (regression.type=="linear"){
         phenotypes <- list(yy=t(y),delta=NULL)
     } else if (length(cox.delta)!=length(y)){
         stop("length of y should be equal to length of cox.delta")
@@ -128,8 +135,8 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
     #print("here")
 
     # compute correlation and partial correlation (for taking into account z) between x and y
-    cor.out <- correlations(factor.z,microbes,phenotypes,partial=FALSE,ttest=ttest,format.data=FALSE,reg.type=reg.type)
-    parcor.out <- correlations(factor.z,microbes,phenotypes,partial=TRUE,ttest=ttest,format.data=FALSE,reg.type=reg.type)
+    cor.out <- correlations(factor.z,microbes,phenotypes,partial=FALSE,ttest=ttest,format.data=FALSE,regression.type=regression.type)
+    parcor.out <- correlations(factor.z,microbes,phenotypes,partial=TRUE,ttest=ttest,format.data=FALSE,regression.type=regression.type)
     fstat.out <- ftests(factor.z,microbes)
     #print(cor.out)
 
@@ -307,7 +314,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,reg.type=c("linear","cox
 
     ## exclusion frequency weights
 
-    if (reg.type=="cox"){
+    if (regression.type=="cox"){
 
         ## Store weights for each bootstrap
         tmp2.store <- as.data.frame(matrix(0, nrow = (out.nrow-1), ncol = nboot,
@@ -697,20 +704,20 @@ store.micro <- function(microbes){
 # When pearson correlation is 0 (because std. deviation is 0), I am setting
 # p-value  to 1.
 
-corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest=FALSE,reg.type){
-    ##print(reg.type)
+corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest=FALSE,regression.type){
+    ##print(regression.type)
     x <- as.numeric(x)
     y <- as.numeric(y)
     delta.use <- as.numeric(delta)
 
-    if(reg.type=="linear"){
+    if(regression.type=="linear"){
         out <- cor.test(x,y,alternative=alternative,method=method,na.action=na.omit)
         estimate <- out$estimate
     } else {
         estimate <- 0
     }
 
-    if(ttest==FALSE & reg.type=="linear"){
+    if(ttest==FALSE & regression.type=="linear"){
         p.value <- out$p.value
         t.stat=NULL
     } else {
@@ -718,7 +725,7 @@ corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest
         x1 <- x
         delta1 <- delta.use
 
-        if(reg.type=="linear"){
+        if(regression.type=="linear"){
             #######################
             ## linear regression ##
             #######################
@@ -742,13 +749,13 @@ corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest
 }
 
 
-parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternative="two.sided",ttest=FALSE,reg.type){
+parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternative="two.sided",ttest=FALSE,regression.type){
     x <- as.numeric(x)
     y <- as.numeric(y)
     z <- as.numeric(z)
     delta.use <- as.numeric(delta)
 
-    if(reg.type=="linear"){
+    if(regression.type=="linear"){
         if(factor.z==TRUE){
             xres <- residuals(lm(x~factor(z)))
             yres <- residuals(lm(y~factor(z)))
@@ -756,13 +763,13 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
             xres <- residuals(lm(x~z))
             yres <- residuals(lm(y~z))
         }
-        out <- corr.pvalue(xres,yres,delta.use,method,alternative,ttest=FALSE,reg.type=reg.type)
+        out <- corr.pvalue(xres,yres,delta.use,method,alternative,ttest=FALSE,regression.type=regression.type)
         estimate <- out$estimate
     } else {
         estimate <- 0
     }
 
-    if(ttest==FALSE & reg.type=="linear"){
+    if(ttest==FALSE & regression.type=="linear"){
         p.value <- out$p.value
         t.stat <- NULL
     } else {
@@ -770,7 +777,7 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
         x1 <- x
         delta1 <- delta.use
 
-        if(reg.type=="linear"){
+        if(regression.type=="linear"){
             #######################
             ## linear regression ##
             #######################
@@ -811,7 +818,7 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
     list(p.value=p.value,estimate=estimate,t.stat=t.stat)
 }
 
-correlations <- function(factor.z,microbes,phenotypes,partial=FALSE,ttest=FALSE,format.data=TRUE,reg.type){
+correlations <- function(factor.z,microbes,phenotypes,partial=FALSE,ttest=FALSE,format.data=TRUE,regression.type){
 
     ## Formatting data
     data.response <- phenotypes$yy
@@ -833,9 +840,9 @@ correlations <- function(factor.z,microbes,phenotypes,partial=FALSE,ttest=FALSE,
 	for (i in 1: nrow(data.microbes)) {
 		for(j in 1:nrow(data.phenotypes)) {
 			if(partial==TRUE){
-				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.microbes[i,],y=data.phenotypes[j,],z=diet,delta=data.delta[j,],ttest=ttest,reg.type=reg.type)
+				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.microbes[i,],y=data.phenotypes[j,],z=diet,delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
 			} else {
-				tmp <- corr.pvalue(x=data.microbes[i,],y=data.phenotypes[j,],delta=data.delta[j,],ttest=ttest,reg.type=reg.type)
+				tmp <- corr.pvalue(x=data.microbes[i,],y=data.phenotypes[j,],delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
 			}
 			correlation[i,j] <- tmp$estimate
 			pvalues[i,j] <- tmp$p.value
