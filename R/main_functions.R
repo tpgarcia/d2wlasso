@@ -12,9 +12,9 @@
 #' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
 #' @param z (n by 1) matrix of additional fixed covariate affecting response variable. This covariate should
 #' always be selected.
-#' @param y (n by 1) a matrix corresponding to the response variable. If \code{regression.type} is "cox",
-#' \code{y} contains the observed event times.
-#' @param cox.delta (n by 1) a numeric vector that dentoes censoring when \code{regression.type} is "cox" (1 denotes
+#' @param y (n by K) a matrix corresponding to K response variables. If \code{regression.type} is "cox",
+#' \code{y} contains the observed event times for each of the k response types, k=1,...,K.
+#' @param cox.delta (n by K) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
 #' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
 #' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
 #' @param regression.type a character indicator that is either "linear" for linear regression
@@ -180,8 +180,11 @@ d2wlasso <- function(x,z,y,
     covariate.names <- colnames(XX)
 
     # compute correlation and partial correlation (for taking into account z) between x and y
-    cor.out <- correlations(factor.z,XX,phenotypes,partial=FALSE,ttest=ttest,format.data=FALSE,regression.type=regression.type)
-    parcor.out <- correlations(factor.z,XX,phenotypes,partial=TRUE,ttest=ttest,format.data=FALSE,regression.type=regression.type)
+    cor.out <- correlations(factor.z,XX,phenotypes,partial=FALSE,ttest=ttest,
+                            format.data=FALSE,regression.type=regression.type)
+
+    parcor.out <- correlations(factor.z,XX,phenotypes,partial=TRUE,ttest=ttest,
+                               format.data=FALSE,regression.type=regression.type)
     fstat.out <- ftests(factor.z,XX)
     #print(cor.out)
 
