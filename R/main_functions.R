@@ -19,8 +19,12 @@
 #' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
 #' @param regression.type a character indicator that is either "linear" for linear regression
 #' or "cox" for Cox proportional hazards regression. Default is "linear".
-#' @param ttest logical. If TRUE, p-value for each covariate is computed from the linear regression and this does not require normality of the covariates. If FALSE, p-value is computed as the p-value of the correlation coefficient. Default is FALSE.
-#' @param q_method indicates the method for choosing optimal tuning parameter in the q-value computation as proposed in Storey and Tibshirani (2003). One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
+#' @param ttest logical. If TRUE, p-value for each covariate is computed from univariate
+#' linear/cox regression of the response on each covariate. If FALSE, the
+#' p-value is computed from correlation coefficients. Default is FALSE.
+#' @param q_method indicates the method for choosing optimal tuning parameter
+#' in the q-value computation as proposed in Storey and Tibshirani (2003).
+#' One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
 #' @param plots logical. If TRUE, figures are plotted. Default is FALSE.
 #' @param pi0.true logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.
 #' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.true is TRUE. Default is 0.9.
@@ -97,34 +101,71 @@
 #' dwlcox2 <- d2wlasso(x,z,y,cox.delta = cox.delta, regression.type = "cox", nboot = 50)
 #' dwlcox3 <- d2wlasso(x,z,y,cox.delta = cox.delta, regression.type = "cox", wt="t_val")
 #' dwlcoxcv1 <- d2wlasso(x,z,y,cox.delta = cox.delta,regression.type = "cox",lasso.delta.cv.mult = TRUE, ncv = 3, nboot = 50)
-d2wlasso <- function(x,z,y,cox.delta=NULL,factor.z=TRUE,regression.type=c("linear","cox")[1],ttest=TRUE,q_method=c("bootstrap","smoother")[2],plots=FALSE,pi0.true=FALSE,pi0.val=0.9,
-                     wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],weight_fn=c("identity","sqrt","inverse_abs","square")[1],
-                     include.z=TRUE,z.wt=1000,thresh.q=TRUE,alpha=0.15,alpha.bh=0.05,delta=2,robust=TRUE,q.old=FALSE,
-                     lasso.delta.cv.mult=FALSE,vfold=10,ncv=100,delta.cv.seed=NULL,#cv.criterion=FALSE,
+d2wlasso <- function(x,z,y,
+                     cox.delta=NULL,
+                     factor.z=TRUE,
+                     regression.type=c("linear","cox")[1],
+                     ttest=TRUE,
+                     q_method=c("bootstrap","smoother")[2],
+                     plots=FALSE,
+                     pi0.true=FALSE,
+                     pi0.val=0.9,
+                     wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],
+                     weight_fn=c("identity","sqrt","inverse_abs","square")[1],
+                     include.z=TRUE,
+                     z.wt=1000,
+                     thresh.q=TRUE,
+                     alpha=0.15,
+                     alpha.bh=0.05,
+                     delta=2,
+                     robust=TRUE,
+                     q.old=FALSE,
+                     lasso.delta.cv.mult=FALSE,
+                     vfold=10,
+                     ncv=100,
+                     delta.cv.seed=NULL,
                      run.aic.bic=TRUE,
-                     #run.fixed.aic.bic=TRUE,
                      run.kmeans.aic.bic=TRUE,
                      run.kquart.aic.bic=TRUE,
                      run.sort.aic.bic=TRUE,
-                     #run.aic=TRUE,
-                     #run.bic=TRUE,
-                     nboot=100,k=4,#k.split=k,
+                     nboot=100,
+                     k=4,
                      direction="backward"){
-    real_data = TRUE
+
     k.split=k
     run.aic = TRUE
     run.bic = TRUE
     cv.criterion=FALSE
 
-    # dimension setting
+    #################################
+    # Store the dimensions of x, z ##
+    #################################
     n <- nrow(x)
     m0 <- ncol(z)
     m <- ncol(x)
 
-    # arranging input data
+    #########################
+    # arranging input data ##
+    #########################
     X <- cbind(z, x)
-    colnames(X) <- c("Fixed",paste("X_",seq(1,m),sep=""))
-    microbes <- t(X)
+
+    ## allocate names to X
+    colnames_use <- NULL
+    if(is.null(colnames(z))){
+        colnames_use <- c(colnames_use,"Fixed")
+    } else {
+        colnames_use <- c(colnames_use,colnames(z))
+    }
+
+    if(is.null(colnames(x))){
+        colnames_use <- c(colnames_use,paste0("X_",seq(1,m)))
+    } else {
+        colnames_use <- c(colnames_use,colnames(x))
+    }
+
+    colnames(X) <- colnames_use
+
+        microbes <- t(X)
     if (regression.type=="linear"){
         phenotypes <- list(yy=t(y),delta=NULL)
     } else if (length(cox.delta)!=length(y)){
