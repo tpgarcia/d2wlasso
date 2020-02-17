@@ -17,7 +17,8 @@
 #' @param cox.delta (n by 1) a numeric vector that dentoes censoring when \code{regression.type} is "cox" (1 denotes
 #' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
 #' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
-#' @param regression.type indicates the model for fitting. Either "linear" or "cox". Default is "linear".
+#' @param regression.type a character indicator that is either "linear" for linear regression
+#' or "cox" for Cox proportional hazards regression. Default is "linear".
 #' @param ttest logical. If TRUE, p-value for each covariate is computed from the linear regression and this does not require normality of the covariates. If FALSE, p-value is computed as the p-value of the correlation coefficient. Default is FALSE.
 #' @param q_method indicates the method for choosing optimal tuning parameter in the q-value computation as proposed in Storey and Tibshirani (2003). One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
 #' @param plots logical. If TRUE, figures are plotted. Default is FALSE.
