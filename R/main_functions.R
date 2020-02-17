@@ -147,7 +147,7 @@ d2wlasso <- function(x,z,y,
     #########################
     # arranging input data ##
     #########################
-    X <- cbind(z, x)
+    XX <- cbind(z, x)
 
     ## allocate names to X
     colnames_use <- NULL
@@ -163,7 +163,7 @@ d2wlasso <- function(x,z,y,
         colnames_use <- c(colnames_use,colnames(x))
     }
 
-    colnames(X) <- colnames_use
+    colnames(XX) <- colnames_use
 
     if (regression.type=="linear"){
         response <- list(yy=y,delta=NULL)
@@ -173,13 +173,16 @@ d2wlasso <- function(x,z,y,
         response <- list(yy=y,delta=cox.delta)
     }
 
+    ########################################################
+    ## Determine number of covariates and covariate names ##
+    ########################################################
     number.of.covariates <- m0+m
-    covariate.names <- colnames(X)
+    covariate.names <- colnames(XX)
 
     # compute correlation and partial correlation (for taking into account z) between x and y
-    cor.out <- correlations(factor.z,microbes,phenotypes,partial=FALSE,ttest=ttest,format.data=FALSE,regression.type=regression.type)
-    parcor.out <- correlations(factor.z,microbes,phenotypes,partial=TRUE,ttest=ttest,format.data=FALSE,regression.type=regression.type)
-    fstat.out <- ftests(factor.z,microbes)
+    cor.out <- correlations(factor.z,XX,phenotypes,partial=FALSE,ttest=ttest,format.data=FALSE,regression.type=regression.type)
+    parcor.out <- correlations(factor.z,XX,phenotypes,partial=TRUE,ttest=ttest,format.data=FALSE,regression.type=regression.type)
+    fstat.out <- ftests(factor.z,XX)
     #print(cor.out)
 
     #####################
@@ -243,7 +246,7 @@ d2wlasso <- function(x,z,y,
 
     if (wt == "one"){
         ## No weights
-        weights <- matrix(1,nrow=nrow(microbes)-1,ncol=nrow(phenotypes))
+        weights <- matrix(1,nrow=ncol(XX)-1,ncol=nrow(phenotypes))
     } else if (wt == "t_val"){
         weights <- weight.tvalue
     } else if (wt == "parcor"){
@@ -290,11 +293,11 @@ d2wlasso <- function(x,z,y,
                                   dimnames = list(out.rownames,paste("w.delta.",delta,sep=""))))
 
     if ((wt == "t_val")||(wt == "parcor")||(wt == "adapt")){
-        lasso.w <- lasso.computations(weights,microbes,phenotypes,g3,plots=plots,file="weight_",
+        lasso.w <- lasso.computations(weights,XX,phenotypes,g3,plots=plots,file="weight_",
                                       include.diet=include.z,diet.wt=z.wt,corr.g=TRUE,
                                       delta=delta)
     } else {
-        lasso.w <- lasso.computations(weights,microbes,phenotypes,g,plots=plots,file="weight_",
+        lasso.w <- lasso.computations(weights,XX,phenotypes,g,plots=plots,file="weight_",
                                       include.diet=include.z,diet.wt=z.wt,thresh.q=thresh.q,
                                       delta=delta)
     }
@@ -331,7 +334,7 @@ d2wlasso <- function(x,z,y,
         }
 
         for(v in 1:ncv){
-            mult.cv.delta.lasso.w5 <- lasso.computations(weights,microbes,phenotypes,g,plots=FALSE,file="weight5_",
+            mult.cv.delta.lasso.w5 <- lasso.computations(weights,XX,phenotypes,g,plots=FALSE,file="weight5_",
                                                          include.diet=include.diet,diet.wt=z.wt,thresh.q=thresh.q,delta=delta,
                                                          cv.criterion=FALSE,vfold=vfold)
             mult.cv.delta.out.w5[,j] <- mult.cv.delta.out.w5[,j] + as.matrix(mult.cv.delta.lasso.w5$interest)
@@ -345,7 +348,7 @@ d2wlasso <- function(x,z,y,
         }
 
         for(v in 1:ncv){
-            mult.cv.delta.lasso.w6 <- lasso.computations(weights,microbes,phenotypes,g3,plots=FALSE,file="weight6_",
+            mult.cv.delta.lasso.w6 <- lasso.computations(weights,XX,phenotypes,g3,plots=FALSE,file="weight6_",
                                                          include.diet=include.diet,diet.wt=z.wt,corr.g=TRUE,delta=delta,
                                                          cv.criterion=FALSE,vfold=vfold)
             mult.cv.delta.out.w6[,j] <- mult.cv.delta.out.w6[,j] + as.matrix(mult.cv.delta.lasso.w6$interest)
@@ -381,7 +384,7 @@ d2wlasso <- function(x,z,y,
         if(run.kmeans.aic.bic==TRUE | run.kquart.aic.bic==TRUE |  run.sort.aic.bic==TRUE){
 
             ## Get parameter estimates from ridge regression
-            beta.values <- ridge.regression(microbes,phenotypes)
+            beta.values <- ridge.regression(XX,phenotypes)
 
             if(run.kmeans.aic.bic==TRUE){
                 ## K-means clustering
@@ -404,7 +407,7 @@ d2wlasso <- function(x,z,y,
                 sort.beta.index <- beta.sort$ix
 
                 ## index of ordering
-                index.group.sort <- index.sort.partition(n=ncol(microbes),k=k,sort.beta.index)
+                index.group.sort <- index.sort.partition(n=nrow(XX),k=k,sort.beta.index)
             }
         }
 
@@ -412,12 +415,12 @@ d2wlasso <- function(x,z,y,
             ##print(b)
             if(run.aic.bic==TRUE){
                 ## Randomly partition the index
-                rand.index <- random.partition(n=ncol(microbes),p=nrow(microbes)-1,k=k)
+                rand.index <- random.partition(n=nrow(XX),p=ncol(XX)-1,k=k)
             }
 
             #if(run.fixed.aic.bic==TRUE){
             ## Ensure fixed covariates are in the partition + randomly partition the rest
-            #    rand.fixed.index <- fixed.plus.random.partition(fixed.covariates,n=ncol(microbes),p=nrow(microbes)-1,k=k)
+            #    rand.fixed.index <- fixed.plus.random.partition(fixed.covariates,n=nrow(XX),p=ncol(XX)-1,k=k)
             #}
 
             if(run.kmeans.aic.bic==TRUE){
@@ -449,14 +452,14 @@ d2wlasso <- function(x,z,y,
 
                         if(run.aic==TRUE){
                             weight.aic.boot[,b] <- weight.aic.boot[,b] +
-                                step.selection(factor.z,index,microbes,phenotypes,type="AIC",
+                                step.selection(factor.z,index,XX,phenotypes,type="AIC",
                                                direction=direction,
                                                real_data=real_data)
                         }
 
                         if(run.bic==TRUE){
                             weight.bic.boot[,b] <- weight.bic.boot[,b] +
-                                step.selection(factor.z,index,microbes,phenotypes,type="BIC",
+                                step.selection(factor.z,index,XX,phenotypes,type="BIC",
                                                direction=direction,
                                                real_data=real_data)
                         }
@@ -470,14 +473,14 @@ d2wlasso <- function(x,z,y,
                             if(run.aic==TRUE){
                                 weight.fixed.aic.boot[,b] <- weight.fixed.aic.boot[,b] +
                                     step.selection(factor.z,index,
-                                                   microbes,phenotypes,type="AIC",
+                                                   XX,phenotypes,type="AIC",
                                                    direction=direction,
                                                    real_data=real_data)
                             }
 
                             if(run.bic==TRUE){
                                 weight.fixed.bic.boot[,b] <- weight.fixed.bic.boot[,b] + step.selection(factor.z,index,
-                                                                                                        microbes,phenotypes,type="BIC",
+                                                                                                        XX,phenotypes,type="BIC",
                                                                                                         direction=direction,
                                                                                                         real_data=real_data)
                             }
@@ -490,7 +493,7 @@ d2wlasso <- function(x,z,y,
                     if(length(index)!=0){
                         if(run.aic==TRUE){
                             weight.kmeans.aic.boot[,b] <- weight.kmeans.aic.boot[,b] +
-                                step.selection(factor.z,index,microbes,phenotypes,
+                                step.selection(factor.z,index,XX,phenotypes,
                                                type="AIC",
                                                direction=direction,
                                                real_data=real_data)
@@ -498,7 +501,7 @@ d2wlasso <- function(x,z,y,
 
                         if(run.bic==TRUE){
                             weight.kmeans.bic.boot[,b] <- weight.kmeans.bic.boot[,b] +
-                                step.selection(factor.z,index,microbes,phenotypes,
+                                step.selection(factor.z,index,XX,phenotypes,
                                                type="BIC",
                                                direction=direction,
                                                real_data=real_data)
@@ -513,7 +516,7 @@ d2wlasso <- function(x,z,y,
                     if(length(index)!=0){
                         if(run.aic==TRUE){
                             weight.kquart.aic.boot[,b] <- weight.kquart.aic.boot[,b] +
-                                step.selection(factor.z,index,microbes,phenotypes,
+                                step.selection(factor.z,index,XX,phenotypes,
                                                type="AIC",
                                                direction=direction,
                                                real_data=real_data)
@@ -521,7 +524,7 @@ d2wlasso <- function(x,z,y,
 
                         if(run.bic==TRUE){
                             weight.kquart.bic.boot[,b] <- weight.kquart.bic.boot[,b] +
-                                step.selection(factor.z,index,microbes,phenotypes,
+                                step.selection(factor.z,index,XX,phenotypes,
                                                type="BIC",
                                                direction=direction,
                                                real_data=real_data)
@@ -536,14 +539,14 @@ d2wlasso <- function(x,z,y,
                     if(length(index)!=0){
                         if(run.aic==TRUE){
                             weight.sort.aic.boot[,b] <- weight.sort.aic.boot[,b] +
-                                step.selection(factor.z,index,microbes,phenotypes,
+                                step.selection(factor.z,index,XX,phenotypes,
                                                type="AIC",
                                                direction=direction,
                                                real_data=real_data)
                         }
                         if(run.bic==TRUE){
                             weight.sort.bic.boot[,b] <- weight.sort.bic.boot[,b] +
-                                step.selection(factor.z,index,microbes,phenotypes,
+                                step.selection(factor.z,index,XX,phenotypes,
                                                type="BIC",
                                                direction=direction,
                                                real_data=real_data)
@@ -587,7 +590,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.aic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+            lasso.aic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
                                                    file="weight_pval_aic_boot_",
                                                    include.diet=include.z,format.data=format.data,
                                                    diet.wt=diet.wt,
@@ -600,7 +603,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.bic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+            lasso.bic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
                                                    file="weight_pval_bic_boot_",
                                                    include.diet=include.z,format.data=format.data,
                                                    diet.wt=diet.wt,
@@ -616,7 +619,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kmeans.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kmeans.aic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+            lasso.kmeans.aic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
                                                           file="weight_pval_kmeans_aic_boot_",
                                                           include.diet=include.z,format.data=format.data,
                                                           diet.wt=diet.wt,
@@ -629,7 +632,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kmeans.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kmeans.bic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+            lasso.kmeans.bic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
                                                           file="weight_pval_kmeans_bic_boot_",
                                                           include.diet=include.z,format.data=format.data,
                                                           diet.wt=diet.wt,
@@ -645,7 +648,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kquart.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kquart.aic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+            lasso.kquart.aic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
                                                           file="weight_pval_kquart_aic_boot_",
                                                           include.diet=include.z,format.data=format.data,
                                                           diet.wt=diet.wt,
@@ -658,7 +661,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kquart.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kquart.bic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+            lasso.kquart.bic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
                                                           file="weight_pval_kquart_bic_boot_",
                                                           include.diet=include.z,format.data=format.data,
                                                           diet.wt=diet.wt,
@@ -674,7 +677,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.sort.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.sort.aic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+            lasso.sort.aic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
                                                         file="weight_pval_sort_aic_boot_",
                                                         include.diet=include.z,format.data=format.data,
                                                         diet.wt=diet.wt,
@@ -687,7 +690,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.sort.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.sort.bic.bvalue <- lasso.computations(weights,microbes,phenotypes,g1,plots=FALSE,
+            lasso.sort.bic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
                                                         file="weight_pval_sort_bic_boot_",
                                                         include.diet=include.z,format.data=format.data,
                                                         diet.wt=diet.wt,
@@ -725,16 +728,16 @@ library(glmnet)     # for ridge regression
 ## Function for making data frames for storing results ##
 #########################################################
 
-store.micropheno <- function(microbes,phenotypes){
-	out <- as.data.frame(matrix(0,nrow=nrow(microbes),ncol=nrow(phenotypes)))
-	rownames(out) <- rownames(microbes)
+store.micropheno <- function(XX,phenotypes){
+	out <- as.data.frame(matrix(0,nrow=ncol(XX),ncol=nrow(phenotypes)))
+	rownames(out) <- colnames(XX)
 	colnames(out) <- rownames(phenotypes)
 	return(out)
 }
 
-store.micro <- function(microbes){
-	out <- as.data.frame(rep(0,nrow(microbes)))
-	rownames(out) <- rownames(microbes)
+store.micro <- function(XX){
+	out <- as.data.frame(rep(0,ncol(XX)))
+	rownames(out) <- colnames(XX)
 	return(out)
 }
 
@@ -860,7 +863,7 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
     list(p.value=p.value,estimate=estimate,t.stat=t.stat)
 }
 
-correlations <- function(factor.z,microbes,phenotypes,partial=FALSE,ttest=FALSE,format.data=TRUE,regression.type){
+correlations <- function(factor.z,XX,phenotypes,partial=FALSE,ttest=FALSE,format.data=TRUE,regression.type){
 
     ## Formatting data
     data.response <- phenotypes$yy
@@ -870,21 +873,21 @@ correlations <- function(factor.z,microbes,phenotypes,partial=FALSE,ttest=FALSE,
     #} else {
         data.phenotypes <- data.response
     #}
-	data.microbes <- microbes[-which(rownames(microbes)=="Fixed"),]
-	diet <- microbes["Fixed",]
+	data.XX <- XX[,-which(rownames(XX)=="Fixed")]
+	diet <- XX[,"Fixed"]
 
 	# Setting up matrices to store Pearson correlations and p-values
-	correlation <- store.micropheno(data.microbes,data.phenotypes)
-	pvalues <- store.micropheno(data.microbes,data.phenotypes)
-	tvalues <- store.micropheno(data.microbes,data.phenotypes)
+	correlation <- store.micropheno(data.XX,data.phenotypes)
+	pvalues <- store.micropheno(data.XX,data.phenotypes)
+	tvalues <- store.micropheno(data.XX,data.phenotypes)
 
 	# Computing pearson correlations and p-values
-	for (i in 1: nrow(data.microbes)) {
+	for (i in 1: ncol(data.XX)) {
 		for(j in 1:nrow(data.phenotypes)) {
 			if(partial==TRUE){
-				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.microbes[i,],y=data.phenotypes[j,],z=diet,delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
+				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.XX[,i],y=data.phenotypes[j,],z=diet,delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
 			} else {
-				tmp <- corr.pvalue(x=data.microbes[i,],y=data.phenotypes[j,],delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
+				tmp <- corr.pvalue(x=data.XX[,i],y=data.phenotypes[j,],delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
 			}
 			correlation[i,j] <- tmp$estimate
 			pvalues[i,j] <- tmp$p.value
@@ -896,7 +899,7 @@ correlations <- function(factor.z,microbes,phenotypes,partial=FALSE,ttest=FALSE,
 
 # function to compute partial correlations using pcor.R
 
-correlations.pcor <- function(microbes,phenotypes,partial="FALSE",ttest="FALSE",format.data=TRUE){
+correlations.pcor <- function(XX,phenotypes,partial="FALSE",ttest="FALSE",format.data=TRUE){
     ## Formatting data
     if(format.data==TRUE){
         data.phenotypes <- phenotypes[-c(which(rownames(phenotypes)=="Fixed"),which(rownames(phenotypes)=="Cohort")),]
@@ -904,17 +907,17 @@ correlations.pcor <- function(microbes,phenotypes,partial="FALSE",ttest="FALSE",
         data.phenotypes <- phenotypes
     }
 
-    data.microbes <- microbes[-which(rownames(microbes)=="Fixed"),]
-    diet <- microbes["Fixed",]
+    data.XX <- XX[,-which(rownames(XX)=="Fixed")]
+    diet <- XX[,"Fixed"]
 
     ## Setting up matrices to store Pearson correlations and p-values
-    correlation <- store.micropheno(data.microbes,data.phenotypes)
-    pvalues <- store.micropheno(data.microbes,data.phenotypes)
+    correlation <- store.micropheno(data.XX,data.phenotypes)
+    pvalues <- store.micropheno(data.XX,data.phenotypes)
 
     ## Computing pearson correlations and p-values
-    for (i in 1: nrow(data.microbes)) {
+    for (i in 1: ncol(data.XX)) {
         for(j in 1:nrow(data.phenotypes)) {
-            tmp <- pcor.test(as.numeric(data.microbes[i,]),
+            tmp <- pcor.test(as.numeric(data.XX[i,]),
                              as.numeric(data.phenotypes[j,]),as.numeric(diet))
 
             correlation[i,j] <- tmp$estimate
@@ -958,16 +961,16 @@ fstat.pvalue <- function(factor.z,microbe,diet){
 
 ftests <- function(factor.z,XX){
     # Formatting data
-    diet <- XX["Fixed",]
-    data.XX <- XX[-which(row.names(XX)=="Fixed"),]
+    diet <- XX[,"Fixed"]
+    data.XX <- XX[,-which(row.names(XX)=="Fixed")]
 
     # Setting up matrices to store F-statistics and p-values
     fstat <- store.micro(data.XX)
     pvalues <- store.micro(data.XX)
 
     # Computing pearson correlations and p-values
-    for (i in 1: nrow(data.XX)) {
-        tmp <- fstat.pvalue(factor.z,data.XX[i,],diet)
+    for (i in 1: ncol(data.XX)) {
+        tmp <- fstat.pvalue(factor.z,data.XX[,i],diet)
         fstat[i,] <- tmp$Fstat
         pvalues[i,] <- tmp$p.value
     }
@@ -1017,7 +1020,7 @@ qplot2 <- function (qobj, rng = c(0, 0.1), smooth.df = 3, smooth.log.pi0 = FALSE
         rng[2]], type = "l", xlab = "p-value", ylab = "q-value")
 	} else if (whichplot==3){
     plot(q2[q2 >= rng[1] & q2 <= rng[2]], (1 + sum(q2 < rng[1])):sum(q2 <=
-        rng[2]), type = "l", xlab = "q-value cut-off", ylab = "Number of significant microbes",cex.lab=1.5,cex.axis=1.5)
+        rng[2]), type = "l", xlab = "q-value cut-off", ylab = "Number of significant XX",cex.lab=1.5,cex.axis=1.5)
 	} else if (whichplot==4){
     plot((1 + sum(q2 < rng[1])):sum(q2 <= rng[2]), q2[q2 >= rng[1] &
         q2 <= rng[2]] * (1 + sum(q2 < rng[1])):sum(q2 <= rng[2]),
