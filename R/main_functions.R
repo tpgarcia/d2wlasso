@@ -180,10 +180,10 @@ d2wlasso <- function(x,z,y,
     covariate.names <- colnames(XX)
 
     # compute correlation and partial correlation (for taking into account z) between x and y
-    cor.out <- correlations(factor.z,XX,phenotypes,partial=FALSE,ttest=ttest,
+    cor.out <- correlations(factor.z,XX,response,partial=FALSE,ttest=ttest,
                             format.data=FALSE,regression.type=regression.type)
 
-    parcor.out <- correlations(factor.z,XX,phenotypes,partial=TRUE,ttest=ttest,
+    parcor.out <- correlations(factor.z,XX,response,partial=TRUE,ttest=ttest,
                                format.data=FALSE,regression.type=regression.type)
     fstat.out <- ftests(factor.z,XX)
     #print(cor.out)
@@ -249,7 +249,7 @@ d2wlasso <- function(x,z,y,
 
     if (wt == "one"){
         ## No weights
-        weights <- matrix(1,nrow=ncol(XX)-1,ncol=nrow(phenotypes))
+        weights <- matrix(1,nrow=ncol(XX)-1,ncol=ncol(response$yy))
     } else if (wt == "t_val"){
         weights <- weight.tvalue
     } else if (wt == "parcor"){
@@ -296,11 +296,11 @@ d2wlasso <- function(x,z,y,
                                   dimnames = list(out.rownames,paste("w.delta.",delta,sep=""))))
 
     if ((wt == "t_val")||(wt == "parcor")||(wt == "adapt")){
-        lasso.w <- lasso.computations(weights,XX,phenotypes,g3,plots=plots,file="weight_",
+        lasso.w <- lasso.computations(weights,XX,response,g3,plots=plots,file="weight_",
                                       include.diet=include.z,diet.wt=z.wt,corr.g=TRUE,
                                       delta=delta)
     } else {
-        lasso.w <- lasso.computations(weights,XX,phenotypes,g,plots=plots,file="weight_",
+        lasso.w <- lasso.computations(weights,XX,response,g,plots=plots,file="weight_",
                                       include.diet=include.z,diet.wt=z.wt,thresh.q=thresh.q,
                                       delta=delta)
     }
@@ -337,7 +337,7 @@ d2wlasso <- function(x,z,y,
         }
 
         for(v in 1:ncv){
-            mult.cv.delta.lasso.w5 <- lasso.computations(weights,XX,phenotypes,g,plots=FALSE,file="weight5_",
+            mult.cv.delta.lasso.w5 <- lasso.computations(weights,XX,response,g,plots=FALSE,file="weight5_",
                                                          include.diet=include.diet,diet.wt=z.wt,thresh.q=thresh.q,delta=delta,
                                                          cv.criterion=FALSE,vfold=vfold)
             mult.cv.delta.out.w5[,j] <- mult.cv.delta.out.w5[,j] + as.matrix(mult.cv.delta.lasso.w5$interest)
@@ -351,7 +351,7 @@ d2wlasso <- function(x,z,y,
         }
 
         for(v in 1:ncv){
-            mult.cv.delta.lasso.w6 <- lasso.computations(weights,XX,phenotypes,g3,plots=FALSE,file="weight6_",
+            mult.cv.delta.lasso.w6 <- lasso.computations(weights,XX,response,g3,plots=FALSE,file="weight6_",
                                                          include.diet=include.diet,diet.wt=z.wt,corr.g=TRUE,delta=delta,
                                                          cv.criterion=FALSE,vfold=vfold)
             mult.cv.delta.out.w6[,j] <- mult.cv.delta.out.w6[,j] + as.matrix(mult.cv.delta.lasso.w6$interest)
@@ -387,7 +387,7 @@ d2wlasso <- function(x,z,y,
         if(run.kmeans.aic.bic==TRUE | run.kquart.aic.bic==TRUE |  run.sort.aic.bic==TRUE){
 
             ## Get parameter estimates from ridge regression
-            beta.values <- ridge.regression(XX,phenotypes)
+            beta.values <- ridge.regression(XX,response)
 
             if(run.kmeans.aic.bic==TRUE){
                 ## K-means clustering
@@ -455,14 +455,14 @@ d2wlasso <- function(x,z,y,
 
                         if(run.aic==TRUE){
                             weight.aic.boot[,b] <- weight.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,phenotypes,type="AIC",
+                                step.selection(factor.z,index,XX,response,type="AIC",
                                                direction=direction,
                                                real_data=real_data)
                         }
 
                         if(run.bic==TRUE){
                             weight.bic.boot[,b] <- weight.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,phenotypes,type="BIC",
+                                step.selection(factor.z,index,XX,response,type="BIC",
                                                direction=direction,
                                                real_data=real_data)
                         }
@@ -476,14 +476,14 @@ d2wlasso <- function(x,z,y,
                             if(run.aic==TRUE){
                                 weight.fixed.aic.boot[,b] <- weight.fixed.aic.boot[,b] +
                                     step.selection(factor.z,index,
-                                                   XX,phenotypes,type="AIC",
+                                                   XX,response,type="AIC",
                                                    direction=direction,
                                                    real_data=real_data)
                             }
 
                             if(run.bic==TRUE){
                                 weight.fixed.bic.boot[,b] <- weight.fixed.bic.boot[,b] + step.selection(factor.z,index,
-                                                                                                        XX,phenotypes,type="BIC",
+                                                                                                        XX,response,type="BIC",
                                                                                                         direction=direction,
                                                                                                         real_data=real_data)
                             }
@@ -496,7 +496,7 @@ d2wlasso <- function(x,z,y,
                     if(length(index)!=0){
                         if(run.aic==TRUE){
                             weight.kmeans.aic.boot[,b] <- weight.kmeans.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,phenotypes,
+                                step.selection(factor.z,index,XX,response,
                                                type="AIC",
                                                direction=direction,
                                                real_data=real_data)
@@ -504,7 +504,7 @@ d2wlasso <- function(x,z,y,
 
                         if(run.bic==TRUE){
                             weight.kmeans.bic.boot[,b] <- weight.kmeans.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,phenotypes,
+                                step.selection(factor.z,index,XX,response,
                                                type="BIC",
                                                direction=direction,
                                                real_data=real_data)
@@ -519,7 +519,7 @@ d2wlasso <- function(x,z,y,
                     if(length(index)!=0){
                         if(run.aic==TRUE){
                             weight.kquart.aic.boot[,b] <- weight.kquart.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,phenotypes,
+                                step.selection(factor.z,index,XX,response,
                                                type="AIC",
                                                direction=direction,
                                                real_data=real_data)
@@ -527,7 +527,7 @@ d2wlasso <- function(x,z,y,
 
                         if(run.bic==TRUE){
                             weight.kquart.bic.boot[,b] <- weight.kquart.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,phenotypes,
+                                step.selection(factor.z,index,XX,response,
                                                type="BIC",
                                                direction=direction,
                                                real_data=real_data)
@@ -542,14 +542,14 @@ d2wlasso <- function(x,z,y,
                     if(length(index)!=0){
                         if(run.aic==TRUE){
                             weight.sort.aic.boot[,b] <- weight.sort.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,phenotypes,
+                                step.selection(factor.z,index,XX,response,
                                                type="AIC",
                                                direction=direction,
                                                real_data=real_data)
                         }
                         if(run.bic==TRUE){
                             weight.sort.bic.boot[,b] <- weight.sort.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,phenotypes,
+                                step.selection(factor.z,index,XX,response,
                                                type="BIC",
                                                direction=direction,
                                                real_data=real_data)
@@ -593,7 +593,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.aic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
+            lasso.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                    file="weight_pval_aic_boot_",
                                                    include.diet=include.z,format.data=format.data,
                                                    diet.wt=diet.wt,
@@ -606,7 +606,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.bic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
+            lasso.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                    file="weight_pval_bic_boot_",
                                                    include.diet=include.z,format.data=format.data,
                                                    diet.wt=diet.wt,
@@ -622,7 +622,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kmeans.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kmeans.aic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
+            lasso.kmeans.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                           file="weight_pval_kmeans_aic_boot_",
                                                           include.diet=include.z,format.data=format.data,
                                                           diet.wt=diet.wt,
@@ -635,7 +635,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kmeans.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kmeans.bic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
+            lasso.kmeans.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                           file="weight_pval_kmeans_bic_boot_",
                                                           include.diet=include.z,format.data=format.data,
                                                           diet.wt=diet.wt,
@@ -651,7 +651,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kquart.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kquart.aic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
+            lasso.kquart.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                           file="weight_pval_kquart_aic_boot_",
                                                           include.diet=include.z,format.data=format.data,
                                                           diet.wt=diet.wt,
@@ -664,7 +664,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kquart.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kquart.bic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
+            lasso.kquart.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                           file="weight_pval_kquart_bic_boot_",
                                                           include.diet=include.z,format.data=format.data,
                                                           diet.wt=diet.wt,
@@ -680,7 +680,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.sort.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.sort.aic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
+            lasso.sort.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                         file="weight_pval_sort_aic_boot_",
                                                         include.diet=include.z,format.data=format.data,
                                                         diet.wt=diet.wt,
@@ -693,7 +693,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.sort.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.sort.bic.bvalue <- lasso.computations(weights,XX,phenotypes,g1,plots=FALSE,
+            lasso.sort.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
                                                         file="weight_pval_sort_bic_boot_",
                                                         include.diet=include.z,format.data=format.data,
                                                         diet.wt=diet.wt,
@@ -731,10 +731,10 @@ library(glmnet)     # for ridge regression
 ## Function for making data frames for storing results ##
 #########################################################
 
-store.micropheno <- function(XX,phenotypes){
-	out <- as.data.frame(matrix(0,nrow=ncol(XX),ncol=nrow(phenotypes)))
+store.micropheno <- function(XX,response){
+	out <- as.data.frame(matrix(0,nrow=ncol(XX),ncol=ncol(response$yy)))
 	rownames(out) <- colnames(XX)
-	colnames(out) <- rownames(phenotypes)
+	colnames(out) <- colnames(response$yy)
 	return(out)
 }
 
@@ -866,31 +866,27 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
     list(p.value=p.value,estimate=estimate,t.stat=t.stat)
 }
 
-correlations <- function(factor.z,XX,phenotypes,partial=FALSE,ttest=FALSE,format.data=TRUE,regression.type){
+correlations <- function(factor.z,XX,response,partial=FALSE,ttest=FALSE,format.data=TRUE,regression.type){
 
     ## Formatting data
-    data.response <- phenotypes$yy
-    data.delta <- phenotypes$delta
-    #if(format.data==TRUE){
-    #    data.phenotypes <- data.response[-c(which(rownames(phenotypes)=="Fixed"),which(rownames(phenotypes)=="Cohort")),]
-    #} else {
-        data.phenotypes <- data.response
-    #}
+    data.response <- response$yy
+    data.delta <- response$delta
+
 	data.XX <- XX[,-which(rownames(XX)=="Fixed")]
 	diet <- XX[,"Fixed"]
 
 	# Setting up matrices to store Pearson correlations and p-values
-	correlation <- store.micropheno(data.XX,data.phenotypes)
-	pvalues <- store.micropheno(data.XX,data.phenotypes)
-	tvalues <- store.micropheno(data.XX,data.phenotypes)
+	correlation <- store.micropheno(data.XX,data.response)
+	pvalues <- store.micropheno(data.XX,data.response)
+	tvalues <- store.micropheno(data.XX,data.response)
 
 	# Computing pearson correlations and p-values
 	for (i in 1: ncol(data.XX)) {
-		for(j in 1:nrow(data.phenotypes)) {
+		for(j in 1:ncol(data.response)) {
 			if(partial==TRUE){
-				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.XX[,i],y=data.phenotypes[j,],z=diet,delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
+				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.XX[,i],y=data.response[,j],z=diet,delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
 			} else {
-				tmp <- corr.pvalue(x=data.XX[,i],y=data.phenotypes[j,],delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
+				tmp <- corr.pvalue(x=data.XX[,i],y=data.response[,j],delta=data.delta[,j],ttest=ttest,regression.type=regression.type)
 			}
 			correlation[i,j] <- tmp$estimate
 			pvalues[i,j] <- tmp$p.value
@@ -902,26 +898,22 @@ correlations <- function(factor.z,XX,phenotypes,partial=FALSE,ttest=FALSE,format
 
 # function to compute partial correlations using pcor.R
 
-correlations.pcor <- function(XX,phenotypes,partial="FALSE",ttest="FALSE",format.data=TRUE){
+correlations.pcor <- function(XX,response,partial="FALSE",ttest="FALSE",format.data=TRUE){
     ## Formatting data
-    if(format.data==TRUE){
-        data.phenotypes <- phenotypes[-c(which(rownames(phenotypes)=="Fixed"),which(rownames(phenotypes)=="Cohort")),]
-    } else {
-        data.phenotypes <- phenotypes
-    }
+    data.response <- response$yy
 
     data.XX <- XX[,-which(rownames(XX)=="Fixed")]
     diet <- XX[,"Fixed"]
 
     ## Setting up matrices to store Pearson correlations and p-values
-    correlation <- store.micropheno(data.XX,data.phenotypes)
-    pvalues <- store.micropheno(data.XX,data.phenotypes)
+    correlation <- store.micropheno(data.XX,data.response)
+    pvalues <- store.micropheno(data.XX,data.response)
 
     ## Computing pearson correlations and p-values
     for (i in 1: ncol(data.XX)) {
-        for(j in 1:nrow(data.phenotypes)) {
+        for(j in 1:ncol(data.response)) {
             tmp <- pcor.test(as.numeric(data.XX[i,]),
-                             as.numeric(data.phenotypes[j,]),as.numeric(diet))
+                             as.numeric(data.response[,j]),as.numeric(diet))
 
             correlation[i,j] <- tmp$estimate
             pvalues[i,j] <- tmp$p.value
