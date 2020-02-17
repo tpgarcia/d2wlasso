@@ -1,5 +1,5 @@
 Package: d2wlasso
-Title: Structured variable selection with q-values
+Title: Structured variable selection with weighted lasso
 Version: 1.1.1.9001
 Authors@R: 
     person(given = "Rakheon",
