@@ -174,7 +174,7 @@ d2wlasso <- function(x,z,y,
     }
 
     number.of.covariates <- m0+m
-    out.rownames <- rownames(microbes)
+    covariate.names <- colnames(X)
 
     # compute correlation and partial correlation (for taking into account z) between x and y
     cor.out <- correlations(factor.z,microbes,phenotypes,partial=FALSE,ttest=ttest,format.data=FALSE,regression.type=regression.type)
