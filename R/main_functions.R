@@ -12,7 +12,7 @@
 #' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
 #' @param z (n by 1) matrix of additional fixed covariate affecting response variable. This covariate should
 #' always be selected.
-#' @param y (n by 1) a numeric vector corresponding to the response variable. If \code{regression.type} is "cox",
+#' @param y (n by 1) a matrix corresponding to the response variable. If \code{regression.type} is "cox",
 #' \code{y} contains the observed event times.
 #' @param cox.delta (n by 1) a numeric vector that dentoes censoring when \code{regression.type} is "cox" (1 denotes
 #' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
@@ -165,17 +165,16 @@ d2wlasso <- function(x,z,y,
 
     colnames(X) <- colnames_use
 
-        microbes <- t(X)
     if (regression.type=="linear"){
-        phenotypes <- list(yy=t(y),delta=NULL)
+        response <- list(yy=y,delta=NULL)
     } else if (length(cox.delta)!=length(y)){
         stop("length of y should be equal to length of cox.delta")
     } else {
-        phenotypes <- list(yy=t(y),delta=t(cox.delta))
+        response <- list(yy=y,delta=cox.delta)
     }
-    out.nrow <- nrow(microbes)
+
+    number.of.covariates <- m0+m
     out.rownames <- rownames(microbes)
-    #print("here")
 
     # compute correlation and partial correlation (for taking into account z) between x and y
     cor.out <- correlations(factor.z,microbes,phenotypes,partial=FALSE,ttest=ttest,format.data=FALSE,regression.type=regression.type)
@@ -287,7 +286,7 @@ d2wlasso <- function(x,z,y,
         g <- g1
     }
 
-    out.w <- as.data.frame(matrix(0,nrow=out.nrow,ncol=1,
+    out.w <- as.data.frame(matrix(0,nrow=number.of.covariates,ncol=1,
                                   dimnames = list(out.rownames,paste("w.delta.",delta,sep=""))))
 
     if ((wt == "t_val")||(wt == "parcor")||(wt == "adapt")){
@@ -306,7 +305,7 @@ d2wlasso <- function(x,z,y,
 
     nsimu = 1; j = 1
 
-    mult.cv.delta.out.w5 <- as.data.frame(matrix(0,nrow=out.nrow,ncol=nsimu,
+    mult.cv.delta.out.w5 <- as.data.frame(matrix(0,nrow=number.of.covariates,ncol=nsimu,
                                                  dimnames = list(out.rownames,paste("w5.mult.nsimu.",seq(1,nsimu),sep=""))))
 
     mult.delta.w5 <- as.data.frame(matrix(0, nrow = 1, ncol = ncv,
@@ -315,7 +314,7 @@ d2wlasso <- function(x,z,y,
     ## mult.cv.delta.out.w6 : stores results from weighted lasso when weights absolute value of partial correlations,
     ##           and weight function g3
 
-    mult.cv.delta.out.w6 <- as.data.frame(matrix(0,nrow=out.nrow,ncol=nsimu,
+    mult.cv.delta.out.w6 <- as.data.frame(matrix(0,nrow=number.of.covariates,ncol=nsimu,
                                                  dimnames = list(out.rownames,paste("w6.mult.nsimu.",seq(1,nsimu),sep=""))))
 
     mult.delta.w6 <- as.data.frame(matrix(0, nrow = 1, ncol = ncv,
@@ -360,7 +359,7 @@ d2wlasso <- function(x,z,y,
     if (regression.type=="cox"){
 
         ## Store weights for each bootstrap
-        tmp2.store <- as.data.frame(matrix(0, nrow = (out.nrow-1), ncol = nboot,
+        tmp2.store <- as.data.frame(matrix(0, nrow = (number.of.covariates-1), ncol = nboot,
                                            dimnames = list(out.rownames[-1],
                                                            seq(1,nboot))))
 
