@@ -153,12 +153,14 @@ d2wlasso <- function(x,z,y,
     colnames_use <- NULL
     if(is.null(colnames(z))){
         colnames_use <- c(colnames_use,"Fixed")
+        colnames(z) <- "Fixed"
     } else {
         colnames_use <- c(colnames_use,colnames(z))
     }
 
     if(is.null(colnames(x))){
         colnames_use <- c(colnames_use,paste0("X_",seq(1,m)))
+        colnames(x) <- paste0("X_",seq(1,m))
     } else {
         colnames_use <- c(colnames_use,colnames(x))
     }
@@ -179,14 +181,17 @@ d2wlasso <- function(x,z,y,
     number.of.covariates <- m0+m
     covariate.names <- colnames(XX)
 
-    # compute correlation and partial correlation (for taking into account z) between x and y
-    cor.out <- correlations(factor.z,XX,response,partial=FALSE,ttest=ttest,
+
+    ############################################################################################
+    # compute correlation and partial correlation (for taking into account z) between x and y ##
+    ############################################################################################
+
+    cor.out <- correlations(factor.z,x,z,response,partial=FALSE,ttest=ttest,
                             regression.type=regression.type)
 
-    parcor.out <- correlations(factor.z,XX,response,partial=TRUE,ttest=ttest,
+    parcor.out <- correlations(factor.z,x,z,response,partial=TRUE,ttest=ttest,
                                regression.type=regression.type)
     fstat.out <- ftests(factor.z,XX)
-    #print(cor.out)
 
     #####################
     ## Get Weights: t-statistic, p-values, Benjamin-Hochberg p-values, q-values, partial correlations ##
@@ -866,17 +871,19 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
     list(p.value=p.value,estimate=estimate,t.stat=t.stat)
 }
 
-correlations <- function(factor.z,XX,response,partial=FALSE,ttest=FALSE,regression.type){
+
+
+correlations <- function(factor.z,x,z,response,partial=FALSE,ttest=FALSE,regression.type){
 
     ## Formatting data
     data.response <- response$yy
     data.delta <- response$delta
 
-	data.XX <- XX[,-which(rownames(XX)=="Fixed")]
-	diet <- XX[,"Fixed"]
+	data.XX <- x
+	data.z <- z
 
 	# Setting up matrices to store Pearson correlations and p-values
-	correlation <- store.micropheno(data.XX,data.response)
+	correlation <- store.micropheno(x,data.response)
 	pvalues <- store.micropheno(data.XX,data.response)
 	tvalues <- store.micropheno(data.XX,data.response)
 
@@ -884,9 +891,11 @@ correlations <- function(factor.z,XX,response,partial=FALSE,ttest=FALSE,regressi
 	for (i in 1: ncol(data.XX)) {
 		for(j in 1:ncol(data.response)) {
 			if(partial==TRUE){
-				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.XX[,i],y=data.response[,j],z=diet,delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
+				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.XX[,i],y=data.response[,j],
+				                      z=data.z,delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
 			} else {
-				tmp <- corr.pvalue(x=data.XX[,i],y=data.response[,j],delta=data.delta[,j],ttest=ttest,regression.type=regression.type)
+				tmp <- corr.pvalue(x=data.XX[,i],y=data.response[,j],delta=data.delta[,j],
+				                   ttest=ttest,regression.type=regression.type)
 			}
 			correlation[i,j] <- tmp$estimate
 			pvalues[i,j] <- tmp$p.value
