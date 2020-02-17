@@ -14,7 +14,8 @@
 #' always be selected.
 #' @param y (n by 1) a numeric vector corresponding to the response variable. If \code{regression.type} is "cox",
 #' \code{y} contains the observed event times.
-#' @param cox.delta (n by 1) matrix of status for survival analysis
+#' @param cox.delta (n by 1) a numeric vector that dentoes censoring when \code{regression.type} is "cox" (1 denotes
+#' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
 #' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
 #' @param regression.type indicates the model for fitting. Either "linear" or "cox". Default is "linear".
 #' @param ttest logical. If TRUE, p-value for each covariate is computed from the linear regression and this does not require normality of the covariates. If FALSE, p-value is computed as the p-value of the correlation coefficient. Default is FALSE.
