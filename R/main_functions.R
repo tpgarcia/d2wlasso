@@ -191,6 +191,7 @@ d2wlasso <- function(x,z,y,
 
     parcor.out <- correlations(factor.z,x,z,response,partial=TRUE,ttest=ttest,
                                regression.type=regression.type)
+
     fstat.out <- ftests(factor.z,XX)
 
     #####################
@@ -727,7 +728,6 @@ d2wlasso <- function(x,z,y,
 library(xtable)		# to create LaTeX tables
 library(lars)		# for LASSO approach
 library(plotrix)		# for computing standard errors of mean in simulation study
-library(survival)   # for survival analysis
 library(MASS) # for ridge regression
 library(glmnet)     # for ridge regression
 
@@ -736,6 +736,7 @@ library(glmnet)     # for ridge regression
 ## Function for making data frames for storing results ##
 #########################################################
 
+## EXPORT
 store.xy <- function(XX,response){
 	out <- as.data.frame(matrix(0,nrow=ncol(XX),ncol=ncol(response$yy)))
 	rownames(out) <- colnames(XX)
@@ -743,6 +744,7 @@ store.xy <- function(XX,response){
 	return(out)
 }
 
+## EXPORT
 store.x <- function(XX){
 	out <- as.data.frame(rep(0,ncol(XX)))
 	rownames(out) <- colnames(XX)
@@ -757,14 +759,16 @@ store.x <- function(XX){
 # When pearson correlation is 0 (because std. deviation is 0), I am setting
 # p-value  to 1.
 
+## EXPORT
+#' @importFrom stats lm
+#' @importFrom survival coxph Surv
 corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest=FALSE,regression.type){
-    ##print(regression.type)
     x <- as.numeric(x)
     y <- as.numeric(y)
     delta.use <- as.numeric(delta)
 
     if(regression.type=="linear"){
-        out <- cor.test(x,y,alternative=alternative,method=method,na.action=na.omit)
+        out <- stats::cor.test(x,y,alternative=alternative,method=method,na.action=na.omit)
         estimate <- out$estimate
     } else {
         estimate <- 0
@@ -782,7 +786,7 @@ corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest
             #######################
             ## linear regression ##
             #######################
-            summary.out <- summary(lm(y1~  x1))
+            summary.out <- summary(stats::lm(y1~  x1))
             p.value <- summary.out$coefficients["x1","Pr(>|t|)"]
             t.stat <- summary.out$coefficients["x1","t value"]
             ##summary.out <- summary(lm(y~x))
@@ -792,7 +796,7 @@ corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest
             ## survival regression ##
             #########################
             survival.data <- list(time=y1,status=delta1,x1=x1)
-            summary.out <- summary(coxph(Surv(time,status)~ x1,data=survival.data))
+            summary.out <- summary(survival::coxph(survival::Surv(time,status)~ x1,data=survival.data))
             p.value <- summary.out$coefficients["x1","Pr(>|z|)"]
             t.stat  <- summary.out$coefficients["x1","z"]
         }
@@ -802,6 +806,9 @@ corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest
 }
 
 
+## EXPORT
+#' @importFrom stats lm
+#' @importFrom survival coxph Surv
 parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternative="two.sided",ttest=FALSE,regression.type){
     x <- as.numeric(x)
     y <- as.numeric(y)
@@ -810,11 +817,11 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
 
     if(regression.type=="linear"){
         if(factor.z==TRUE){
-            xres <- residuals(lm(x~factor(z)))
-            yres <- residuals(lm(y~factor(z)))
+            xres <- residuals(stats::lm(x~factor(z)))
+            yres <- residuals(stats::lm(y~factor(z)))
         } else {
-            xres <- residuals(lm(x~z))
-            yres <- residuals(lm(y~z))
+            xres <- residuals(stats::lm(x~z))
+            yres <- residuals(stats::lm(y~z))
         }
         out <- corr.pvalue(xres,yres,delta.use,method,alternative,ttest=FALSE,regression.type=regression.type)
         estimate <- out$estimate
@@ -836,9 +843,9 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
             #######################
 
             if(factor.z==TRUE){
-                summary.out <- summary(lm(y1 ~ factor(z) +  x1))  ## may have to change due to nature of z!!
+                summary.out <- summary(stats::lm(y1 ~ factor(z) +  x1))  ## may have to change due to nature of z!!
             } else {
-                summary.out <- summary(lm(y1 ~ z +  x1))  ## may have to change due to nature of z!!
+                summary.out <- summary(stats::lm(y1 ~ z +  x1))  ## may have to change due to nature of z!!
             }
 
             p.value <- summary.out$coefficients["x1","Pr(>|t|)"]
@@ -858,9 +865,11 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
             #########################
             survival.data <- list(time=y1,status=delta1,z=z,x1=x1)
             if(factor.z==TRUE){
-                summary.out <- summary(coxph(Surv(time,status)~ factor(z) + x1,data=survival.data))
+                summary.out <- summary(survival::coxph(survival::Surv(time,status)~ factor(z) + x1,
+                                                    data=survival.data))
             } else{
-                summary.out <- summary(coxph(Surv(time,status)~ z + x1,data=survival.data))
+                summary.out <- summary(survival::coxph(survival::Surv(time,status)~ z + x1,
+                                                       data=survival.data))
             }
             p.value <- summary.out$coefficients["x1","Pr(>|z|)"]
             t.stat  <- summary.out$coefficients["x1","z"]
@@ -872,7 +881,7 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
 }
 
 
-
+## EXPORT
 correlations <- function(factor.z,x,z,response,partial=FALSE,ttest=FALSE,regression.type){
 
     ## Formatting data
@@ -905,8 +914,10 @@ correlations <- function(factor.z,x,z,response,partial=FALSE,ttest=FALSE,regress
 	list(estimate = correlation, pvalues = pvalues,tvalues=tvalues)
 }
 
-# function to compute partial correlations using pcor.R
 
+
+# function to compute partial correlations using pcor.R
+# NOT USED.
 correlations.pcor <- function(XX,response,partial="FALSE",ttest="FALSE"){
     ## Formatting data
     data.response <- response$yy
