@@ -26,8 +26,8 @@
 #' in the q-value computation as proposed in Storey and Tibshirani (2003).
 #' One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
 #' @param show.plots logical. If TRUE, figures are plotted. Default is FALSE.
-#' @param pi0.true logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.
-#' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.true is TRUE. Default is 0.9.
+#' @param pi0.known logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.
+#' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.known is TRUE. Default is 0.9.
 #' @param wt The weights to be used for the weighted lasso. One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor".
 #' "one" gives no weight. "t_val" gives weight of the inverse absolute t-statistics of the regression coefficients. "parcor" gives weight of the inverse absolute partial correlation between the main covariate and the response after accounting for z. "p_val" gives p-value of each predictor's coefficient as weights. "bhp_val" gives Benjamini-Hochberg adjusted p-value of each predictor's coefficient as weights. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
 #' @param weight_fn The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
@@ -109,7 +109,7 @@ d2wlasso <- function(x,z,y,
                      ttest.pvalue=TRUE,
                      q_opt_tuning_method=c("bootstrap","smoother")[2],
                      show.plots=FALSE,
-                     pi0.true=FALSE,
+                     pi0.known=FALSE,
                      pi0.val=0.9,
                      wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],
                      weight_fn=c("identity","sqrt","inverse_abs","square")[1],
@@ -133,6 +133,13 @@ d2wlasso <- function(x,z,y,
                      direction="backward"){
 
     cv.criterion=FALSE
+
+    ######################
+    ## WARNING Messages ##
+    ######################
+    if(pi0.known==TRUE & is.null(pi0.val)){
+        stop("User must provide pi0.val if pi0.known is TRUE.")
+    }
 
     #################################
     # Store the dimensions of x, z ##
@@ -255,9 +262,10 @@ d2wlasso <- function(x,z,y,
             ## Results for testing if a x_k has an effect on y, but NOT
             ##            accounting for z
             ## That is, we test : H_0 : \beta_{x_k}=0
+
             qvalues.results <- q.computations(cor.out, method=q_opt_tuning_method,
                                               show.plots=show.plots,robust=robust,
-                                              pi0.true=pi0.true,pi0.val=pi0.val)
+                                              pi0.known=pi0.known,pi0.val=pi0.val)
 
             weights <- qvalues.results$qval.mat
             threshold.selection <- q.interest(weights,alpha=alpha,criteria="less")
@@ -311,7 +319,7 @@ d2wlasso <- function(x,z,y,
                 # compute q-value as used by JD Storey with some adjustments made
                 qvalues.results <- q.computations(parcor.out,method=q_opt_tuning_method,
                                                              show.plots=show.plots,robust=robust,
-                                                             pi0.true=pi0.true,pi0.val=pi0.val)
+                                                             pi0.known=pi0.known,pi0.val=pi0.val)
                 weights <- qvalues.results$qval.mat
                 threshold.selection <- q.interest(microbe.parcor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
                 threshold.selection <- c(1,t(threshold.selection$interest))
@@ -1091,7 +1099,7 @@ qplot2 <- function (qobj, rng = c(0, 0.1), smooth.df = 3, smooth.log.pi0 = FALSE
 
 qvalue.adj<-function (p = NULL, lambda = seq(0, 0.9, 0.05), pi0.method = "smoother",
     fdr.level = NULL, robust = FALSE, gui = FALSE, smooth.df = 3,
-    smooth.log.pi0 = FALSE,pi0.true=FALSE,pi0.val=0.9)
+    smooth.log.pi0 = FALSE,pi0.known=FALSE,pi0.val=0.9)
 {
     if (is.null(p)) {
         qvalue.gui()
@@ -1134,8 +1142,8 @@ qvalue.adj<-function (p = NULL, lambda = seq(0, 0.9, 0.05), pi0.method = "smooth
         pi0 <- min(pi0, 1)
     }
     else {
-      # TG added pi0.true option
-      if(pi0.true==TRUE){
+      # TG added pi0.known option
+      if(pi0.known==TRUE){
         pi0 <- pi0.val
       } else {
         pi0 <- rep(0, length(lambda))
@@ -1232,7 +1240,7 @@ qvalue.adj<-function (p = NULL, lambda = seq(0, 0.9, 0.05), pi0.method = "smooth
 }
 
 
-qvalue.old <- function(p, alpha=NULL, lam=NULL, robust=F,pi0.true=FALSE,pi0.val=0.9)
+qvalue.old <- function(p, alpha=NULL, lam=NULL, robust=F,pi0.known=FALSE,pi0.val=0.9)
 {
     #This is a function for estimating the q-values for a given set of p-values. The
     #methodology comes from a series of recent papers on false discovery rates by John
@@ -1279,7 +1287,7 @@ qvalue.old <- function(p, alpha=NULL, lam=NULL, robust=F,pi0.true=FALSE,pi0.val=
     }
 
     # TG added, true pi0
-    if(pi0.true==TRUE){
+    if(pi0.known==TRUE){
         pi0 <- pi0.val
     }
 
@@ -1309,7 +1317,7 @@ qvalue.old <- function(p, alpha=NULL, lam=NULL, robust=F,pi0.true=FALSE,pi0.val=
 
 q.computations <- function(out, method=c("smoother","bootstrap")[2],
 				show.plots=TRUE,robust=TRUE,
-				pi0.true=FALSE,pi0.val=0.9){
+				pi0.known=FALSE,pi0.val=0.9){
 
 	qval.mat <- matrix(0,nrow=nrow(out$pvalues),ncol=ncol(out$pvalues))
 	qval.mat <- as.data.frame(qval.mat)
@@ -1321,14 +1329,14 @@ q.computations <- function(out, method=c("smoother","bootstrap")[2],
 		pvalues <- out$pvalues[,i]
 		estimate <- out$estimate[,i]
 
-		#qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),robust=FALSE,pi0.true=pi0.true,pi0.val=pi0.val)
+		#qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),robust=FALSE,pi0.known=pi0.known,pi0.val=pi0.val)
 		#qval <- qobj$qvalues
 		##if(q.old==FALSE){
 		    qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),
-		                       robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
+		                       robust=robust,pi0.known=pi0.known,pi0.val=pi0.val)
 		    qval <- qobj$qvalues
 		##} else {
-		##   qobj <- qvalue.old(pvalues,robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
+		##   qobj <- qvalue.old(pvalues,robust=robust,pi0.known=pi0.known,pi0.val=pi0.val)
 		##    qval <- qobj$qvalue
 		##}
 		pi0 <- qobj$pi0
