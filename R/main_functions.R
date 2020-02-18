@@ -22,7 +22,7 @@
 #' @param ttest.pvalue logical. If TRUE, p-value for each covariate is computed from univariate
 #' linear/cox regression of the response on each covariate. If FALSE, the
 #' p-value is computed from correlation coefficients. Default is FALSE.
-#' @param q_method indicates the method for choosing optimal tuning parameter
+#' @param q_opt_tuning_method indicates the method for choosing optimal tuning parameter
 #' in the q-value computation as proposed in Storey and Tibshirani (2003).
 #' One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
 #' @param show.plots logical. If TRUE, figures are plotted. Default is FALSE.
@@ -107,7 +107,7 @@ d2wlasso <- function(x,z,y,
                      regression.type=c("linear","cox")[1],
 
                      ttest.pvalue=TRUE,
-                     q_method=c("bootstrap","smoother")[2],
+                     q_opt_tuning_method=c("bootstrap","smoother")[2],
                      show.plots=FALSE,
                      pi0.true=FALSE,
                      pi0.val=0.9,
@@ -256,7 +256,7 @@ d2wlasso <- function(x,z,y,
             ## Results for testing if a x_k has an effect on y, but NOT
             ##            accounting for z
             ## That is, we test : H_0 : \beta_{x_k}=0
-            qvalues.results <- q.computations(cor.out, method=q_method,
+            qvalues.results <- q.computations(cor.out, method=q_opt_tuning_method,
                                               show.plots=show.plots,robust=robust,q.old=q.old,
                                               pi0.true=pi0.true,pi0.val=pi0.val)
 
@@ -310,7 +310,7 @@ d2wlasso <- function(x,z,y,
                 ##            accounting for diet
                 ## That is, we test : H_0 : \beta_{x_j|z}=0
                 # compute q-value as used by JD Storey with some adjustments made
-                qvalues.results <- q.computations(parcor.out,method=q_method,
+                qvalues.results <- q.computations(parcor.out,method=q_opt_tuning_method,
                                                              show.plots=show.plots,robust=robust,q.old=q.old,
                                                              pi0.true=pi0.true,pi0.val=pi0.val)
                 weights <- qvalues.results$qval.mat
