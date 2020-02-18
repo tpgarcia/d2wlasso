@@ -176,6 +176,11 @@ d2wlasso <- function(x,z,y,
 
     colnames(XX) <- colnames_use
 
+    ## allocate names to y
+    if(is.null(colnames(y))){
+        colnames(y) <- paste0("y",1:ncol(y))
+    }
+
     if (regression.type=="linear"){
         response <- list(yy=y,delta=NULL)
     } else if (length(cox.delta)!=length(y)){
@@ -198,6 +203,8 @@ d2wlasso <- function(x,z,y,
     ##                                                        ##
     ##                                                        ##
     ############################################################
+    ## For some weights, we can apply a threshold to determine if a covariate should be included or not.
+    threshold.selection <- NULL
     if(weight.type=="one"){
         ## Unit weights
         weights <- matrix(1,nrow=m,ncol=ncol(response$yy))
@@ -219,19 +226,31 @@ d2wlasso <- function(x,z,y,
         if(weight.type=="corr.tstat"){
             ## t-values with \beta_k in y= \beta_k * x_k
             weights <- cor.out$tvalues
-            threshold.selection <- NULL
         } else if(weight.type=="corr.pvalue"){
             ## p-values with \beta_k in y= \beta_k * x_k
             weights <- cor.out$pvalues
+            benhoch.results <- ben.hoch.interest(weights,alpha=alpha.bh,padjust.method="none")
+            threshold.selection <- benhoch.results$interest
+
+            if(!is.null(z)){
+                ## we ignore z
+                threshold.selection <- c(0,threshold.selection)
+            }
 
         } else if(weight.type=="corr.estimate"){
             ## partial correlations
             weights <- cor.out$estimate
-            threshold.selection <- NULL
         } else if(weight.type=="corr.bh.pvalue"){
             ## Benjamini-Hochberg adjusted p-values from y=z + \beta_k * x_k
-            benhoch.results <- ben.hoch.interest(cor.out$pvalues,alpha=alpha.bh)
+            benhoch.results <- ben.hoch.interest(cor.out$pvalues,alpha=alpha.bh,padjust.method="bh")
             weights <- benhoch.results$pval.adjust
+            threshold.selection <- benhoch.results$interest
+
+            if(!is.null(z)){
+                ## we ignore z
+                threshold.selection <- c(0,threshold.selection)
+            }
+
         } else if(weight.type=="corr.qvalue"){
 
             ## Results for testing if a x_k has an effect on y, but NOT
@@ -243,9 +262,11 @@ d2wlasso <- function(x,z,y,
 
             weights <- qvalues.results$qval.mat
             threshold.selection <- q.interest(weights,alpha=alpha,criteria="less")
+            threshold.selection <- t(threshold.selection$interest)
+
             if(!is.null(z)){
                 ## we ignore z
-                threshold.selection <- c(0,t(threshold.selection$interest))
+                threshold.selection <- c(0,threshold.interest)
             }
 
         }
@@ -273,6 +294,8 @@ d2wlasso <- function(x,z,y,
             } else if(weight.type=="parcor.pvalue"){
                 ## p-values with \beta_k in y=z + \beta_k * x_k
                 weights <- parcor.out$pvalues
+                benhoch.results <- ben.hoch.interest(weights,alpha=alpha.bh,padjust.method="none")
+                threshold.selection <- c(1,benhoch.results$interest)
             } else if(weight.type=="parcor.estimate"){
                 ## partial correlations
                 weights <- parcor.out$estimate
@@ -280,7 +303,7 @@ d2wlasso <- function(x,z,y,
                 ## Benjamini-Hochberg adjusted p-values from y=z + \beta_k * x_k
                 benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=alpha.bh)
                 weights <- benhoch.results$pval.adjust
-                threshold.selection <- c(1,t(benhoch.results$interest))
+                threshold.selection <- c(1,benhoch.results$interest)
 
             } else if(weight.type=="parcor.qvalue"){
                 ## Results for testing if a microbe has an effect on phenotype, but AFTER
@@ -1429,7 +1452,7 @@ bon.holm.interest <- function(pvalues,alpha=0.05){
 #############################
 # EXPORT
 #' @importFrom stats p.adjust
-ben.hoch.interest <- function(pvalues,alpha=0.05){
+ben.hoch.interest <- function(pvalues,alpha=0.05,padjust.method="BH"){
 
   interest <- matrix(0,nrow=nrow(pvalues),ncol=ncol(pvalues))
   interest <- as.data.frame(interest)
@@ -1445,7 +1468,7 @@ ben.hoch.interest <- function(pvalues,alpha=0.05){
     pval <- pvalues[,i]
 
     ## adjust p-values using Benjamini-Hochberg method
-    pval.adjust[,i] <- stats::p.adjust(pval,method="BH")
+    pval.adjust[,i] <- stats::p.adjust(pval,method=padjust.method)
 
     ind <- which(pval.adjust[,i] <= alpha)
 
