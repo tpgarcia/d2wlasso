@@ -791,10 +791,10 @@ library(glmnet)     # for ridge regression
 #########################################################
 
 ## EXPORT
-store.xy <- function(XX,response){
-	out <- as.data.frame(matrix(0,nrow=ncol(XX),ncol=ncol(response$yy)))
+store.xy <- function(XX,yy){
+	out <- as.data.frame(matrix(0,nrow=ncol(XX),ncol=ncol(yy)))
 	rownames(out) <- colnames(XX)
-	colnames(out) <- colnames(response$yy)
+	colnames(out) <- colnames(yy)
 	return(out)
 }
 
