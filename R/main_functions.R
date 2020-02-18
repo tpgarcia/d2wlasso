@@ -200,7 +200,7 @@ d2wlasso <- function(x,z,y,
     ############################################################
     if(weight.type=="one"){
         ## Unit weights
-        weights <- matrix(1,nrow=ncol(XX)-1,ncol=ncol(response$yy))
+        weights <- matrix(1,nrow=m,ncol=ncol(response$yy))
     } else if(weight.type=="corr.estimate" |
        weight.type=="corr.pvalue" |
        weight.type=="corr.bh.pvalue" |
