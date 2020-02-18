@@ -34,7 +34,7 @@
 #' @param include.z logical. If TRUE, the additional covariate z is forced to be included in the model. Default is TRUE.
 #' @param z.wt constant for forcing z in the model. If z is not included in the model even if include.z is TRUE, try different value. Default is 1000.
 #' @param thresh.q logical. If TRUE, remove excessively small weights by using threshold to maintain stability. The threshold is set to 0.0001.
-#' @param alpha indicates cut-off for q-values (thresholding). That is, the covariate with q-value less than this cut-off is included in the model.
+#' @param qval.alpha indicates cut-off for q-values (thresholding). That is, the covariate with q-value less than this cut-off is included in the model.
 #' @param alpha.bh indicates cut-off for Benjamini-Hochberg adjusted p-value (thresholding). That is, the covariate with BH-adjusted p-value less than this cut-off is included in the model.
 #' @param delta Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.
 #' @param robust indicates whether it is desired to make the estimate more robust for small p-values.
@@ -116,7 +116,7 @@ d2wlasso <- function(x,z,y,
                      include.z=TRUE,
                      z.wt=1000,
                      thresh.q=TRUE,
-                     alpha=0.15,
+                     qval.alpha=0.15,
                      alpha.bh=0.05,
                      delta=2,
                      robust=TRUE,
@@ -268,7 +268,7 @@ d2wlasso <- function(x,z,y,
                                               pi0.known=pi0.known,pi0.val=pi0.val)
 
             weights <- qvalues.results$qval.mat
-            threshold.selection <- q.interest(weights,alpha=alpha,criteria="less")
+            threshold.selection <- q.interest(weights,alpha=qval.alpha,criteria="less")
             threshold.selection <- t(threshold.selection$interest)
 
             if(!is.null(z)){
@@ -321,7 +321,7 @@ d2wlasso <- function(x,z,y,
                                                              show.plots=show.plots,robust=robust,
                                                              pi0.known=pi0.known,pi0.val=pi0.val)
                 weights <- qvalues.results$qval.mat
-                threshold.selection <- q.interest(microbe.parcor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
+                threshold.selection <- q.interest(microbe.parcor.out.qvalues$qval.mat,alpha=qval.alpha,criteria="less")
                 threshold.selection <- c(1,t(threshold.selection$interest))
 
             }
@@ -765,7 +765,7 @@ d2wlasso <- function(x,z,y,
 
     }
 
-    return(list("qval"=out.qvalue,"bh.pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.parcor"=out.parcor, "out.benhoch.cor"=out.benhoch.cor, "out.benhoch.parcor"=out.benhoch, "out.w"=out.w, "alpha"=alpha, "alpha.bh"=alpha.bh, "delta"=delta, "cv.delta.w"=mult.delta.w5, "cv.delta.adapt"=mult.delta.w6, "cv.out.w"=mult.cv.delta.out.w5, "cv.out.adapt"=mult.cv.delta.out.w6,
+    return(list("qval"=out.qvalue,"bh.pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.parcor"=out.parcor, "out.benhoch.cor"=out.benhoch.cor, "out.benhoch.parcor"=out.benhoch, "out.w"=out.w, "alpha"=qval.alpha, "alpha.bh"=alpha.bh, "delta"=delta, "cv.delta.w"=mult.delta.w5, "cv.delta.adapt"=mult.delta.w6, "cv.out.w"=mult.cv.delta.out.w5, "cv.out.adapt"=mult.cv.delta.out.w6,
                 #"out.aic.boot"=out.aic.boot, "out.bic.boot"=out.bic.boot,# "out.fixed.aic.boot"=out.fixed.aic.boot, "out.fixed.bic.boot"=out.fixed.bic.boot,
                 #"out.kmeans.aic.boot"=out.kmeans.aic.boot, "out.kmeans.bic.boot"=out.kmeans.bic.boot, "out.kquart.aic.boot"=out.kquart.aic.boot, "out.kquart.bic.boot"=out.kquart.bic.boot,
                 #"out.sort.aic.boot"=out.sort.aic.boot, "out.sort.bic.boot"=out.sort.bic.boot,
@@ -1314,7 +1314,7 @@ qvalue.old <- function(p, alpha=NULL, lam=NULL, robust=F,pi0.known=FALSE,pi0.val
     }
 }
 
-
+#' @import graphics
 q.computations <- function(out, method=c("smoother","bootstrap")[2],
 				show.plots=TRUE,robust=TRUE,
 				pi0.known=FALSE,pi0.val=0.9){
