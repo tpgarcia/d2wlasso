@@ -240,7 +240,7 @@ d2wlasso <- function(x,z,y,
 
             if(!is.null(z)){
                 ## we ignore z
-                threshold.selection <- c(0,threshold.selection)
+                threshold.selection <- rbind(z=0,threshold.selection)
             }
 
         } else if(weight.type=="corr.estimate"){
@@ -248,13 +248,13 @@ d2wlasso <- function(x,z,y,
             weights <- cor.out$estimate
         } else if(weight.type=="corr.bh.pvalue"){
             ## Benjamini-Hochberg adjusted p-values from y=z + \beta_k * x_k
-            benhoch.results <- ben.hoch.interest(cor.out$pvalues,alpha=alpha.bh,padjust.method="bh")
+            benhoch.results <- ben.hoch.interest(cor.out$pvalues,alpha=alpha.bh,padjust.method="BH")
             weights <- benhoch.results$pval.adjust
             threshold.selection <- benhoch.results$interest
 
             if(!is.null(z)){
                 ## we ignore z
-                threshold.selection <- c(0,threshold.selection)
+                threshold.selection <- rbind(z=0,threshold.selection)
             }
 
         } else if(weight.type=="corr.qvalue"){
@@ -269,11 +269,11 @@ d2wlasso <- function(x,z,y,
 
             weights <- qvalues.results$qval.mat
             threshold.selection <- q.interest(weights,alpha=qval.alpha,criteria="less")
-            threshold.selection <- t(threshold.selection$interest)
+            threshold.selection <- threshold.selection$interest
 
             if(!is.null(z)){
                 ## we ignore z
-                threshold.selection <- c(0,threshold.interest)
+                threshold.selection <- rbind(z=0,threshold.selection)
             }
 
         }
@@ -302,7 +302,7 @@ d2wlasso <- function(x,z,y,
                 ## p-values with \beta_k in y=z + \beta_k * x_k
                 weights <- parcor.out$pvalues
                 benhoch.results <- ben.hoch.interest(weights,alpha=alpha.bh,padjust.method="none")
-                threshold.selection <- c(1,benhoch.results$interest)
+                threshold.selection <- rbind(z=1,benhoch.results$interest)
             } else if(weight.type=="parcor.estimate"){
                 ## partial correlations
                 weights <- parcor.out$estimate
@@ -310,7 +310,7 @@ d2wlasso <- function(x,z,y,
                 ## Benjamini-Hochberg adjusted p-values from y=z + \beta_k * x_k
                 benhoch.results <- ben.hoch.interest(parcor.out$pvalues,alpha=alpha.bh)
                 weights <- benhoch.results$pval.adjust
-                threshold.selection <- c(1,benhoch.results$interest)
+                threshold.selection <- rbind(z=1,benhoch.results$interest)
 
             } else if(weight.type=="parcor.qvalue"){
                 ## Results for testing if a microbe has an effect on phenotype, but AFTER
@@ -321,8 +321,8 @@ d2wlasso <- function(x,z,y,
                                                              show.plots=show.plots,robust=robust,
                                                              pi0.known=pi0.known,pi0.val=pi0.val)
                 weights <- qvalues.results$qval.mat
-                threshold.selection <- q.interest(microbe.parcor.out.qvalues$qval.mat,alpha=qval.alpha,criteria="less")
-                threshold.selection <- c(1,t(threshold.selection$interest))
+                threshold.selection <- q.interest(weights,alpha=qval.alpha,criteria="less")
+                threshold.selection <- rbind(z=1,threshold.selection$interest)
 
             }
         } else {
@@ -955,7 +955,7 @@ correlations <- function(factor.z,x,z,response,partial=FALSE,ttest.pvalue=FALSE,
 		for(j in 1:ncol(data.response)) {
 			if(partial==TRUE){
 				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.XX[,i],y=data.response[,j],
-				                      z=data.z,delta=data.delta[j,],ttest.pvalue=ttest.pvalue,regression.type=regression.type)
+				                      z=data.z,delta=data.delta[,j],ttest.pvalue=ttest.pvalue,regression.type=regression.type)
 			} else {
 				tmp <- corr.pvalue(x=data.XX[,i],y=data.response[,j],delta=data.delta[,j],
 				                   ttest.pvalue=ttest.pvalue,regression.type=regression.type)
