@@ -942,7 +942,7 @@ correlations <- function(factor.z,x,z,response,partial=FALSE,ttest.pvalue=FALSE,
 
 # function to compute partial correlations using pcor.R
 # NOT USED.
-correlations.pcor <- function(XX,response,partial="FALSE",ttest.pvalue="FALSE"){
+correlations.pcor <- function(XX,response,partial=FALSE,ttest.pvalue=FALSE){
     ## Formatting data
     data.response <- response$yy
 
@@ -1301,7 +1301,7 @@ q.computations <- function(out, method=c("smoother","bootstrap")[2],
 
 		#qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),robust=FALSE,pi0.true=pi0.true,pi0.val=pi0.val)
 		#qval <- qobj$qvalues
-		if(q.old=="FALSE"){
+		if(q.old==FALSE){
 		    qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),
 		                       robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
 		    qval <- qobj$qvalues
