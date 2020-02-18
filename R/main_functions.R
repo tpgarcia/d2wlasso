@@ -381,6 +381,151 @@ d2wlasso <- function(x,z,y,
             }
         }
 
+        for(b in 1:nboot){
+            ##print(b)
+            if(run.aic.bic==TRUE){
+                ## Randomly partition the index
+                rand.index <- random.partition(n=nrow(XX),p=ncol(XX)-1,k=k)
+            }
+
+            #if(run.fixed.aic.bic==TRUE){
+            ## Ensure fixed covariates are in the partition + randomly partition the rest
+            #    rand.fixed.index <- fixed.plus.random.partition(fixed.covariates,n=nrow(XX),p=ncol(XX)-1,k=k)
+            #}
+
+            if(run.kmeans.aic.bic==TRUE){
+                ## Partition the index using k-means
+                kmeans.rand.index <- designed.partition(index.group.kmeans,k=k)
+            }
+
+            if(run.kquart.aic.bic==TRUE){
+                ## Partition the index using k-quartile
+                kquart.rand.index <- designed.partition(index.group.kquart,k=k)
+            }
+
+            if(run.sort.aic.bic==TRUE){
+                ## Partition the index using k-quartile
+                sort.rand.index <- designed.partition(index.group.sort,k=k)
+
+                ## Measures how often the largest beta from ridge regression is in the true,
+                ##  non-zero beta coefficients
+                #beta.index.sort[sort.beta.index[1]+1,j] <- as.numeric(sort.beta.index[1]%in%fixed.covariates)
+            }
+
+            ## Apply stepwise AIC to each group
+            for(l in 1:k){
+                ##print(l)
+                if(run.aic.bic==TRUE){
+                    ## Random partitioning
+                    index <- as.numeric(unlist(rand.index[l]))
+                    if(length(index)!=0){
+
+                        if(run.aic==TRUE){
+                            weight.aic.boot[,b] <- weight.aic.boot[,b] +
+                                step.selection(factor.z,index,XX,response,type="AIC",
+                                               direction=direction,
+                                               real_data=real_data)
+                        }
+
+                        if(run.bic==TRUE){
+                            weight.bic.boot[,b] <- weight.bic.boot[,b] +
+                                step.selection(factor.z,index,XX,response,type="BIC",
+                                               direction=direction,
+                                               real_data=real_data)
+                        }
+                    }
+                }
+                if (FALSE){
+                    if(run.fixed.aic.bic==TRUE){
+                        ## Fixed + Random partitioning
+                        index <- as.numeric(unlist(rand.fixed.index[l]))
+                        if(length(index)!=0){
+                            if(run.aic==TRUE){
+                                weight.fixed.aic.boot[,b] <- weight.fixed.aic.boot[,b] +
+                                    step.selection(factor.z,index,
+                                                   XX,response,type="AIC",
+                                                   direction=direction,
+                                                   real_data=real_data)
+                            }
+
+                            if(run.bic==TRUE){
+                                weight.fixed.bic.boot[,b] <- weight.fixed.bic.boot[,b] + step.selection(factor.z,index,
+                                                                                                        XX,response,type="BIC",
+                                                                                                        direction=direction,
+                                                                                                        real_data=real_data)
+                            }
+                        }
+                    }
+                }
+                if(run.kmeans.aic.bic==TRUE){
+                    ## k-means partitioning
+                    index <- as.numeric(unlist(kmeans.rand.index[l]))
+                    if(length(index)!=0){
+                        if(run.aic==TRUE){
+                            weight.kmeans.aic.boot[,b] <- weight.kmeans.aic.boot[,b] +
+                                step.selection(factor.z,index,XX,response,
+                                               type="AIC",
+                                               direction=direction,
+                                               real_data=real_data)
+                        }
+
+                        if(run.bic==TRUE){
+                            weight.kmeans.bic.boot[,b] <- weight.kmeans.bic.boot[,b] +
+                                step.selection(factor.z,index,XX,response,
+                                               type="BIC",
+                                               direction=direction,
+                                               real_data=real_data)
+                        }
+                    }
+                }
+
+                if(run.kquart.aic.bic==TRUE){
+                    ## k-quartile partitioning
+                    index <- as.numeric(unlist(kquart.rand.index[l]))
+
+                    if(length(index)!=0){
+                        if(run.aic==TRUE){
+                            weight.kquart.aic.boot[,b] <- weight.kquart.aic.boot[,b] +
+                                step.selection(factor.z,index,XX,response,
+                                               type="AIC",
+                                               direction=direction,
+                                               real_data=real_data)
+                        }
+
+                        if(run.bic==TRUE){
+                            weight.kquart.bic.boot[,b] <- weight.kquart.bic.boot[,b] +
+                                step.selection(factor.z,index,XX,response,
+                                               type="BIC",
+                                               direction=direction,
+                                               real_data=real_data)
+                        }
+                    }
+                }
+
+                if(run.sort.aic.bic==TRUE){
+                    ## sorted partitioning
+                    index <- as.numeric(unlist(sort.rand.index[l]))
+
+                    if(length(index)!=0){
+                        if(run.aic==TRUE){
+                            weight.sort.aic.boot[,b] <- weight.sort.aic.boot[,b] +
+                                step.selection(factor.z,index,XX,response,
+                                               type="AIC",
+                                               direction=direction,
+                                               real_data=real_data)
+                        }
+                        if(run.bic==TRUE){
+                            weight.sort.bic.boot[,b] <- weight.sort.bic.boot[,b] +
+                                step.selection(factor.z,index,XX,response,
+                                               type="BIC",
+                                               direction=direction,
+                                               real_data=real_data)
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
 
