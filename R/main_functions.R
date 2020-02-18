@@ -19,7 +19,7 @@
 #' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
 #' @param regression.type a character indicator that is either "linear" for linear regression
 #' or "cox" for Cox proportional hazards regression. Default is "linear".
-#' @param ttest logical. If TRUE, p-value for each covariate is computed from univariate
+#' @param ttest.pvalue logical. If TRUE, p-value for each covariate is computed from univariate
 #' linear/cox regression of the response on each covariate. If FALSE, the
 #' p-value is computed from correlation coefficients. Default is FALSE.
 #' @param q_method indicates the method for choosing optimal tuning parameter
@@ -106,7 +106,7 @@ d2wlasso <- function(x,z,y,
                      factor.z=TRUE,
                      regression.type=c("linear","cox")[1],
 
-                     ttest=TRUE,
+                     ttest.pvalue=TRUE,
                      q_method=c("bootstrap","smoother")[2],
                      plots=FALSE,
                      pi0.true=FALSE,
@@ -210,7 +210,7 @@ d2wlasso <- function(x,z,y,
         ####################################
         ## compute correlation of x and y ##
         ####################################
-        cor.out <- correlations(factor.z,x,z,response,partial=FALSE,ttest=ttest,
+        cor.out <- correlations(factor.z,x,z,response,partial=FALSE,ttest.pvalue=ttest.pvalue,
                                 regression.type=regression.type)
 
         #########################
@@ -261,7 +261,7 @@ d2wlasso <- function(x,z,y,
         ##################################################################
 
         if(!is.null(z)){
-            parcor.out <- correlations(factor.z,x,z,response,partial=TRUE,ttest=ttest,
+            parcor.out <- correlations(factor.z,x,z,response,partial=TRUE,ttest.pvalue=ttest.pvalue,
                                        regression.type=regression.type)
 
             #########################
@@ -786,7 +786,7 @@ store.x <- function(XX){
 ## EXPORT
 #' @importFrom stats lm
 #' @importFrom survival coxph Surv
-corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest=FALSE,regression.type){
+corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest.pvalue=FALSE,regression.type){
     x <- as.numeric(x)
     y <- as.numeric(y)
     delta.use <- as.numeric(delta)
@@ -798,7 +798,7 @@ corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest
         estimate <- 0
     }
 
-    if(ttest==FALSE & regression.type=="linear"){
+    if(ttest.pvalue==FALSE & regression.type=="linear"){
         p.value <- out$p.value
         t.stat=NULL
     } else {
@@ -833,7 +833,7 @@ corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest
 ## EXPORT
 #' @importFrom stats lm
 #' @importFrom survival coxph Surv
-parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternative="two.sided",ttest=FALSE,regression.type){
+parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternative="two.sided",ttest.pvalue=FALSE,regression.type){
     x <- as.numeric(x)
     y <- as.numeric(y)
     z <- as.numeric(z)
@@ -847,13 +847,13 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
             xres <- residuals(stats::lm(x~z))
             yres <- residuals(stats::lm(y~z))
         }
-        out <- corr.pvalue(xres,yres,delta.use,method,alternative,ttest=FALSE,regression.type=regression.type)
+        out <- corr.pvalue(xres,yres,delta.use,method,alternative,ttest.pvalue=FALSE,regression.type=regression.type)
         estimate <- out$estimate
     } else {
         estimate <- 0
     }
 
-    if(ttest==FALSE & regression.type=="linear"){
+    if(ttest.pvalue==FALSE & regression.type=="linear"){
         p.value <- out$p.value
         t.stat <- NULL
     } else {
@@ -906,7 +906,7 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
 
 
 ## EXPORT
-correlations <- function(factor.z,x,z,response,partial=FALSE,ttest=FALSE,regression.type){
+correlations <- function(factor.z,x,z,response,partial=FALSE,ttest.pvalue=FALSE,regression.type){
 
     ## Formatting data
     data.response <- response$yy
@@ -925,10 +925,10 @@ correlations <- function(factor.z,x,z,response,partial=FALSE,ttest=FALSE,regress
 		for(j in 1:ncol(data.response)) {
 			if(partial==TRUE){
 				tmp <- parcorr.pvalue(factor.z=factor.z,x=data.XX[,i],y=data.response[,j],
-				                      z=data.z,delta=data.delta[j,],ttest=ttest,regression.type=regression.type)
+				                      z=data.z,delta=data.delta[j,],ttest.pvalue=ttest.pvalue,regression.type=regression.type)
 			} else {
 				tmp <- corr.pvalue(x=data.XX[,i],y=data.response[,j],delta=data.delta[,j],
-				                   ttest=ttest,regression.type=regression.type)
+				                   ttest.pvalue=ttest.pvalue,regression.type=regression.type)
 			}
 			correlation[i,j] <- tmp$estimate
 			pvalues[i,j] <- tmp$p.value
@@ -942,7 +942,7 @@ correlations <- function(factor.z,x,z,response,partial=FALSE,ttest=FALSE,regress
 
 # function to compute partial correlations using pcor.R
 # NOT USED.
-correlations.pcor <- function(XX,response,partial="FALSE",ttest="FALSE"){
+correlations.pcor <- function(XX,response,partial="FALSE",ttest.pvalue="FALSE"){
     ## Formatting data
     data.response <- response$yy
 
