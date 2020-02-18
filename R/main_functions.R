@@ -25,7 +25,7 @@
 #' @param q_method indicates the method for choosing optimal tuning parameter
 #' in the q-value computation as proposed in Storey and Tibshirani (2003).
 #' One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
-#' @param plots logical. If TRUE, figures are plotted. Default is FALSE.
+#' @param show.plots logical. If TRUE, figures are plotted. Default is FALSE.
 #' @param pi0.true logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.
 #' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.true is TRUE. Default is 0.9.
 #' @param wt The weights to be used for the weighted lasso. One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor".
@@ -108,7 +108,7 @@ d2wlasso <- function(x,z,y,
 
                      ttest.pvalue=TRUE,
                      q_method=c("bootstrap","smoother")[2],
-                     plots=FALSE,
+                     show.plots=FALSE,
                      pi0.true=FALSE,
                      pi0.val=0.9,
                      wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],
@@ -257,7 +257,7 @@ d2wlasso <- function(x,z,y,
             ##            accounting for z
             ## That is, we test : H_0 : \beta_{x_k}=0
             qvalues.results <- q.computations(cor.out, method=q_method,
-                                              plots=plots,robust=robust,q.old=q.old,
+                                              show.plots=show.plots,robust=robust,q.old=q.old,
                                               pi0.true=pi0.true,pi0.val=pi0.val)
 
             weights <- qvalues.results$qval.mat
@@ -311,7 +311,7 @@ d2wlasso <- function(x,z,y,
                 ## That is, we test : H_0 : \beta_{x_j|z}=0
                 # compute q-value as used by JD Storey with some adjustments made
                 qvalues.results <- q.computations(parcor.out,method=q_method,
-                                                             plots=plots,robust=robust,q.old=q.old,
+                                                             show.plots=show.plots,robust=robust,q.old=q.old,
                                                              pi0.true=pi0.true,pi0.val=pi0.val)
                 weights <- qvalues.results$qval.mat
                 threshold.selection <- q.interest(microbe.parcor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
@@ -583,7 +583,7 @@ d2wlasso <- function(x,z,y,
     ##                                                        ##
     ############################################################
     if(lasso.delta.cv.mult==FALSE){
-        lasso.w <- lasso.computations(weights,XX,response,g,plots=plots,file="weight_",
+        lasso.w <- lasso.computations(weights,XX,response,g,show.plots=show.plots,file="weight_",
                                       include.diet=include.z,diet.wt=z.wt,thresh.q=thresh.q,
                                       delta=delta)
         weighted.lasso <- as.matrix(lasso.w$interest)
@@ -593,7 +593,7 @@ d2wlasso <- function(x,z,y,
         lasso.w <-0
 
         for(v in 1:ncv){
-            lasso.w.tmp <- lasso.computations(weights,XX,response,g3,plots=FALSE,file="weight6_",
+            lasso.w.tmp <- lasso.computations(weights,XX,response,g3,show.plots=FALSE,file="weight6_",
                                                          include.diet=include.diet,diet.wt=z.wt,corr.g=TRUE,delta=delta,
                                                          cv.criterion=FALSE,vfold=vfold)
             lasso.w <- lasso.w + as.matrix(lasso.w.tmp$interest)
@@ -646,7 +646,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
+            lasso.aic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
                                                    file="weight_pval_aic_boot_",
                                                    include.diet=include.z,
                                                    diet.wt=diet.wt,
@@ -659,7 +659,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
+            lasso.bic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
                                                    file="weight_pval_bic_boot_",
                                                    include.diet=include.z,
                                                    diet.wt=diet.wt,
@@ -675,7 +675,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kmeans.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kmeans.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
+            lasso.kmeans.aic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
                                                           file="weight_pval_kmeans_aic_boot_",
                                                           include.diet=include.z,
                                                           diet.wt=diet.wt,
@@ -688,7 +688,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kmeans.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kmeans.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
+            lasso.kmeans.bic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
                                                           file="weight_pval_kmeans_bic_boot_",
                                                           include.diet=include.z,
                                                           diet.wt=diet.wt,
@@ -704,7 +704,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kquart.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kquart.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
+            lasso.kquart.aic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
                                                           file="weight_pval_kquart_aic_boot_",
                                                           include.diet=include.z,
                                                           diet.wt=diet.wt,
@@ -717,7 +717,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.kquart.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.kquart.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
+            lasso.kquart.bic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
                                                           file="weight_pval_kquart_bic_boot_",
                                                           include.diet=include.z,
                                                           diet.wt=diet.wt,
@@ -733,7 +733,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.sort.aic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.sort.aic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
+            lasso.sort.aic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
                                                         file="weight_pval_sort_aic_boot_",
                                                         include.diet=include.z,
                                                         diet.wt=diet.wt,
@@ -746,7 +746,7 @@ d2wlasso <- function(x,z,y,
             weights <- data.frame(out.sort.bic.boot)
             colnames(weights) <- "response"
             rownames(weights) <- out.rownames[-1]
-            lasso.sort.bic.bvalue <- lasso.computations(weights,XX,response,g1,plots=FALSE,
+            lasso.sort.bic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
                                                         file="weight_pval_sort_bic_boot_",
                                                         include.diet=include.z,
                                                         diet.wt=diet.wt,
@@ -1309,7 +1309,7 @@ qvalue.old <- function(p, alpha=NULL, lam=NULL, robust=F,pi0.true=FALSE,pi0.val=
 
 
 q.computations <- function(out, method=c("smoother","bootstrap")[2],
-				plots=TRUE,robust=TRUE,q.old=FALSE,
+				show.plots=TRUE,robust=TRUE,q.old=FALSE,
 				pi0.true=FALSE,pi0.val=0.9){
 
 	qval.mat <- matrix(0,nrow=nrow(out$pvalues),ncol=ncol(out$pvalues))
@@ -1338,7 +1338,7 @@ q.computations <- function(out, method=c("smoother","bootstrap")[2],
 		cnames <- colnames(out$pvalues)
 
 		# Plots
-		if(plots==TRUE){
+		if(show.plots==TRUE){
 
 			# Density histogram of p-values
 			##postscript(paste(file,"_histpval_",cnames[i],".eps",sep=""))
@@ -1496,7 +1496,7 @@ make.center <- function(x){
 	return(x-mean(x))
 }
 
-lasso <- function(weights,yy,XX,data.delta,g,file="file",plots=FALSE,include.diet=TRUE,
+lasso <- function(weights,yy,XX,data.delta,g,file="file",show.plots=FALSE,include.diet=TRUE,
                   diet.wt=1000,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y=TRUE,
                   est.MSE=c("TRUE","est.var","step")[2],
                   cv.criterion=c(FALSE,"delta_cv")[1],vfold=10){
@@ -1646,7 +1646,7 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",plots=FALSE,include.die
     sign.of.variables[ind.pos] <- 1
     ind.neg <- which(as.logical(predict.out$coefficients <0))
     sign.of.variables[ind.neg] <- -1
-    if(plots==TRUE){
+    if(show.plots==TRUE){
         postscript(paste(file,"_lasso1.eps",sep=""))
         plot(wLasso.out,cex.axis=1.5,cex.lab=1.5)
         dev.off()
@@ -1665,7 +1665,7 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",plots=FALSE,include.die
          sign.of.variables=sign.of.variables,entry.variables=entry.variables,delta.out=delta.out)
 }
 
-lasso.computations <- function(weights,XX,response,g,plots=TRUE,file="name",include.diet=TRUE,
+lasso.computations <- function(weights,XX,response,g,show.plots=TRUE,file="name",include.diet=TRUE,
                                diet.wt=100,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y="TRUE",
                                est.MSE=c("TRUE","est.var","step")[2],
                                cv.criterion=FALSE,vfold=10){
@@ -1695,7 +1695,7 @@ lasso.computations <- function(weights,XX,response,g,plots=TRUE,file="name",incl
         #print(data.response)
         lasso.out <- lasso(weights[,i],data.response[i,],XX,data.delta[i,],g,
                            file=paste(file,rownames(data.response)[i],sep=""),
-                           plots=plots,include.diet=include.diet,
+                           show.plots=show.plots,include.diet=include.diet,
                            diet.wt=diet.wt,thresh.q=thresh.q,corr.g=corr.g,delta=delta,std.y=std.y,
                            est.MSE=est.MSE,
                            cv.criterion=cv.criterion,vfold=vfold)
