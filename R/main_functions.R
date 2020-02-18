@@ -120,7 +120,6 @@ d2wlasso <- function(x,z,y,
                      alpha.bh=0.05,
                      delta=2,
                      robust=TRUE,
-                     q.old=FALSE,
                      lasso.delta.cv.mult=FALSE,
                      vfold=10,
                      ncv=100,
@@ -257,7 +256,7 @@ d2wlasso <- function(x,z,y,
             ##            accounting for z
             ## That is, we test : H_0 : \beta_{x_k}=0
             qvalues.results <- q.computations(cor.out, method=q_opt_tuning_method,
-                                              show.plots=show.plots,robust=robust,q.old=q.old,
+                                              show.plots=show.plots,robust=robust,
                                               pi0.true=pi0.true,pi0.val=pi0.val)
 
             weights <- qvalues.results$qval.mat
@@ -311,7 +310,7 @@ d2wlasso <- function(x,z,y,
                 ## That is, we test : H_0 : \beta_{x_j|z}=0
                 # compute q-value as used by JD Storey with some adjustments made
                 qvalues.results <- q.computations(parcor.out,method=q_opt_tuning_method,
-                                                             show.plots=show.plots,robust=robust,q.old=q.old,
+                                                             show.plots=show.plots,robust=robust,
                                                              pi0.true=pi0.true,pi0.val=pi0.val)
                 weights <- qvalues.results$qval.mat
                 threshold.selection <- q.interest(microbe.parcor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
@@ -1309,7 +1308,7 @@ qvalue.old <- function(p, alpha=NULL, lam=NULL, robust=F,pi0.true=FALSE,pi0.val=
 
 
 q.computations <- function(out, method=c("smoother","bootstrap")[2],
-				show.plots=TRUE,robust=TRUE,q.old=FALSE,
+				show.plots=TRUE,robust=TRUE,
 				pi0.true=FALSE,pi0.val=0.9){
 
 	qval.mat <- matrix(0,nrow=nrow(out$pvalues),ncol=ncol(out$pvalues))
@@ -1324,14 +1323,14 @@ q.computations <- function(out, method=c("smoother","bootstrap")[2],
 
 		#qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),robust=FALSE,pi0.true=pi0.true,pi0.val=pi0.val)
 		#qval <- qobj$qvalues
-		if(q.old==FALSE){
+		##if(q.old==FALSE){
 		    qobj <- qvalue.adj(pvalues,pi0.method=method,lambda=seq(0,0.95,by=0.01),
 		                       robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
 		    qval <- qobj$qvalues
-		} else {
-		    qobj <- qvalue.old(pvalues,robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
-		    qval <- qobj$qvalue
-		}
+		##} else {
+		##   qobj <- qvalue.old(pvalues,robust=robust,pi0.true=pi0.true,pi0.val=pi0.val)
+		##    qval <- qobj$qvalue
+		##}
 		pi0 <- qobj$pi0
 		qval.mat[,i] <- qval
 
