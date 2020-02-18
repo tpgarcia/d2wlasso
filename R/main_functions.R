@@ -257,7 +257,7 @@ d2wlasso <- function(x,z,y,
             ##            accounting for z
             ## That is, we test : H_0 : \beta_{x_k}=0
             qvalues.results <- q.computations(cor.out, method=q_method,
-                                              plots=plots,file="cor",robust=robust,q.old=q.old,
+                                              plots=plots,robust=robust,q.old=q.old,
                                               pi0.true=pi0.true,pi0.val=pi0.val)
 
             weights <- qvalues.results$qval.mat
@@ -311,7 +311,7 @@ d2wlasso <- function(x,z,y,
                 ## That is, we test : H_0 : \beta_{x_j|z}=0
                 # compute q-value as used by JD Storey with some adjustments made
                 qvalues.results <- q.computations(parcor.out,method=q_method,
-                                                             plots=plots,file="parcor",robust=robust,q.old=q.old,
+                                                             plots=plots,robust=robust,q.old=q.old,
                                                              pi0.true=pi0.true,pi0.val=pi0.val)
                 weights <- qvalues.results$qval.mat
                 threshold.selection <- q.interest(microbe.parcor.out.qvalues$qval.mat,alpha=alpha,criteria="less")
@@ -1309,7 +1309,7 @@ qvalue.old <- function(p, alpha=NULL, lam=NULL, robust=F,pi0.true=FALSE,pi0.val=
 
 
 q.computations <- function(out, method=c("smoother","bootstrap")[2],
-				plots=TRUE,file="name",robust=TRUE,q.old=FALSE,
+				plots=TRUE,robust=TRUE,q.old=FALSE,
 				pi0.true=FALSE,pi0.val=0.9){
 
 	qval.mat <- matrix(0,nrow=nrow(out$pvalues),ncol=ncol(out$pvalues))
@@ -1341,29 +1341,29 @@ q.computations <- function(out, method=c("smoother","bootstrap")[2],
 		if(plots==TRUE){
 
 			# Density histogram of p-values
-			postscript(paste(file,"_histpval_",cnames[i],".eps",sep=""))
-			hist(pvalues,main="",xlab="Density of observed p-values",ylab="",freq=FALSE,yaxt="n",ylim=c(0,5),cex.lab=2,cex.axis=2)
+			##postscript(paste(file,"_histpval_",cnames[i],".eps",sep=""))
+		    hist(pvalues,main="",xlab="Density of observed p-values",ylab="",freq=FALSE,yaxt="n",ylim=c(0,5),cex.lab=2,cex.axis=2)
 			abline(h=1,lty=1)
 			abline(h=qobj$pi0,lty=2)
 			axis(2,at = c(0,qobj$pi0,1,2,3,4),labels=c(0,round(qobj$pi0,2),1,2,3,4),las=2,cex.lab=2,cex.axis=2)
 			box(lty=1,col="black") 	# for a box around plot
-			dev.off()
+			##dev.off()
 
 			# Density histogram of estimate
-			postscript(paste(file,"_histest_",cnames[i],".eps",sep=""))
+			##postscript(paste(file,"_histest_",cnames[i],".eps",sep=""))
 			hist(estimate,main="",xlab="Density of observed statistic",ylab="",yaxt="n",freq=FALSE,ylim=c(0,5),cex.lab=2,cex.axis=2)
 			axis(2,at = c(0,1,2,3,4),labels=c(0,1,2,3,4),las=2,cex.lab=2,cex.axis=2)
-			dev.off()
+			##dev.off()
 
 			# Plot of \hat \pi vs. \lambda
-			postscript(paste(file,"_pihat_vs_lambda_",cnames[i],".eps",sep=""))
+			##postscript(paste(file,"_pihat_vs_lambda_",cnames[i],".eps",sep=""))
 			qplot2(qobj,rng=c(0,1),whichplot=1)
-			dev.off()
+			##dev.off()
 
 			# Plot of significant tests vs. q cut-off
-			postscript(paste(file,"_sigtest_vs_qval_",cnames[i],".eps",sep=""))
+			##postscript(paste(file,"_sigtest_vs_qval_",cnames[i],".eps",sep=""))
 			qplot2(qobj,rng=c(0,1),whichplot=3)
-			dev.off()
+			##dev.off()
 		}
 	}
 	list(qval.mat=qval.mat,pi0=pi0)
