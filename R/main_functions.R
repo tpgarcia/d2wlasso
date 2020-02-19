@@ -330,9 +330,9 @@ d2wlasso <- function(x,z,y,
             warning("Your choice of weight.type requires z to be non-NULL.")
         }
     } else if(weight.type=="exfrequency.random.partitioning" |
-              weight.type=="exfrequency.kmeans" |
-              weight.type=="exfrequency.kquartiles"|
-              weight.type=="exfrequency.ksorted"){
+              weight.type=="exfrequency.kmeans.partitioning" |
+              weight.type=="exfrequency.kquartiles.partitioning"|
+              weight.type=="exfrequency.ksorted.partitioning"){
 
         k.split=k
         run.aic = TRUE
@@ -362,15 +362,19 @@ d2wlasso <- function(x,z,y,
         run.kquart.aic.bic <- FALSE
         run.sort.aic.bic <- FALSE
 
-        if(weight.type=="exfrequency.kmeans"){
+        if(weight.type=="exfrequency.random.partitioning"){
+            run.aic.bic <- TRUE
+        }
+
+        if(weight.type=="exfrequency.kmeans.partitioning"){
             run.kmeans.aic.bic <- TRUE
         }
 
-        if(weight.type=="exfrequency.kquartiles"){
+        if(weight.type=="exfrequency.kquartiles.partitioning"){
             run.kquart.aic.bic <- TRUE
         }
 
-        if(weight.type=="exfrequency.ksorted"){
+        if(weight.type=="exfrequency.ksorted.partitioning"){
             run.sort.aic.bic <- TRUE
         }
 
