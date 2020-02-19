@@ -183,6 +183,7 @@ d2wlasso <- function(x,z,y,
         colnames_use <- c(colnames_use,colnames(x))
     }
 
+    z.names <- colnames(z)
     x.names <- colnames(x)
     colnames(XX) <- colnames_use
 
@@ -2155,19 +2156,18 @@ columns.to.list <- function( df ) {
 
 
 ## Function to do step AIC on group subset
-step.selection <- function(factor.z,index,XX,response,type=c("AIC","BIC")[1],
+#' @import survival
+#' @import stats
+step.selection <- function(factor.z,index,XX,x.names,z.names,
+                           response,type=c("AIC","BIC")[1],
                            direction=c("both","forward","backward")[3]){
 
-    if(real_data==FALSE){
-        xnam.orig <- paste("X_",index,sep="")
-    } else {
-        xnam.orig <- rownames(XX[index+1,])
-    }
+    xnam.orig <- x.names[index]
 
     if(factor.z==TRUE){
-        xnam <- c("factor(Fixed)",xnam.orig)
+        xnam <- c(paste0("factor(",z.names,")"),xnam.orig)
     } else {
-        xnam <- c("Fixed",xnam.orig)
+        xnam <- c(z.names,xnam.orig)
     }
 
     yy <- response$yy
@@ -2177,19 +2177,19 @@ step.selection <- function(factor.z,index,XX,response,type=c("AIC","BIC")[1],
         #######################
         ## linear regression ##
         #######################
-        mydata <- data.frame(cbind(t(yy),t(XX)))
-        fmla <- as.formula(paste("response~",paste(xnam,collapse="+")))
+        mydata <- data.frame(yy,XX)
+        fmla <- as.formula(paste("yy~",paste(xnam,collapse="+")))
         fit <- lm(fmla,data=mydata)
     } else {
         #########################
         ## survival regression ##
         #########################
-        X <- data.frame(t(XX))
+        X <- data.frame(XX)
         tmp.list <- columns.to.list(X)
         mydata <- list(time=as.numeric(yy),status=as.numeric(delta))
         mydata <- appendList(mydata,tmp.list)
         fmla <- as.formula(paste("Surv(time,status)~",paste(xnam,collapse="+")))
-        fit <- coxph(fmla,data=mydata)
+        fit <- survival::coxph(fmla,data=mydata)
     }
     ##print(fmla)
 
@@ -2201,19 +2201,20 @@ step.selection <- function(factor.z,index,XX,response,type=c("AIC","BIC")[1],
     }
 
     if(factor.z==TRUE){
-        step.reg <- step(fit,k=deg.free,direction=direction,
-                         scope = list(lower = ~ factor(Fixed)),trace=FALSE,data=mydata)
+        lower.fmla <- as.formula(paste0("~ factor(",z.names,")"))
     } else {
-        step.reg <- step(fit,k=deg.free,direction=direction,
-                         scope = list(lower = ~ Fixed),trace=FALSE,data=mydata)
+        lower.fmla <- as.formula(paste0("~",z.names))
     }
+
+    step.reg <- stats::step(fit,k=deg.free,direction=direction,
+                            scope = list(lower = lower.fmla),trace=FALSE,data=mydata)
 
     ## XX selected
     results <- intersect(names(step.reg$coefficients),xnam.orig)
 
     ## Store results
-    out <- data.frame(rep(0,nrow(XX)-1))
-    rownames(out) <- rownames(XX)[-1]
+    out <- data.frame(rep(0,length(x.names)))
+    rownames(out) <- x.names
     colnames(out) <- "results"
     out[xnam.orig,] <- as.numeric(!xnam.orig%in%results)
     return(out)
