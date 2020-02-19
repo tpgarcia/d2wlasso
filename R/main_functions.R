@@ -125,7 +125,7 @@ d2wlasso <- function(x,z,y,
                                    "exfrequency.kquartiles.partition.bic",
                                    "exfrequency.ksorted.partition.aic",
                                    "exfrequency.ksorted.partition.bic")[1],
-                     weight_fn=c("identity","sqrt","inverse_abs","square")[1],
+                     weight_fn=function(x){x},
                      include.z=TRUE,
                      z.wt=1000,
                      thresh.q=TRUE,
@@ -639,29 +639,6 @@ d2wlasso <- function(x,z,y,
 
 
 
-    ## Weight functions
-    g1 <- function(x){
-        return(x)
-    }
-    g2 <- function(x){
-        return(sqrt(x))
-    }
-    g3 <- function(x){
-        return(1/abs(x))
-    }
-    g4 <- function(x){
-        return(x^2)
-    }
-    if (weight_fn=="sqrt"){
-        g <- g2
-    } else if (weight_fn=="inverse_abs"){
-        g <- g3
-    } else if (weight_fn=="square"){
-        g <- g4
-    } else {
-        g <- g1
-    }
-
     ############################################################
     ##                                                        ##
     ##                                                        ##
@@ -840,6 +817,35 @@ library(lars)		# for LASSO approach
 library(plotrix)		# for computing standard errors of mean in simulation study
 library(MASS) # for ridge regression
 library(glmnet)     # for ridge regression
+
+
+###############################################
+## Functions to get a sample weight function ##
+###############################################
+
+# EXPORT
+get.weight.fn <- function(weight_fn_type=c("identity","sqrt","inverse_abs","square")[1]){
+
+    ## Weight functions
+    if(weight_fn_type=="identity"){
+        out <- function(x){
+            return(x)
+        }
+    } else if(weight_fn_type=="sqrt"){
+        out <- function(x){
+            return(sqrt(x))
+        }
+    } else if(weight_fn_type=="inverse_abs"){
+        out <- function(x){
+            return(1/abs(x))
+        }
+    } else if(weight_fn_type=="square"){
+        out <- function(x){
+            return(x^2)
+        }
+    }
+    return(out)
+}
 
 
 #########################################################
