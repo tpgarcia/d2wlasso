@@ -424,7 +424,7 @@ d2wlasso <- function(x,z,y,
             ##print(b)
             if(run.aic.bic==TRUE){
                 ## Randomly partition the index
-                rand.index <- random.partition(n=nrow(XX),p=ncol(XX)-1,k=k)
+                rand.index <- random.partition(n=nrow(XX),p=m,k=k.split)
             }
 
             #if(run.fixed.aic.bic==TRUE){
@@ -434,17 +434,17 @@ d2wlasso <- function(x,z,y,
 
             if(run.kmeans.aic.bic==TRUE){
                 ## Partition the index using k-means
-                kmeans.rand.index <- designed.partition(index.group.kmeans,k=k)
+                kmeans.rand.index <- designed.partition(index.group.kmeans,k=k.split)
             }
 
             if(run.kquart.aic.bic==TRUE){
                 ## Partition the index using k-quartile
-                kquart.rand.index <- designed.partition(index.group.kquart,k=k)
+                kquart.rand.index <- designed.partition(index.group.kquart,k=k.split)
             }
 
             if(run.sort.aic.bic==TRUE){
                 ## Partition the index using k-quartile
-                sort.rand.index <- designed.partition(index.group.sort,k=k)
+                sort.rand.index <- designed.partition(index.group.sort,k=k.split)
 
                 ## Measures how often the largest beta from ridge regression is in the true,
                 ##  non-zero beta coefficients
@@ -2120,16 +2120,16 @@ designed.partition <- function(index.group,k){
     cluster <- index.group
 
     ## Name of each group
-    names <- paste("group",seq(1,k),sep="")
+    names_use <- paste0("group",seq(1,k))
 
     ## Get k-means partition of beta values
-    rand.index <- vector("list",length(names))
-    names(rand.index) <- names
+    rand.index <- vector("list",length(names_use))
+    names(rand.index) <- names_use
 
     for(j in 1:k){
         cluster.tmp <- as.numeric(which(cluster==j))
         size.groups <- partition.size.new(length(cluster.tmp),k)
-        cut.by <- rep(names, times = size.groups)
+        cut.by <- rep(names_use, times = size.groups)
         rand.index.tmp <- split(sample(cluster.tmp,length(cluster.tmp)), cut.by)
         ##rand.index <- mapply(c,rand.index,rand.index.tmp,SIMPLIFY=FALSE)
         rand.index <- appendList(rand.index,rand.index.tmp)
