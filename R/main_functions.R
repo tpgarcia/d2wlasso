@@ -180,6 +180,7 @@ d2wlasso <- function(x,z,y,
         colnames_use <- c(colnames_use,colnames(x))
     }
 
+    colnames_x_use <- colnames(x)
     colnames(XX) <- colnames_use
 
     ## allocate names to y
@@ -338,15 +339,9 @@ d2wlasso <- function(x,z,y,
 
 
         ## Store weights for each bootstrap
-        if(!is.null(z)){
-            tmp2.store <- as.data.frame(matrix(0, nrow = (number.of.covariates-1), ncol = nboot,
-                                           dimnames = list(covariate.names[-1],
+        tmp2.store <- as.data.frame(matrix(0, nrow = m, ncol = nboot,
+                                           dimnames = list(colnames_x_use,
                                                            seq(1,nboot))))
-        } else {
-            tmp2.store <- as.data.frame(matrix(0, nrow = number.of.covariates, ncol = nboot,
-                                               dimnames = list(covariate.names,
-                                                               seq(1,nboot))))
-        }
         weight.aic.boot <- tmp2.store
         weight.bic.boot <- tmp2.store
 
