@@ -646,24 +646,24 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
     ############################################################
 
     if(lasso.delta.cv.mult==FALSE){
-        lasso.w <- lasso.computations(weights,XX,response,weight_fn,show.plots=show.plots,
+        lasso.w <- weighted.lasso.computations(weights,XX,response,weight_fn,show.plots=show.plots,
                                       include.diet=include.z,diet.wt=z.wt,thresh.q=thresh.q,
                                       delta=delta)
-        weighted.lasso <- as.matrix(lasso.w$interest)
+        weighted.lasso.results <- as.matrix(lasso.w$interest)
 
     } else if(lasso.delta.cv.mult==TRUE){
 
         lasso.w <-0
 
         for(v in 1:ncv){
-            lasso.w.tmp <- lasso.computations(weights,XX,response,g3,show.plots=FALSE,
+            lasso.w.tmp <- weighted.lasso.computations(weights,XX,response,g3,show.plots=FALSE,
                                                          include.diet=include.diet,diet.wt=z.wt,corr.g=TRUE,delta=delta,
                                                          cv.criterion=FALSE,vfold=vfold)
             lasso.w <- lasso.w + as.matrix(lasso.w.tmp$interest)
             ##mult.delta.w6[,v] <- mult.delta.w6[,v] + mult.cv.delta.lasso.w6$delta.out
         }
 
-        weighted.lasso <- lasso.w
+        weighted.lasso.results <- lasso.w
     }
 
 
@@ -1435,7 +1435,7 @@ make.center <- function(x){
 	return(x-mean(x))
 }
 
-lasso <- function(weights,yy,XX,data.delta,g,show.plots=FALSE,include.diet=TRUE,
+weighted.lasso <- function(weights,yy,XX,data.delta,g,show.plots=FALSE,include.diet=TRUE,
                   diet.wt=1000,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y=TRUE,
                   est.MSE=c("TRUE","est.var","step")[2],
                   cv.criterion=c(FALSE,"delta_cv")[1],vfold=10){
@@ -1604,7 +1604,7 @@ lasso <- function(weights,yy,XX,data.delta,g,show.plots=FALSE,include.diet=TRUE,
          sign.of.variables=sign.of.variables,entry.variables=entry.variables,delta.out=delta.out)
 }
 
-lasso.computations <- function(weights,XX,response,g,show.plots=TRUE,include.diet=TRUE,
+weighted.lasso.computations <- function(weights,XX,response,g,show.plots=TRUE,include.diet=TRUE,
                                diet.wt=100,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y="TRUE",
                                est.MSE=c("TRUE","est.var","step")[2],
                                cv.criterion=FALSE,vfold=10){
@@ -1632,7 +1632,7 @@ lasso.computations <- function(weights,XX,response,g,show.plots=TRUE,include.die
 
     for(i in 1:ncol(interest)){
         #print(data.response)
-        lasso.out <- lasso(weights[,i],data.response[i,],XX,data.delta[i,],g,
+        lasso.out <- weighted.lasso(weights[,i],data.response[i,],XX,data.delta[i,],g,
                            show.plots=show.plots,include.diet=include.diet,
                            diet.wt=diet.wt,thresh.q=thresh.q,corr.g=corr.g,delta=delta,std.y=std.y,
                            est.MSE=est.MSE,
