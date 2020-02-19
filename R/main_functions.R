@@ -329,7 +329,8 @@ d2wlasso <- function(x,z,y,
         } else {
             warning("Your choice of weight.type requires z to be non-NULL.")
         }
-    } else if(weight.type=="exfrequency.kmeans" |
+    } else if(weight.type=="exfrequency.random.partitioning" |
+              weight.type=="exfrequency.kmeans" |
               weight.type=="exfrequency.kquartiles"|
               weight.type=="exfrequency.ksorted"){
 
