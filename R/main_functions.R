@@ -646,7 +646,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
     ############################################################
 
     if(lasso.delta.cv.mult==FALSE){
-        lasso.w <- lasso.computations(weights,XX,response,weight_fn,show.plots=show.plots,file="weight_",
+        lasso.w <- lasso.computations(weights,XX,response,weight_fn,show.plots=show.plots,
                                       include.diet=include.z,diet.wt=z.wt,thresh.q=thresh.q,
                                       delta=delta)
         weighted.lasso <- as.matrix(lasso.w$interest)
@@ -667,135 +667,6 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
     }
 
 
-    ## exclusion frequency weights
-
-    if (regression.type=="cox"){
-
-
-
-
-
-
-        # Lasso fitting with exclusion frequency weights
-
-        if(run.aic.bic==TRUE){
-            ## weights are exclusion frequency (random partitioning)
-
-            #if(run.aic==TRUE){
-            weights <- data.frame(out.aic.boot)
-            colnames(weights) <- "response"
-            rownames(weights) <- out.rownames[-1]
-            lasso.aic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
-                                                   file="weight_pval_aic_boot_",
-                                                   include.diet=include.z,
-                                                   diet.wt=diet.wt,
-                                                   thresh.q=thresh.q,delta=delta,
-                                                   std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
-            w.aic.boot <- lasso.aic.bvalue$interest
-            #}
-
-            #if(run.bic==TRUE){
-            weights <- data.frame(out.bic.boot)
-            colnames(weights) <- "response"
-            rownames(weights) <- out.rownames[-1]
-            lasso.bic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
-                                                   file="weight_pval_bic_boot_",
-                                                   include.diet=include.z,
-                                                   diet.wt=diet.wt,
-                                                   thresh.q=thresh.q,delta=delta,
-                                                   std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
-            w.bic.boot <- lasso.bic.bvalue$interest
-            #}
-        }
-
-        if(run.kmeans.aic.bic==TRUE){
-            ## weights are exclusion frequency (designed partitioning-kmeans)
-            #if(run.aic==TRUE){
-            weights <- data.frame(out.kmeans.aic.boot)
-            colnames(weights) <- "response"
-            rownames(weights) <- out.rownames[-1]
-            lasso.kmeans.aic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
-                                                          file="weight_pval_kmeans_aic_boot_",
-                                                          include.diet=include.z,
-                                                          diet.wt=diet.wt,
-                                                          thresh.q=thresh.q,delta=delta,
-                                                          std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
-            w.kmeans.aic.boot <- lasso.kmeans.aic.bvalue$interest
-            #}
-
-            #if(run.bic==TRUE){
-            weights <- data.frame(out.kmeans.bic.boot)
-            colnames(weights) <- "response"
-            rownames(weights) <- out.rownames[-1]
-            lasso.kmeans.bic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
-                                                          file="weight_pval_kmeans_bic_boot_",
-                                                          include.diet=include.z,
-                                                          diet.wt=diet.wt,
-                                                          thresh.q=thresh.q,delta=delta,
-                                                          std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
-            w.kmeans.bic.boot <- lasso.kmeans.bic.bvalue$interest
-            #}
-        }
-
-        if(run.kquart.aic.bic==TRUE){
-            ## weights are exclusion frequency (designed partitioning-k quartiles)
-            #if(run.aic==TRUE){
-            weights <- data.frame(out.kquart.aic.boot)
-            colnames(weights) <- "response"
-            rownames(weights) <- out.rownames[-1]
-            lasso.kquart.aic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
-                                                          file="weight_pval_kquart_aic_boot_",
-                                                          include.diet=include.z,
-                                                          diet.wt=diet.wt,
-                                                          thresh.q=thresh.q,delta=delta,
-                                                          std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
-            w.kquart.aic.boot <- lasso.kquart.aic.bvalue$interest
-            #}
-
-            #if(run.bic==TRUE){
-            weights <- data.frame(out.kquart.bic.boot)
-            colnames(weights) <- "response"
-            rownames(weights) <- out.rownames[-1]
-            lasso.kquart.bic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
-                                                          file="weight_pval_kquart_bic_boot_",
-                                                          include.diet=include.z,
-                                                          diet.wt=diet.wt,
-                                                          thresh.q=thresh.q,delta=delta,
-                                                          std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
-            w.kquart.bic.boot <- lasso.kquart.bic.bvalue$interest
-            #}
-        }
-
-        if(run.sort.aic.bic==TRUE){
-            ## weights are exclusion frequency (designed partitioning-k quartiles)
-            #if(run.aic==TRUE){
-            weights <- data.frame(out.sort.aic.boot)
-            colnames(weights) <- "response"
-            rownames(weights) <- out.rownames[-1]
-            lasso.sort.aic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
-                                                        file="weight_pval_sort_aic_boot_",
-                                                        include.diet=include.z,
-                                                        diet.wt=diet.wt,
-                                                        thresh.q=thresh.q,delta=delta,
-                                                        std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
-            w.sort.aic.boot <- lasso.sort.aic.bvalue$interest
-            #}
-
-            #if(run.bic==TRUE){
-            weights <- data.frame(out.sort.bic.boot)
-            colnames(weights) <- "response"
-            rownames(weights) <- out.rownames[-1]
-            lasso.sort.bic.bvalue <- lasso.computations(weights,XX,response,g1,show.plots=FALSE,
-                                                        file="weight_pval_sort_bic_boot_",
-                                                        include.diet=include.z,
-                                                        diet.wt=diet.wt,
-                                                        thresh.q=thresh.q,delta=delta,
-                                                        std.y=std.y,est.MSE=est.MSE,cv.criterion=cv.criterion)
-            w.sort.bic.boot <- lasso.sort.bic.bvalue$interest
-            #}
-        }
-
-    }
 
     return(list("qval"=out.qvalue,"bh.pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.parcor"=out.parcor, "out.benhoch.cor"=out.benhoch.cor, "out.benhoch.parcor"=out.benhoch, "out.w"=out.w, "alpha"=qval.alpha, "alpha.bh"=alpha.bh, "delta"=delta, "cv.delta.w"=mult.delta.w5, "cv.delta.adapt"=mult.delta.w6, "cv.out.w"=mult.cv.delta.out.w5, "cv.out.adapt"=mult.cv.delta.out.w6,
                 #"out.aic.boot"=out.aic.boot, "out.bic.boot"=out.bic.boot,# "out.fixed.aic.boot"=out.fixed.aic.boot, "out.fixed.bic.boot"=out.fixed.bic.boot,
@@ -1733,7 +1604,7 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",show.plots=FALSE,includ
          sign.of.variables=sign.of.variables,entry.variables=entry.variables,delta.out=delta.out)
 }
 
-lasso.computations <- function(weights,XX,response,g,show.plots=TRUE,file="name",include.diet=TRUE,
+lasso.computations <- function(weights,XX,response,g,show.plots=TRUE,include.diet=TRUE,
                                diet.wt=100,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y="TRUE",
                                est.MSE=c("TRUE","est.var","step")[2],
                                cv.criterion=FALSE,vfold=10){
