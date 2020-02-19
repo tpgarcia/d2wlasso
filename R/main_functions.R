@@ -76,6 +76,9 @@
 #'    \item \strong{w.sort.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from sorted partitioning}
 #'    \item \strong{w.sort.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from sorted partitioning}
 #' }
+#'
+#' @importFrom stats kmeans
+#'
 #' @export
 #'
 #' @examples
@@ -129,7 +132,7 @@ d2wlasso <- function(x,z,y,
                      run.kquart.aic.bic=TRUE,
                      run.sort.aic.bic=TRUE,
                      nboot=100,
-                     k=4,
+                     k.split=4,
                      direction="backward"){
 
     cv.criterion=FALSE
@@ -334,7 +337,6 @@ d2wlasso <- function(x,z,y,
               weight.type=="exfrequency.kquartiles.partitioning"|
               weight.type=="exfrequency.ksorted.partitioning"){
 
-        k.split=k
         run.aic = TRUE
         run.bic = TRUE
 
@@ -395,7 +397,7 @@ d2wlasso <- function(x,z,y,
 
             if(run.kmeans.aic.bic==TRUE){
                 ## K-means clustering
-                kmeans.out <- kmeans(beta.values,centers=k.split,iter.max=100)
+                kmeans.out <- stats::kmeans(beta.values,centers=k.split,iter.max=100)
                 index.group.kmeans <- kmeans.out$cluster
             }
 
@@ -403,7 +405,7 @@ d2wlasso <- function(x,z,y,
 
                 ## K-quart clustering
                 index.group.kquart <- cut(beta.values, breaks=quantile(beta.values,
-                                                                       probs=seq(0,1, by=1/k.split)),include.lowest=TRUE)
+                                            probs=seq(0,1, by=1/k.split)),include.lowest=TRUE)
                 index.group.kquart <- as.numeric(factor(index.group.kquart, labels=1:k.split))
             }
 
@@ -414,7 +416,7 @@ d2wlasso <- function(x,z,y,
                 sort.beta.index <- beta.sort$ix
 
                 ## index of ordering
-                index.group.sort <- index.sort.partition(n=nrow(XX),k=k,sort.beta.index)
+                index.group.sort <- index.sort.partition(n=nrow(XX),k=k.split,sort.beta.index,x.names)
             }
         }
 
@@ -1888,7 +1890,7 @@ partition.size <- function(n,p,k){
     index <- which(constraints<n)
 
     if(length(index)< 2){
-        return("k too low")
+        stop("k too low")
     }
 
     constraints <- constraints[index]
@@ -1963,7 +1965,7 @@ random.partition <- function(n,p,k){
     return(rand.index)
 }
 
-index.sort.partition <- function(n,k,beta.sort.ix){
+index.sort.partition <- function(n,k,beta.sort.ix,x.names){
     p <- length(beta.sort.ix)
 
     ## Size of each partition group
@@ -1973,7 +1975,7 @@ index.sort.partition <- function(n,k,beta.sort.ix){
     names <- seq(1,k)
     index.sort <- rep(names, times = size.groups)
 
-    names(index.sort) <- paste("X_",beta.sort.ix,sep="")
+    names(index.sort) <- x.names[beta.sort.ix]
     return(index.sort)
 
 }
@@ -2025,6 +2027,7 @@ appendList <- function (x, val){
 }
 
 ## Ridge regresssion
+#' @importFrom glmnet glmnet cv.glmnet
 ridge.regression <- function(XX,response,x.names){
     ## Center data
     X <- XX
@@ -2050,21 +2053,21 @@ ridge.regression <- function(XX,response,x.names){
         grouped <- TRUE
     }
 
-    ## Find optimal lambda value
-    cv.out <- cv.glmnet(X,y,standardize=FALSE,family=family,alpha=0,grouped=grouped)
+    ## Find optimal lambda value for ridge regression
+    cv.out <- glmnet::cv.glmnet(X,y,standardize=FALSE,family=family,alpha=0,grouped=grouped)
     lambda.opt <- cv.out$lambda.min
 
     ## Ridge regression
-    ridge.out <- glmnet(X,y,standardize=FALSE,family=family,alpha=0,lambda=lambda.opt)
-    beta.values <- ridge.out$beta[x.names,]  ## remove diet
+    ridge.out <- glmnet::glmnet(X,y,standardize=FALSE,family=family,alpha=0,lambda=lambda.opt)
+    beta.values <- ridge.out$beta[x.names,]  ## only take beta values from variables that are subject to selection
 
     return(beta.values)
 }
 
 ## We partition based on ascending values of ridge regression estimates
-ridge.sort.partition <- function(k,XX,response){
+ridge.sort.partition <- function(k,XX,response,x.names){
     ## Get parameter estimates from ridge regression
-    beta.values <- ridge.regression(XX,response)
+    beta.values <- ridge.regression(XX,response,x.names)
 
     ## Sort beta.values in decreasing order
     beta.sort <- sort(abs(beta.values),decreasing=TRUE,index.return=TRUE)
