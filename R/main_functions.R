@@ -588,8 +588,11 @@ d2wlasso <- function(x,z,y,
 
 
         if(run.aic.bic==TRUE){
-            out.aic.boot <- apply(weight.aic.boot,1,sum)/nboot
-            out.bic.boot <- apply(weight.bic.boot,1,sum)/nboot
+            if(run.aiC=TRUE){
+                weights <- apply(weight.aic.boot,1,sum)/nboot
+            } else {
+                weights <- apply(weight.bic.boot,1,sum)/nboot
+            }
         }
 
         #if(run.fixed.aic.bic==TRUE){
@@ -598,20 +601,28 @@ d2wlasso <- function(x,z,y,
         #}
 
         if(run.kmeans.aic.bic==TRUE){
-            out.kmeans.aic.boot <- apply(weight.kmeans.aic.boot,1,sum)/nboot
-            out.kmeans.bic.boot <- apply(weight.kmeans.bic.boot,1,sum)/nboot
+            if(run.aic==TRUE){
+                weights <- apply(weight.kmeans.aic.boot,1,sum)/nboot
+            } else {
+                weights <- apply(weight.kmeans.bic.boot,1,sum)/nboot
+            }
         }
 
         if(run.kquart.aic.bic==TRUE){
-            out.kquart.aic.boot <- apply(weight.kquart.aic.boot,1,sum)/nboot
-            out.kquart.bic.boot <- apply(weight.kquart.bic.boot,1,sum)/nboot
+            if(run.aic==TRUE){
+                weights <- apply(weight.kquart.aic.boot,1,sum)/nboot
+            } else {
+                weights <- apply(weight.kquart.bic.boot,1,sum)/nboot
+            }
         }
 
         if(run.sort.aic.bic==TRUE){
-            out.sort.aic.boot <- apply(weight.sort.aic.boot,1,sum)/nboot
-            out.sort.bic.boot <- apply(weight.sort.bic.boot,1,sum)/nboot
+            if(run.aic==TRUE){
+                weights <- apply(weight.sort.aic.boot,1,sum)/nboot
+            } else {
+                weights <- apply(weight.sort.bic.boot,1,sum)/nboot
+            }
         }
-
 
     }
 
