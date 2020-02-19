@@ -12,8 +12,8 @@
 #' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
 #' @param z (n by 1) matrix of additional fixed covariate affecting response variable. This covariate should
 #' always be selected. Can be NULL.
-#' @param y (n by K) a matrix corresponding to K response variables. If \code{regression.type} is "cox",
-#' \code{y} contains the observed event times for each of the k response types, k=1,...,K.
+#' @param y (n by 1) a matrix corresponding the response variable. If \code{regression.type} is "cox",
+#' \code{y} contains the observed event times.
 #' @param cox.delta (n by K) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
 #' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
 #' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
@@ -180,7 +180,7 @@ d2wlasso <- function(x,z,y,
         colnames_use <- c(colnames_use,colnames(x))
     }
 
-    colnames_x_use <- colnames(x)
+    x.names <- colnames(x)
     colnames(XX) <- colnames_use
 
     ## allocate names to y
@@ -338,10 +338,11 @@ d2wlasso <- function(x,z,y,
         run.aic = TRUE
         run.bic = TRUE
 
-
-        ## Store weights for each bootstrap
+        ###########################################
+        ##  Set up storage for bootstrap results ##
+        ###########################################
         tmp2.store <- as.data.frame(matrix(0, nrow = m, ncol = nboot,
-                                           dimnames = list(colnames_x_use,
+                                           dimnames = list(x.names,
                                                            seq(1,nboot))))
         weight.aic.boot <- tmp2.store
         weight.bic.boot <- tmp2.store
@@ -358,6 +359,12 @@ d2wlasso <- function(x,z,y,
         weight.sort.aic.boot <- tmp2.store
         weight.sort.bic.boot <- tmp2.store
 
+
+        #############################################
+        ##  Set up which random partitioning to do ##
+        #############################################
+
+        run.aic.bic <- FALSE
         run.kmeans.aic.bic <- FALSE
         run.kquart.aic.bic <- FALSE
         run.sort.aic.bic <- FALSE
@@ -384,7 +391,7 @@ d2wlasso <- function(x,z,y,
         if(run.kmeans.aic.bic==TRUE | run.kquart.aic.bic==TRUE |  run.sort.aic.bic==TRUE){
 
             ## Get parameter estimates from ridge regression
-            beta.values <- ridge.regression(XX,response)
+            beta.values <- ridge.regression(XX,response,x.names)
 
             if(run.kmeans.aic.bic==TRUE){
                 ## K-means clustering
@@ -2018,17 +2025,9 @@ appendList <- function (x, val){
 }
 
 ## Ridge regresssion
-ridge.regression <- function(XX,response){
-    ##mydata <- data.frame(cbind(t(response),t(XX)))
-    #### center data
-    ##mydata <- apply(mydata,2,make.center)
-    ##xnam.orig <- paste("X_",1:(nrow(XX)-1),sep="")
-    ##xnam <- c("Fixed",xnam.orig)
-    ##fmla <- as.formula(paste("response~0+",paste(xnam,collapse="+")))
-    ##out <-lm.ridge(fmla,data=mydata,lambda=seq(0.00001,25,0.1))
-
+ridge.regression <- function(XX,response,x.names){
     ## Center data
-    X <- t(XX)
+    X <- XX
     X <- apply(X,2,make.center)
 
     yy <- response$yy
@@ -2038,7 +2037,7 @@ ridge.regression <- function(XX,response){
         #######################
         ## linear regression ##
         #######################
-        y <- t(yy)
+        y <- yy
         ##y <- apply(y,2,make.center)
         family <- "gaussian"
         grouped <- FALSE
@@ -2057,7 +2056,7 @@ ridge.regression <- function(XX,response){
 
     ## Ridge regression
     ridge.out <- glmnet(X,y,standardize=FALSE,family=family,alpha=0,lambda=lambda.opt)
-    beta.values <- ridge.out$beta[-1,]  ## remove diet
+    beta.values <- ridge.out$beta[x.names,]  ## remove diet
 
     return(beta.values)
 }
