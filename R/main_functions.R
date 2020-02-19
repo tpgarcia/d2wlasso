@@ -656,7 +656,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
         lasso.w <-0
 
         for(v in 1:ncv){
-            lasso.w.tmp <- lasso.computations(weights,XX,response,g3,show.plots=FALSE,file="weight6_",
+            lasso.w.tmp <- lasso.computations(weights,XX,response,g3,show.plots=FALSE,
                                                          include.diet=include.diet,diet.wt=z.wt,corr.g=TRUE,delta=delta,
                                                          cv.criterion=FALSE,vfold=vfold)
             lasso.w <- lasso.w + as.matrix(lasso.w.tmp$interest)
@@ -1435,7 +1435,7 @@ make.center <- function(x){
 	return(x-mean(x))
 }
 
-lasso <- function(weights,yy,XX,data.delta,g,file="file",show.plots=FALSE,include.diet=TRUE,
+lasso <- function(weights,yy,XX,data.delta,g,show.plots=FALSE,include.diet=TRUE,
                   diet.wt=1000,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y=TRUE,
                   est.MSE=c("TRUE","est.var","step")[2],
                   cv.criterion=c(FALSE,"delta_cv")[1],vfold=10){
@@ -1586,10 +1586,10 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",show.plots=FALSE,includ
     ind.neg <- which(as.logical(predict.out$coefficients <0))
     sign.of.variables[ind.neg] <- -1
     if(show.plots==TRUE){
-        postscript(paste(file,"_lasso1.eps",sep=""))
+        ##postscript(paste(file,"_lasso1.eps",sep=""))
         plot(wLasso.out,cex.axis=1.5,cex.lab=1.5)
-        dev.off()
-        postscript(paste(file,"_lasso2.eps",sep=""))
+        ##dev.off()
+        ##postscript(paste(file,"_lasso2.eps",sep=""))
         ##x11()
         ##plot(s,RSS+2*(s),type="l",cex.axis=1.5,cex.lab=1.5)
         ##abline(v=s.min,lty=2)
@@ -1598,7 +1598,7 @@ lasso <- function(weights,yy,XX,data.delta,g,file="file",show.plots=FALSE,includ
         plot(1:s,RSS+2*(p.pos),type="l",cex.axis=1.5,cex.lab=1.5,ylab=substitute(M[n](that,p),
                                                                                  list(that=delta)), xlab="Steps")
         abline(v=p.min,lty=2)
-        dev.off()
+        ##dev.off()
     }
     list(order.variables=order.variables,sig.variables=sig.variables,
          sign.of.variables=sign.of.variables,entry.variables=entry.variables,delta.out=delta.out)
@@ -1633,7 +1633,6 @@ lasso.computations <- function(weights,XX,response,g,show.plots=TRUE,include.die
     for(i in 1:ncol(interest)){
         #print(data.response)
         lasso.out <- lasso(weights[,i],data.response[i,],XX,data.delta[i,],g,
-                           file=paste(file,rownames(data.response)[i],sep=""),
                            show.plots=show.plots,include.diet=include.diet,
                            diet.wt=diet.wt,thresh.q=thresh.q,corr.g=corr.g,delta=delta,std.y=std.y,
                            est.MSE=est.MSE,
