@@ -355,8 +355,12 @@ d2wlasso <- function(x,z,y,
               weight.type=="exfrequency.ksorted.partition.bic"
               ){
 
-        run.aic = TRUE
-        run.bic = TRUE
+        run.aic <- FALSE; run.bic <- FALSE
+        if(grepl("*.aic",weight.type)){
+            run.aic <- TRUE
+        } else {
+            run.bic <- TRUE
+        }
 
         ###########################################
         ##  Set up storage for bootstrap results ##
