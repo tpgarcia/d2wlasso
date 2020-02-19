@@ -144,6 +144,18 @@ d2wlasso <- function(x,z,y,
         stop("User must provide pi0.val if pi0.known is TRUE.")
     }
 
+    if(!is.matrix(x)){
+        stop("x must be a n x m matrix.")
+    }
+
+    if(!is.matrix(z) | ncol(z)>1){
+        stop("z must be a n x 1 matrix.")
+    }
+
+    if(!is.matrix(y) | ncol(y)>1){
+        stop("y must be a n x 1 matrix.")
+    }
+
     #################################
     # Store the dimensions of x, z ##
     #################################
