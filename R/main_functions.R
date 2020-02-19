@@ -104,15 +104,9 @@
 #' dwlcox2 <- d2wlasso(x,z,y,cox.delta = cox.delta, regression.type = "cox", nboot = 50)
 #' dwlcox3 <- d2wlasso(x,z,y,cox.delta = cox.delta, regression.type = "cox", wt="t_val")
 #' dwlcoxcv1 <- d2wlasso(x,z,y,cox.delta = cox.delta,regression.type = "cox",lasso.delta.cv.mult = TRUE, ncv = 3, nboot = 50)
-d2wlasso <- function(x,z,y,
-                     cox.delta=NULL,
+d2wlasso <- function(x,z,y,cox.delta=NULL,
                      factor.z=TRUE,
                      regression.type=c("linear","cox")[1],
-                     ttest.pvalue=TRUE,
-                     q_opt_tuning_method=c("bootstrap","smoother")[2],
-                     show.plots=FALSE,
-                     pi0.known=FALSE,
-                     pi0.val=0.9,
                      weight.type=c("one","corr.estimate","corr.pvalue","corr.bh.pvalue",
                                    "corr.tstat","corr.qvalue",
                                    "parcor.estimate","parcor.pvalue","parcor.bh.pvalue",
@@ -126,21 +120,23 @@ d2wlasso <- function(x,z,y,
                                    "exfrequency.ksorted.partition.aic",
                                    "exfrequency.ksorted.partition.bic")[1],
                      weight_fn=function(x){x},
+                     ttest.pvalue=TRUE,
+                     q_opt_tuning_method=c("bootstrap","smoother")[2],
+                     qval.alpha=0.15,
+                     alpha.bh=0.05,
+                     robust=TRUE,
+                     show.plots=FALSE,
+                     pi0.known=FALSE,
+                     pi0.val=0.9,
+
                      include.z=TRUE,
                      z.wt=1000,
                      thresh.q=TRUE,
-                     qval.alpha=0.15,
-                     alpha.bh=0.05,
                      delta=2,
-                     robust=TRUE,
                      lasso.delta.cv.mult=FALSE,
                      vfold=10,
                      ncv=100,
                      delta.cv.seed=NULL,
-                     run.aic.bic=TRUE,
-                     run.kmeans.aic.bic=TRUE,
-                     run.kquart.aic.bic=TRUE,
-                     run.sort.aic.bic=TRUE,
                      nboot=100,
                      k.split=4,
                      direction="backward"){
@@ -633,11 +629,13 @@ d2wlasso <- function(x,z,y,
                 weights <- apply(weight.sort.bic.boot,1,sum)/nboot
             }
         }
-
+        weights <- t(data.frame(weights))
     }
 
-
-
+    ################################
+    ## Change rownames of weights ##
+    ################################
+    rownames(weights) <- x.names
 
     ############################################################
     ##                                                        ##
@@ -646,8 +644,9 @@ d2wlasso <- function(x,z,y,
     ##                                                        ##
     ##                                                        ##
     ############################################################
+
     if(lasso.delta.cv.mult==FALSE){
-        lasso.w <- lasso.computations(weights,XX,response,g,show.plots=show.plots,file="weight_",
+        lasso.w <- lasso.computations(weights,XX,response,weight_fn,show.plots=show.plots,file="weight_",
                                       include.diet=include.z,diet.wt=z.wt,thresh.q=thresh.q,
                                       delta=delta)
         weighted.lasso <- as.matrix(lasso.w$interest)
