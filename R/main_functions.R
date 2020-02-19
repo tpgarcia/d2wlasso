@@ -345,10 +345,15 @@ d2wlasso <- function(x,z,y,
         } else {
             warning("Your choice of weight.type requires z to be non-NULL.")
         }
-    } else if(weight.type=="exfrequency.random.partitioning" |
-              weight.type=="exfrequency.kmeans.partitioning" |
-              weight.type=="exfrequency.kquartiles.partitioning"|
-              weight.type=="exfrequency.ksorted.partitioning"){
+    } else if(weight.type=="exfrequency.random.partition.aic" |
+              weight.type=="exfrequency.random.partition.bic" |
+              weight.type=="exfrequency.kmeans.partition.aic" |
+              weight.type=="exfrequency.kmeans.partition.bic" |
+              weight.type=="exfrequency.kquartiles.partition.aic"|
+              weight.type=="exfrequency.kquartiles.partition.bic"|
+              weight.type=="exfrequency.ksorted.partition.aic"|
+              weight.type=="exfrequency.ksorted.partition.bic"
+              ){
 
         run.aic = TRUE
         run.bic = TRUE
