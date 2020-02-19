@@ -28,7 +28,7 @@
 #' @param show.plots logical. If TRUE, figures are plotted. Default is FALSE.
 #' @param pi0.known logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.
 #' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.known is TRUE. Default is 0.9.
-#' @param wt The weights to be used for the weighted lasso. One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor".
+#' @param weight.type The weights to be used for the weighted lasso. One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor".
 #' "one" gives no weight. "t_val" gives weight of the inverse absolute t-statistics of the regression coefficients. "parcor" gives weight of the inverse absolute partial correlation between the main covariate and the response after accounting for z. "p_val" gives p-value of each predictor's coefficient as weights. "bhp_val" gives Benjamini-Hochberg adjusted p-value of each predictor's coefficient as weights. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
 #' @param weight_fn The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
 #' @param include.z logical. If TRUE, the additional covariate z is forced to be included in the model. Default is TRUE.
@@ -108,13 +108,23 @@ d2wlasso <- function(x,z,y,
                      cox.delta=NULL,
                      factor.z=TRUE,
                      regression.type=c("linear","cox")[1],
-
                      ttest.pvalue=TRUE,
                      q_opt_tuning_method=c("bootstrap","smoother")[2],
                      show.plots=FALSE,
                      pi0.known=FALSE,
                      pi0.val=0.9,
-                     wt=c("one","t_val","parcor","p_val","bhp_val","adapt","q_cor","q_parcor")[7],
+                     weight.type=c("one","corr.estimate","corr.pvalue","corr.bh.pvalue",
+                                   "corr.tstat","corr.qvalue",
+                                   "parcor.estimate","parcor.pvalue","parcor.bh.pvalue",
+                                   "parcor.tstat","parcor.qvalue",
+                                   "exfrequency.random.partition.aic",
+                                   "exfrequency.random.partition.bic",
+                                   "exfrequency.kmeans.partition.aic",
+                                   "exfrequency.kmeans.partition.bic",
+                                   "exfrequency.kquartiles.partition.aic",
+                                   "exfrequency.kquartiles.partition.bic",
+                                   "exfrequency.ksorted.partition.aic",
+                                   "exfrequency.ksorted.partition.bic")[1],
                      weight_fn=c("identity","sqrt","inverse_abs","square")[1],
                      include.z=TRUE,
                      z.wt=1000,
