@@ -452,7 +452,7 @@ d2wlasso <- function(x,z,y,
             }
 
             ## Apply stepwise AIC to each group
-            for(l in 1:k){
+            for(l in 1:k.split){
                 ##print(l)
                 if(run.aic.bic==TRUE){
                     ## Random partitioning
@@ -462,15 +462,13 @@ d2wlasso <- function(x,z,y,
                         if(run.aic==TRUE){
                             weight.aic.boot[,b] <- weight.aic.boot[,b] +
                                 step.selection(factor.z,index,XX,response,type="AIC",
-                                               direction=direction,
-                                               real_data=real_data)
+                                               direction=direction)
                         }
 
                         if(run.bic==TRUE){
                             weight.bic.boot[,b] <- weight.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,response,type="BIC",
-                                               direction=direction,
-                                               real_data=real_data)
+                                               direction=direction)
                         }
                     }
                 }
@@ -483,15 +481,14 @@ d2wlasso <- function(x,z,y,
                                 weight.fixed.aic.boot[,b] <- weight.fixed.aic.boot[,b] +
                                     step.selection(factor.z,index,
                                                    XX,response,type="AIC",
-                                                   direction=direction,
-                                                   real_data=real_data)
+                                                   direction=direction)
                             }
 
                             if(run.bic==TRUE){
-                                weight.fixed.bic.boot[,b] <- weight.fixed.bic.boot[,b] + step.selection(factor.z,index,
-                                                                                                        XX,response,type="BIC",
-                                                                                                        direction=direction,
-                                                                                                        real_data=real_data)
+                                weight.fixed.bic.boot[,b] <- weight.fixed.bic.boot[,b] +
+                                    step.selection(factor.z,index,
+                                                    XX,response,type="BIC",
+                                                    direction=direction)
                             }
                         }
                     }
@@ -504,16 +501,14 @@ d2wlasso <- function(x,z,y,
                             weight.kmeans.aic.boot[,b] <- weight.kmeans.aic.boot[,b] +
                                 step.selection(factor.z,index,XX,response,
                                                type="AIC",
-                                               direction=direction,
-                                               real_data=real_data)
+                                               direction=direction)
                         }
 
                         if(run.bic==TRUE){
                             weight.kmeans.bic.boot[,b] <- weight.kmeans.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,response,
                                                type="BIC",
-                                               direction=direction,
-                                               real_data=real_data)
+                                               direction=direction)
                         }
                     }
                 }
@@ -527,16 +522,14 @@ d2wlasso <- function(x,z,y,
                             weight.kquart.aic.boot[,b] <- weight.kquart.aic.boot[,b] +
                                 step.selection(factor.z,index,XX,response,
                                                type="AIC",
-                                               direction=direction,
-                                               real_data=real_data)
+                                               direction=direction)
                         }
 
                         if(run.bic==TRUE){
                             weight.kquart.bic.boot[,b] <- weight.kquart.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,response,
                                                type="BIC",
-                                               direction=direction,
-                                               real_data=real_data)
+                                               direction=direction)
                         }
                     }
                 }
@@ -550,15 +543,13 @@ d2wlasso <- function(x,z,y,
                             weight.sort.aic.boot[,b] <- weight.sort.aic.boot[,b] +
                                 step.selection(factor.z,index,XX,response,
                                                type="AIC",
-                                               direction=direction,
-                                               real_data=real_data)
+                                               direction=direction)
                         }
                         if(run.bic==TRUE){
                             weight.sort.bic.boot[,b] <- weight.sort.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,response,
                                                type="BIC",
-                                               direction=direction,
-                                               real_data=real_data)
+                                               direction=direction)
                         }
                     }
                 }
@@ -2165,7 +2156,7 @@ columns.to.list <- function( df ) {
 
 ## Function to do step AIC on group subset
 step.selection <- function(factor.z,index,XX,response,type=c("AIC","BIC")[1],
-                           direction=c("both","forward","backward")[3],real_data){
+                           direction=c("both","forward","backward")[3]){
 
     if(real_data==FALSE){
         xnam.orig <- paste("X_",index,sep="")
@@ -2233,7 +2224,7 @@ step.selection <- function(factor.z,index,XX,response,type=c("AIC","BIC")[1],
 
 ## Function to do step AIC on group subset
 step.selection.inclusion <- function(factor.z,index,XX,response,type=c("AIC","BIC")[1],
-                                     direction=c("both","forward","backward")[3],real_data){
+                                     direction=c("both","forward","backward")[3]){
 
     if(real_data==FALSE){
         xnam.orig <- paste("X_",index,sep="")
