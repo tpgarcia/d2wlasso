@@ -1301,7 +1301,7 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
             predict.out <- cv.out$predict.out
             delta.out <- cv.out$delta
         } else if(penalty.choice=="penalized.loss"){
-            tmp.out <- lasso.delta.choice(wLasso.out,y1,X1,z.names,
+            tmp.out <- penalized.loss.criterion(wLasso.out,y1,X1,z.names,
                                             delta,est.MSE,show.plots)
             predict.out <- tmp.out$predict.out
             delta.out <- delta
@@ -1452,7 +1452,7 @@ cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("TRUE","est.var","step")[2],sh
         for(d in 1:length(delta.cv)){
 
             ## Find best-fitting model for specified delta
-            beta.omit <- lasso.delta.choice(wLasso.out,y1[-omit],X1[-omit,,drop=FALSE],z.names,
+            beta.omit <- penalized.loss.criterion(wLasso.out,y1[-omit],X1[-omit,,drop=FALSE],z.names,
                                             delta=delta.cv[d],est.MSE=est.MSE,
                                             show.plots)
 
@@ -1475,7 +1475,7 @@ cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("TRUE","est.var","step")[2],sh
     delta <- mean(delta.opt)		## takes average of delta values
 
     wLasso.out <- lasso.procedure(y1,X1)$wLasso.out
-    predict.out <- lasso.delta.choice(wLasso.out,y1,X1,delta=delta,est.MSE=est.MSE,show.plots)$predict.out
+    predict.out <- penalized.loss.criterion(wLasso.out,y1,X1,delta=delta,est.MSE=est.MSE,show.plots)$predict.out
     list(predict.out=predict.out,delta=delta)
 }
 
@@ -1497,7 +1497,7 @@ lasso.procedure <- function(y1,X1){
 	list(wLasso.out=wLasso.out)
 }
 
-lasso.delta.choice <- function(wLasso.out,y1,X1,z.names,
+penalized.loss.criterion <- function(wLasso.out,y1,X1,z.names,
                                delta,
                                est.MSE=c("est.var","step")[1],
                                show.plots){
