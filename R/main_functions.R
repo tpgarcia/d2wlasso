@@ -117,7 +117,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                      penalized.loss.delta=2,
                      nboot=100,
                      k.split=4,
-                     aic.bic.direction="backward"){
+                     step.direction="backward"){
 
     ######################
     ## WARNING Messages ##
@@ -467,14 +467,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                             weight.aic.boot[,b] <- weight.aic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,
                                                response,type="AIC",
-                                               direction=aic.bic.direction)
+                                               direction=step.direction)
                         }
 
                         if(run.bic==TRUE){
                             weight.bic.boot[,b] <- weight.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,
                                                response,type="BIC",
-                                               direction=aic.bic.direction)
+                                               direction=step.direction)
                         }
                     }
                 }
@@ -489,14 +489,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                                 weight.fixed.aic.boot[,b] <- weight.fixed.aic.boot[,b] +
                                     step.selection(factor.z,index,XX,x.names,z.names,
                                                    response,type="AIC",
-                                                   direction=aic.bic.direction)
+                                                   direction=step.direction)
                             }
 
                             if(run.bic==TRUE){
                                 weight.fixed.bic.boot[,b] <- weight.fixed.bic.boot[,b] +
                                     step.selection(factor.z,index,
                                                     XX,x.names,z.names,response,type="BIC",
-                                                    direction=aic.bic.direction)
+                                                    direction=step.direction)
                             }
                         }
                     }
@@ -511,14 +511,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                                 step.selection(factor.z,index,XX,x.names,z.names,
                                                response,
                                                type="AIC",
-                                               direction=aic.bic.direction)
+                                               direction=step.direction)
                         }
 
                         if(run.bic==TRUE){
                             weight.kmeans.bic.boot[,b] <- weight.kmeans.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,response,
                                                type="BIC",
-                                               direction=aic.bic.direction)
+                                               direction=step.direction)
                         }
                     }
                 }
@@ -532,14 +532,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                             weight.kquart.aic.boot[,b] <- weight.kquart.aic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,response,
                                                type="AIC",
-                                               direction=aic.bic.direction)
+                                               direction=step.direction)
                         }
 
                         if(run.bic==TRUE){
                             weight.kquart.bic.boot[,b] <- weight.kquart.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,response,
                                                type="BIC",
-                                               direction=aic.bic.direction)
+                                               direction=step.direction)
                         }
                     }
                 }
@@ -554,14 +554,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                                 step.selection(factor.z,index,XX,x.names,z.names,
                                                response,
                                                type="AIC",
-                                               direction=aic.bic.direction)
+                                               direction=step.direction)
                         }
                         if(run.bic==TRUE){
                             weight.sort.bic.boot[,b] <- weight.sort.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,
                                                response,
                                                type="BIC",
-                                               direction=aic.bic.direction)
+                                               direction=step.direction)
                         }
                     }
                 }
