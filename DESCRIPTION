@@ -22,10 +22,10 @@ Depends: R (>= 3.0.1), stats
 Imports:
  glmnet,
  lars,
- survival,
- qvalue
+ survival
 Collate:
  d2wlasso.R
+ globals.R
  main_functions.R
 Suggests:
  testthat
