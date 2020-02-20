@@ -131,6 +131,9 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
         stop("y must be a n x 1 matrix.")
     }
 
+    run.aic <- NULL
+    run.bic <- NULL
+
     #################################
     # Store the dimensions of x, z ##
     #################################
@@ -330,9 +333,9 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
               weight.type=="exfrequency.ksorted.partition.bic"
               ){
 
-        run.aic <- NULL
-        run.bic <- NULL
-        run.aic <- FALSE; run.bic <- FALSE
+
+        run.aic <- FALSE
+        run.bic <- FALSE
         if(grepl("*.aic",weight.type)){
             run.aic <- TRUE
         } else {
@@ -966,13 +969,12 @@ qplot2 <- function (qobj, rng = c(0, 0.1), smooth.df = 3, smooth.log.pi0 = FALSE
 ####################################################################
 ## qvalue.adj. is as used by JD Storey with some adjustments made ##
 ####################################################################
-#' @import qvalue
 qvalue.adj<-function (p = NULL, lambda = seq(0, 0.9, 0.05), pi0.method = "smoother",
     fdr.level = NULL, robust = FALSE, gui = FALSE, smooth.df = 3,
     smooth.log.pi0 = FALSE,pi0.known=FALSE,pi0.val=0.9)
 {
     if (is.null(p)) {
-        qvalue.gui()
+        ##qvalue.gui()
         return("Launching point-and-click...")
     }
     if (gui & !interactive())
@@ -1375,7 +1377,7 @@ make.center <- function(x){
 
 #' @import glmnet
 #' @import lars
-weighted.lasso <- function(weights,weight_fn=weight_fn=function(x){x},yy,XX,z,data.delta,z.names,
+weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z.names,
                            show.plots=FALSE,
                            penalty.choice,
                            est.MSE=c("est.var","step")[2],
@@ -1519,7 +1521,7 @@ weighted.lasso <- function(weights,weight_fn=weight_fn=function(x){x},yy,XX,z,da
          sign.of.variables=sign.of.variables,entry.variables=entry.variables,delta.out=delta.out)
 }
 
-weighted.lasso.computations <- function(weights,weight_fn=weight_fn=function(x){x},response,
+weighted.lasso.computations <- function(weights,weight_fn=function(x){x},response,
                                         XX,z,z.names,
                                         show.plots,
                                         penalty.choice,

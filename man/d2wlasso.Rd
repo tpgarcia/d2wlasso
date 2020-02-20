@@ -81,19 +81,21 @@ One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).}
 
 \item{pi0.val}{A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.known is TRUE. Default is 0.9.}
 
+\item{penalty.choice}{Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.}
+
 \item{est.MSE}{indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".}
 
 \item{cv.folds}{indicates the number of folds of the cross-validation for selecting delta.}
 
 \item{mult.cv.folds}{indicates the number of cross-validation runs for selecting delta.}
 
+\item{penalized.loss.delta}{Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.}
+
 \item{nboot}{indicates the number of bootstrap samples for the Cox regression with exclusion frequency-based weights}
 
 \item{k.split}{indicates the number of partitions for the Cox regression with exclusion frequency-based weights. Default is 4.}
 
 \item{step.direction}{indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".}
-
-\item{penalty.loss.delta}{Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.}
 }
 \value{
 \itemize{
