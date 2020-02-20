@@ -128,20 +128,15 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                      show.plots=FALSE,
                      pi0.known=FALSE,
                      pi0.val=0.9,
-
-                     include.z=TRUE,
-                     z.wt=1000,
-                     thresh.q=TRUE,
-                     delta=2,
-                     lasso.delta.cv.mult=FALSE,
-                     vfold=10,
-                     ncv=100,
-                     delta.cv.seed=NULL,
+                     penalty.choice=c("cv.mse","cv.penalized.loss","penalized.loss",
+                                      "deviance.criterion")[1],
+                     est.MSE=c("est.var","step")[1],
+                     cv.folds=10,
+                     mult.cv.folds=100,
+                     penalized.loss.delta=2,
                      nboot=100,
                      k.split=4,
-                     direction="backward"){
-
-    cv.criterion=FALSE
+                     aic.bic.direction="backward"){
 
     ######################
     ## WARNING Messages ##
@@ -491,14 +486,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                             weight.aic.boot[,b] <- weight.aic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,
                                                response,type="AIC",
-                                               direction=direction)
+                                               direction=aic.bic.direction)
                         }
 
                         if(run.bic==TRUE){
                             weight.bic.boot[,b] <- weight.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,
                                                response,type="BIC",
-                                               direction=direction)
+                                               direction=aic.bic.direction)
                         }
                     }
                 }
@@ -513,14 +508,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                                 weight.fixed.aic.boot[,b] <- weight.fixed.aic.boot[,b] +
                                     step.selection(factor.z,index,XX,x.names,z.names,
                                                    response,type="AIC",
-                                                   direction=direction)
+                                                   direction=aic.bic.direction)
                             }
 
                             if(run.bic==TRUE){
                                 weight.fixed.bic.boot[,b] <- weight.fixed.bic.boot[,b] +
                                     step.selection(factor.z,index,
                                                     XX,x.names,z.names,response,type="BIC",
-                                                    direction=direction)
+                                                    direction=aic.bic.direction)
                             }
                         }
                     }
@@ -535,14 +530,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                                 step.selection(factor.z,index,XX,x.names,z.names,
                                                response,
                                                type="AIC",
-                                               direction=direction)
+                                               direction=aic.bic.direction)
                         }
 
                         if(run.bic==TRUE){
                             weight.kmeans.bic.boot[,b] <- weight.kmeans.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,response,
                                                type="BIC",
-                                               direction=direction)
+                                               direction=aic.bic.direction)
                         }
                     }
                 }
@@ -556,14 +551,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                             weight.kquart.aic.boot[,b] <- weight.kquart.aic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,response,
                                                type="AIC",
-                                               direction=direction)
+                                               direction=aic.bic.direction)
                         }
 
                         if(run.bic==TRUE){
                             weight.kquart.bic.boot[,b] <- weight.kquart.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,response,
                                                type="BIC",
-                                               direction=direction)
+                                               direction=aic.bic.direction)
                         }
                     }
                 }
@@ -578,14 +573,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                                 step.selection(factor.z,index,XX,x.names,z.names,
                                                response,
                                                type="AIC",
-                                               direction=direction)
+                                               direction=aic.bic.direction)
                         }
                         if(run.bic==TRUE){
                             weight.sort.bic.boot[,b] <- weight.sort.bic.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,
                                                response,
                                                type="BIC",
-                                               direction=direction)
+                                               direction=aic.bic.direction)
                         }
                     }
                 }
@@ -645,35 +640,38 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
     ##                                                        ##
     ############################################################
 
-    if(lasso.delta.cv.mult==FALSE){
-        lasso.w <- weighted.lasso.computations(weights,XX,response,weight_fn,show.plots=show.plots,
-                                      include.diet=include.z,diet.wt=z.wt,thresh.q=thresh.q,
-                                      delta=delta)
-        weighted.lasso.results <- as.matrix(lasso.w$interest)
-
-    } else if(lasso.delta.cv.mult==TRUE){
-
+    if(penalty.choice=="multiple.cv.penalty.loss"){
         lasso.w <-0
 
-        for(v in 1:ncv){
-            lasso.w.tmp <- weighted.lasso.computations(weights,XX,response,g3,show.plots=FALSE,
-                                                         include.diet=include.diet,diet.wt=z.wt,corr.g=TRUE,delta=delta,
-                                                         cv.criterion=FALSE,vfold=vfold)
-            lasso.w <- lasso.w + as.matrix(lasso.w.tmp$interest)
-            ##mult.delta.w6[,v] <- mult.delta.w6[,v] + mult.cv.delta.lasso.w6$delta.out
-        }
+        for(v in 1:mult.cv.folds){
+            lasso.w.tmp <- weighted.lasso.computations(weights,weights_fn,response,
+                                                       XX,z,z.names,
+                                                       show.plots,
+                                                       penalty.choice="cv.penalty.loss",
+                                                       est.MSE,
+                                                       cv.folds,
+                                                       penalized.loss.delta)
 
+            lasso.w <- lasso.w + as.matrix(lasso.w.tmp$interest)
+        }
         weighted.lasso.results <- lasso.w
+
+    } else {
+        lasso.w <- weighted.lasso.computations(weights,weights_fn,response,
+                                               XX,z,z.names,
+                                               show.plots,
+                                               penalty.choice,
+                                               est.MSE,
+                                               cv.folds,
+                                               penalized.loss.delta)
+
+        weighted.lasso.results <- as.matrix(lasso.w$interest)
     }
 
 
 
-    return(list("qval"=out.qvalue,"bh.pval"=out.benhoch.pval.adjust, "pval"=out.pvalue, "out.cor"=out.cor, "out.parcor"=out.parcor, "out.benhoch.cor"=out.benhoch.cor, "out.benhoch.parcor"=out.benhoch, "out.w"=out.w, "alpha"=qval.alpha, "alpha.bh"=alpha.bh, "delta"=delta, "cv.delta.w"=mult.delta.w5, "cv.delta.adapt"=mult.delta.w6, "cv.out.w"=mult.cv.delta.out.w5, "cv.out.adapt"=mult.cv.delta.out.w6,
-                #"out.aic.boot"=out.aic.boot, "out.bic.boot"=out.bic.boot,# "out.fixed.aic.boot"=out.fixed.aic.boot, "out.fixed.bic.boot"=out.fixed.bic.boot,
-                #"out.kmeans.aic.boot"=out.kmeans.aic.boot, "out.kmeans.bic.boot"=out.kmeans.bic.boot, "out.kquart.aic.boot"=out.kquart.aic.boot, "out.kquart.bic.boot"=out.kquart.bic.boot,
-                #"out.sort.aic.boot"=out.sort.aic.boot, "out.sort.bic.boot"=out.sort.bic.boot,
-                "w.aic.boot"=w.aic.boot, "w.bic.boot"=w.bic.boot, "w.kmeans.aic.boot"=w.kmeans.aic.boot, "w.kmeans.bic.boot"=w.kmeans.bic.boot,
-                "w.kquart.aic.boot"=w.kquart.aic.boot, "w.kquart.bic.boot"=w.kquart.bic.boot, "w.sort.aic.boot"=w.sort.aic.boot, "w.sort.bic.boot"=w.sort.bic.boot))
+    return(list(weights=weights,weighted.lasso.results=weighted.lasso.results,
+                threshold.selection=threshold.selection))
 }
 
 
@@ -1440,7 +1438,7 @@ make.center <- function(x){
 weighted.lasso <- function(weights,weights_fn,yy,XX,z,data.delta,z.names,
                            show.plots=FALSE,
                            penalty.choice,
-                           est.MSE=c("TRUE","est.var","step")[2],
+                           est.MSE=c("est.var","step")[2],
                            cv.folds=10,
                            delta=2
                   ){
@@ -1504,7 +1502,7 @@ weighted.lasso <- function(weights,weights_fn,yy,XX,z,data.delta,z.names,
             cv.out <- cv.delta(y1,X1,z.names,K=cv.folds,est.MSE=est.MSE)
             predict.out <- cv.out$predict.out
             delta.out <- cv.out$delta
-        } else {
+        } else if(penalty.choice=="penalized.loss"){
             tmp.out <- lasso.delta.choice(wLasso.out,y1,X1,z.names,
                                             delta,est.MSE)
             predict.out <- tmp.out$predict.out
@@ -1533,10 +1531,10 @@ weighted.lasso <- function(weights,weights_fn,yy,XX,z,data.delta,z.names,
             wLasso.cv <- cv.glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,penalty.factor=penalty)
             lambda.opt <- wLasso.cv$lambda.min
 
-        } else if(penalty.choice=="cv.penalized.loss"){
+        } else if(penalty.choice=="cv.penalized.loss" | "penalized.loss"){
             ## not used
             stop("This method is not implemented for the Cox model.")
-        } else {
+        } else if(penalty.choice=="deviance.criterion"){
             wLasso.out <-  glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,penalty.factor=penalty)
 
             ## BIC/Deviance criterion: deviance + k*log(n)
