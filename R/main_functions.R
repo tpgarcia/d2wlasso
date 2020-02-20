@@ -1435,156 +1435,140 @@ make.center <- function(x){
 	return(x-mean(x))
 }
 
-weighted.lasso <- function(weights,yy,XX,data.delta,g,show.plots=FALSE,include.diet=TRUE,
-                  diet.wt=1000,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y=TRUE,
-                  est.MSE=c("TRUE","est.var","step")[2],
-                  cv.criterion=c(FALSE,"delta_cv")[1],vfold=10){
-    #print("lasso")
-    #print(yy)
-    y <- t(yy)
-    #print(y)
-    X <- t(XX)
-    if(!is.null(data.delta)){
-        data.delta <- t(data.delta)
-    }
+#' @import glmnet
+#' @import lars
+weighted.lasso <- function(weights,weights_fn,yy,XX,z,data.delta,z.names,
+                           show.plots=FALSE,
+                           penalty.choice,
+                           est.MSE=c("TRUE","est.var","step")[2],
+                           cv.folds=10,
+                           delta=2
+                  ){
+
+    #####################
+    ## Set up the data ##
+    #####################
+    y <- yy
+    X <- XX
+
     N <- length(y)
     y1 <- y
-    #  if(std.y==TRUE){
-    #    ## Standardize y
-    #    y1 <- make.std(y)
-    #  } else {
-    #    ## Centered response
-    #    y1 <-  make.center(y)
-    #  }
+    delta.out <- delta
+
     # Standardized design matrix X
     X1 <- apply(X,2,make.std)
-    weights.use <- g(weights)
+
+    ## Transform the weights
+    weights.use <- weight_fn(weights)
+
     # Get rid of small weights
-    if(thresh.q==TRUE){
-        for(i in 1:length(weights)){
-            weights.use[i] <- max(0.0001,abs(weights.use)[i])
-        }
-    }
-    # Be sure to include diet?
-    if(include.diet==TRUE){
+    weights.use <- sapply(weights.use,function(u){max(0.0001,abs(u))})
+
+    ## Be sure to include z
+    if(!is.null(z)){
         wts <- c(1e-5,weights.use)
     } else {
         wts <- c(1,weights.use)
     }
+
     X1 <- X1 %*% diag(1/wts)
+
     if(is.null(data.delta)){
-        ## Fix use.Gram
-        if(ncol(X1)>500){
-            use.Gram <- FALSE
-        } else {
-            use.Gram <- TRUE
-        }
+        #############################
+        ## Linear Regression LASSO ##
+        #############################
+
         ## Run Lasso
-        wLasso.out <-  lars(X1, y1, type = c("lasso"),
-                            trace = FALSE, normalize = FALSE, intercept = FALSE, use.Gram = use.Gram)
+        wLasso.out <-  lasso.procedure(y1,X1)
+
         ## entry in Lasso
         entry.variables <- as.numeric(wLasso.out$entry)
+
         ##order.variables <- as.numeric(wLasso.out$actions)
         order.variables <- 0
-        if(cv.criterion==TRUE){
+
+        if(penalty.choice=="cv.mse"){
+            ## Computes the K-fold cross-validated mean squared prediction error for lars, lasso, or forward stagewise.
             ## good implementation, mode="step"
-            wLasso.cv <- cv.lars(X1, y1, type = c("lasso"), K = vfold,
+            wLasso.cv <- cv.lars(X1, y1, type = c("lasso"), K = cv.folds,
                                  trace = FALSE, normalize = FALSE, intercept= FALSE,
                                  plot.it=FALSE,mode="step",use.Gram=use.Gram)
+
             bestindex <- wLasso.cv$index[which.min(wLasso.cv$cv)]
+
             ## final best descriptive model
             predict.out <- predict(wLasso.out, X1,s=bestindex, type = "coefficients", mode="step")
             delta.out <- delta
-        } else if(cv.criterion=="delta_cv"){
-            cv.out <- cv.delta(y1,X1,K=vfold,est.MSE=est.MSE)
+
+        } else if(penalty.choice=="cv.penalized.loss"){
+            cv.out <- cv.delta(y1,X1,z.names,K=cv.folds,est.MSE=est.MSE)
             predict.out <- cv.out$predict.out
             delta.out <- cv.out$delta
         } else {
-            ## Samuel's corrections 11/9/2011
-            ## use Cp-like criterion to find best descriptive model
-            p = dim(X1)[2]
-            s = length(wLasso.out$df)
-            p.pos = NULL
-            RSS = NULL
-            for (i in 1:s){
-                RSS[i] = sum((y1-predict(wLasso.out, X1, s=i, type = c("fit"))$fit)**2)
-                p.pre = predict(wLasso.out, X1, s=i, type = c("coefficients"))$coefficients
-                p.pos = c(p.pos,length(p.pre[abs(p.pre)>0]))
-            }
-            ## Get estimated MSE
-            if(est.MSE=="TRUE"){
-                MSE <- 0.5
-                ##print(MSE)
-            } else if(est.MSE=="est.var") {
-                MSE <- sd(as.vector(y1)) * sqrt( N / (N-1) )
-                MSE <- MSE^2
-                ##print(MSE)
-            } else {
-                ## Get estimated MSE from best fit of forward stepwise regression with AIC as selection criterion
-                X2 <- data.frame(X1)
-                colnames(X2)[1] <- "Fixed"
-                full.lm <- lm(y1~.,data=X2)
-                start.lm <- lm(y1~-1 + Diet,data=X2)
-                lowest.step.forward <- step(lm(y1 ~ -1+Diet, data=X2),
-                                            list(lower=start.lm,upper=full.lm), direction='forward',trace=FALSE)
-                MSE <- summary(lowest.step.forward)$sigma
-                ##print(MSE)
-                MSE <- summary(lowest.step.forward)$sigma^2
-                ##	print(MSE)
-                if(MSE < 1e-5){
-                    MSE <-  sd(as.vector(y1)) * sqrt( N / (N-1) )
-                    MSE <- MSE^2
-                }
-            }
-            p.min = which.min(RSS/MSE+delta*p.pos)
-            ## final best descriptive model
-            predict.out <- predict(wLasso.out, X1, s=p.min, type = c("coefficients"))
+            tmp.out <- lasso.delta.choice(wLasso.out,y1,X1,z.names,
+                                            delta,est.MSE)
+            predict.out <- tmp.out$predict.out
             delta.out <- delta
         }
+
     } else {
-        if(include.diet==TRUE){
-            penalty <- c(0,rep(1,ncol(X1)-1))
+
+        ##########################
+        ## Cox Regression LASSO ##
+        ##########################
+        if(is.null(z)){
+            penalty <- c(0,rep(1,ncol(X1)-ncol(z)))
         } else {
             penalty <- rep(1,ncol(X1))
         }
         ## Run Lasso
-        #ytmp <- cbind(time=y1,status=data.delta)
-        ytmp <- cbind(time=t(y1),status=t(data.delta))
-        #print(ytmp)
+        ytmp <- cbind(time=y1,status=data.delta)
         colnames(ytmp) <- c("time","status")
+
         ## entry in Lasso
         entry.variables <- 0 ## not available
         order.variables <- 0 ## not available
 
-        if(cv.criterion==TRUE){
+        if(penalty.choice=="cv.mse"){
             wLasso.cv <- cv.glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,penalty.factor=penalty)
             lambda.opt <- wLasso.cv$lambda.min
-        } else if(cv.criterion=="delta_cv"){
+
+        } else if(penalty.choice=="cv.penalized.loss"){
             ## not used
-            # cv.out <- cv.delta(y1,X1,K=vfold,est.MSE=est.MSE)
-            # predict.out <- cv.out$predict.out
-            # delta.out <- cv.out$delta
+            stop("This method is not implemented for the Cox model.")
         } else {
             wLasso.out <-  glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,penalty.factor=penalty)
+
             ## BIC/Deviance criterion: deviance + k*log(n)
-            deviance <- deviance(wLasso.out)
+            deviance <- stats::deviance(wLasso.out)
             p.min <- which.min(deviance + wLasso.out$df*log(N))
             lambda.opt <- wLasso.out$lambda[p.min]
         }
+
         wLasso.fit <- glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,lambda=lambda.opt)
         ## final best descriptive model
         predict.out <- list(coefficients=wLasso.fit$beta)
-        delta.out <- delta
     }
+
+    ################################################
+    ## Report variables where the coefficient > 0 ##
+    ################################################
     ind <- which(as.logical(abs(predict.out$coefficients)>1e-10))
-    ##ind <- which(predict.out$coefficients!=0)
-    sig.variables <- rep(0,nrow(XX))
+
+    sig.variables <- rep(0,ncol(XX))
     sig.variables[ind] <- 1
-    sign.of.variables <- rep(0,nrow(XX))
+
+    ##########################################
+    ## Report the sign of the coefficients  ##
+    ##########################################
+
+    sign.of.variables <- rep(0,ncol(XX))
     ind.pos <- which(as.logical(predict.out$coefficients >0))
     sign.of.variables[ind.pos] <- 1
+
     ind.neg <- which(as.logical(predict.out$coefficients <0))
     sign.of.variables[ind.neg] <- -1
+
     if(show.plots==TRUE){
         ##postscript(paste(file,"_lasso1.eps",sep=""))
         plot(wLasso.out,cex.axis=1.5,cex.lab=1.5)
@@ -1637,6 +1621,7 @@ weighted.lasso.computations <- function(weights,XX,response,g,show.plots=TRUE,in
                            diet.wt=diet.wt,thresh.q=thresh.q,corr.g=corr.g,delta=delta,std.y=std.y,
                            est.MSE=est.MSE,
                            cv.criterion=cv.criterion,vfold=vfold)
+
         interest[,i] <- lasso.out$sig.variables
         interest.sign[,i] <- lasso.out$sign.of.variables
         R2.val[i,]   <- get.R2(interest[,i],XX,data.response[i,])
@@ -1657,7 +1642,7 @@ weighted.lasso.computations <- function(weights,XX,response,g,show.plots=TRUE,in
 ## Cross-Validation function to select delta ##
 ###############################################
 
-cv.delta <- function(y1,X1,K=10,est.MSE=c("TRUE","est.var","step")[2]){
+cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("TRUE","est.var","step")[2]){
     ## sequence of delta values
     delta.cv <- seq(0.75,2,by=0.1)
     ##delta.cv <- seq(0.1,2,by=0.1)
@@ -1678,7 +1663,8 @@ cv.delta <- function(y1,X1,K=10,est.MSE=c("TRUE","est.var","step")[2]){
         for(d in 1:length(delta.cv)){
 
             ## Find best-fitting model for specified delta
-            beta.omit <- lasso.delta.choice(wLasso.out,y1[-omit],X1[-omit,,drop=FALSE],delta=delta.cv[d],est.MSE=est.MSE)
+            beta.omit <- lasso.delta.choice(wLasso.out,y1[-omit],X1[-omit,,drop=FALSE],z.names,
+                                            delta=delta.cv[d],est.MSE=est.MSE)
 
             ## Find final fit with data omitted
             fit <- X1[omit,,drop=FALSE] %*% beta.omit$predict.out$coefficients
@@ -1703,11 +1689,10 @@ cv.delta <- function(y1,X1,K=10,est.MSE=c("TRUE","est.var","step")[2]){
     list(predict.out=predict.out,delta=delta)
 }
 
+#' @import lars
 lasso.procedure <- function(y1,X1){
-	# Setup
-	N <- length(y1)
 
-	## adjust use.Gram
+    ## adjust use.Gram
 	if(ncol(X1)>500){
 		use.Gram <- FALSE
 	} else {
@@ -1716,22 +1701,22 @@ lasso.procedure <- function(y1,X1){
 
 
 	# Run Lasso
-	wLasso.out <-  lars(X1, y1, type = c("lasso"),
+	wLasso.out <-  lars::lars(X1, y1, type = c("lasso"),
                 trace = FALSE, normalize = FALSE, intercept = FALSE,use.Gram=use.Gram)
 
 	list(wLasso.out=wLasso.out)
 }
 
-lasso.delta.choice <- function(wLasso.out,y1,X1,delta,est.MSE=c(TRUE,"est.var","step")[2]){
+lasso.delta.choice <- function(wLasso.out,y1,X1,z.names,
+                               delta,
+                               est.MSE=c("est.var","step")[1]){
     # Setup
     N <- length(y1)
-
-    p = dim(X1)[2]
-
-    s = length(wLasso.out$df)
-    p.pos = NULL
-
+    p <- ncol(X1)
+    s <- length(wLasso.out$df)
+    p.pos <- NULL
     RSS = NULL
+
     for (i in 1:s){
         RSS[i] = sum((y1-predict(wLasso.out, X1, s=i, type = c("fit"))$fit)**2)
         p.pre = predict(wLasso.out, X1, s=i, type = c("coefficients"))$coefficients
@@ -1739,25 +1724,22 @@ lasso.delta.choice <- function(wLasso.out,y1,X1,delta,est.MSE=c(TRUE,"est.var","
     }
 
     ## Get estimated MSE
-    if(est.MSE=="TRUE"){
-        MSE <- 0.5
-        ##print(MSE)
-    } else if(est.MSE=="est.var") {
+    if(est.MSE=="est.var") {
         MSE <- sd(as.vector(y1)) * sqrt( N / (N-1) )
         MSE <- MSE^2
-        ##print(MSE)
     } else {
         ## Get estimated MSE from best fit of forward stepwise regression with AIC as selection criterion
         X2 <- data.frame(X1)
-        colnames(X2)[1] <- "Fixed"
         full.lm <- lm(y1~.,data=X2)
-        start.lm <- lm(y1~-1 + Diet,data=X2)
-        lowest.step.forward <- step(lm(y1 ~ -1+Diet, data=X2),
+        start.fmla <- as.formula(paste("y1~-1+",z.names))
+        start.lm <- lm(start.fmla,data=X2)
+
+        lowest.step.forward <- step(lm(start.fmla, data=X2),
                                     list(lower=start.lm,upper=full.lm), direction='forward',trace=FALSE)
+
         MSE <- summary(lowest.step.forward)$sigma
-        ##print(MSE)
         MSE <- summary(lowest.step.forward)$sigma^2
-        ##	print(MSE)
+
         if(MSE < 1e-5){
             MSE <-  sd(as.vector(y1)) * sqrt( N / (N-1) )
             MSE <- MSE^2
