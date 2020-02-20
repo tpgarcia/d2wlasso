@@ -31,24 +31,17 @@
 #' @param weight.type The weights to be used for the weighted lasso. One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor".
 #' "one" gives no weight. "t_val" gives weight of the inverse absolute t-statistics of the regression coefficients. "parcor" gives weight of the inverse absolute partial correlation between the main covariate and the response after accounting for z. "p_val" gives p-value of each predictor's coefficient as weights. "bhp_val" gives Benjamini-Hochberg adjusted p-value of each predictor's coefficient as weights. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
 #' @param weight_fn The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
-#' @param include.z logical. If TRUE, the additional covariate z is forced to be included in the model. Default is TRUE.
-#' @param z.wt constant for forcing z in the model. If z is not included in the model even if include.z is TRUE, try different value. Default is 1000.
-#' @param thresh.q logical. If TRUE, remove excessively small weights by using threshold to maintain stability. The threshold is set to 0.0001.
 #' @param qval.alpha indicates cut-off for q-values (thresholding). That is, the covariate with q-value less than this cut-off is included in the model.
 #' @param alpha.bh indicates cut-off for Benjamini-Hochberg adjusted p-value (thresholding). That is, the covariate with BH-adjusted p-value less than this cut-off is included in the model.
-#' @param delta Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.
+#' @param penalty.choice Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.
+#' @param penalized.loss.delta Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.
 #' @param robust indicates whether it is desired to make the estimate more robust for small p-values.
-#' @param lasso.delta.cv.mult logical. If TRUE, we run vfold cross-validation to select optimal delta multiple times (ncv times). Default is FALSE.
-#' @param vfold indicates the number of folds of the cross-validation for selecting delta.
-#' @param ncv indicates the number of cross-validation runs for selecting delta.
-#' @param delta.cv.seed For reproducible cross-validation result, the seed can be fixed.
-#' @param run.aic.bic If TRUE, the Cox regression with exclusion frequency-based weights is performed with randomly partitioning the index
-#' @param run.kmeans.aic.bic If TRUE, the Cox regression with exclusion frequency-based weights is performed with partitioning the index using k-means
-#' @param run.kquart.aic.bic If TRUE, the Cox regression with exclusion frequency-based weights is performed with partitioning the index using k-quartile
-#' @param run.sort.aic.bic If TRUE, the Cox regression with exclusion frequency-based weights is performed with partitioning the index using sorted partition
+#' @param cv.folds indicates the number of folds of the cross-validation for selecting delta.
+#' @param mult.cv.folds indicates the number of cross-validation runs for selecting delta.
 #' @param nboot indicates the number of bootstrap samples for the Cox regression with exclusion frequency-based weights
-#' @param k indicates the number of partitions for the Cox regression with exclusion frequency-based weights. Default is 4.
-#' @param direction indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".
+#' @param k.split indicates the number of partitions for the Cox regression with exclusion frequency-based weights. Default is 4.
+#' @param step.direction indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".
+#' @param est.MSE indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".
 #'
 #' @return
 #' \itemize{
@@ -337,6 +330,8 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
               weight.type=="exfrequency.ksorted.partition.bic"
               ){
 
+        run.aic <- NULL
+        run.bic <- NULL
         run.aic <- FALSE; run.bic <- FALSE
         if(grepl("*.aic",weight.type)){
             run.aic <- TRUE
@@ -570,7 +565,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
 
 
         if(run.aic.bic==TRUE){
-            if(run.aiC=TRUE){
+            if(run.aiC==TRUE){
                 weights <- apply(weight.aic.boot,1,sum)/nboot
             } else {
                 weights <- apply(weight.bic.boot,1,sum)/nboot
@@ -625,7 +620,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
         lasso.w <-0
 
         for(v in 1:mult.cv.folds){
-            lasso.w.tmp <- weighted.lasso.computations(weights,weights_fn,response,
+            lasso.w.tmp <- weighted.lasso.computations(weights,weight_fn,response,
                                                        XX,z,z.names,
                                                        show.plots,
                                                        penalty.choice="cv.penalty.loss",
@@ -638,7 +633,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
         weighted.lasso.results <- lasso.w
 
     } else {
-        lasso.w <- weighted.lasso.computations(weights,weights_fn,response,
+        lasso.w <- weighted.lasso.computations(weights,weight_fn,response,
                                                XX,z,z.names,
                                                show.plots,
                                                penalty.choice,
@@ -657,15 +652,6 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
 
 
 
-###############
-## Libraries ##
-###############
-
-library(xtable)		# to create LaTeX tables
-library(lars)		# for LASSO approach
-library(plotrix)		# for computing standard errors of mean in simulation study
-library(MASS) # for ridge regression
-library(glmnet)     # for ridge regression
 
 
 ###############################################
@@ -881,33 +867,6 @@ correlations <- function(factor.z,x,z,response,partial=FALSE,ttest.pvalue=FALSE,
 
 
 
-# function to compute partial correlations using pcor.R
-# NOT USED.
-correlations.pcor <- function(XX,response,partial=FALSE,ttest.pvalue=FALSE){
-    ## Formatting data
-    data.response <- response$yy
-
-    data.XX <- XX[,-which(rownames(XX)=="Fixed")]
-    diet <- XX[,"Fixed"]
-
-    ## Setting up matrices to store Pearson correlations and p-values
-    correlation <- store.xy(data.XX,data.response)
-    pvalues <- store.xy(data.XX,data.response)
-
-    ## Computing pearson correlations and p-values
-    for (i in 1: ncol(data.XX)) {
-        for(j in 1:ncol(data.response)) {
-            tmp <- pcor.test(as.numeric(data.XX[i,]),
-                             as.numeric(data.response[,j]),as.numeric(diet))
-
-            correlation[i,j] <- tmp$estimate
-            pvalues[i,j] <- tmp$p.value
-        }
-    }
-    list(estimate = correlation, pvalues = pvalues)
-}
-
-
 
 ##################################################
 # Function to get F-test statistics and p-values #
@@ -1007,7 +966,7 @@ qplot2 <- function (qobj, rng = c(0, 0.1), smooth.df = 3, smooth.log.pi0 = FALSE
 ####################################################################
 ## qvalue.adj. is as used by JD Storey with some adjustments made ##
 ####################################################################
-
+#' @import qvalue
 qvalue.adj<-function (p = NULL, lambda = seq(0, 0.9, 0.05), pi0.method = "smoother",
     fdr.level = NULL, robust = FALSE, gui = FALSE, smooth.df = 3,
     smooth.log.pi0 = FALSE,pi0.known=FALSE,pi0.val=0.9)
@@ -1416,7 +1375,7 @@ make.center <- function(x){
 
 #' @import glmnet
 #' @import lars
-weighted.lasso <- function(weights,weights_fn,yy,XX,z,data.delta,z.names,
+weighted.lasso <- function(weights,weight_fn=weight_fn=function(x){x},yy,XX,z,data.delta,z.names,
                            show.plots=FALSE,
                            penalty.choice,
                            est.MSE=c("est.var","step")[2],
@@ -1456,6 +1415,13 @@ weighted.lasso <- function(weights,weights_fn,yy,XX,z,data.delta,z.names,
         #############################
         ## Linear Regression LASSO ##
         #############################
+        ## adjust use.Gram
+        if(ncol(X1)>500){
+            use.Gram <- FALSE
+        } else {
+            use.Gram <- TRUE
+        }
+
 
         ## Run Lasso
         wLasso.out <-  lasso.procedure(y1,X1)
@@ -1476,16 +1442,17 @@ weighted.lasso <- function(weights,weights_fn,yy,XX,z,data.delta,z.names,
             bestindex <- wLasso.cv$index[which.min(wLasso.cv$cv)]
 
             ## final best descriptive model
+            s <- NULL
             predict.out <- predict(wLasso.out, X1,s=bestindex, type = "coefficients", mode="step")
             delta.out <- delta
 
         } else if(penalty.choice=="cv.penalized.loss"){
-            cv.out <- cv.delta(y1,X1,z.names,K=cv.folds,est.MSE=est.MSE)
+            cv.out <- cv.delta(y1,X1,z.names,K=cv.folds,est.MSE=est.MSE,show.plots)
             predict.out <- cv.out$predict.out
             delta.out <- cv.out$delta
         } else if(penalty.choice=="penalized.loss"){
             tmp.out <- lasso.delta.choice(wLasso.out,y1,X1,z.names,
-                                            delta,est.MSE)
+                                            delta,est.MSE,show.plots)
             predict.out <- tmp.out$predict.out
             delta.out <- delta
         }
@@ -1548,26 +1515,11 @@ weighted.lasso <- function(weights,weights_fn,yy,XX,z,data.delta,z.names,
     ind.neg <- which(as.logical(predict.out$coefficients <0))
     sign.of.variables[ind.neg] <- -1
 
-    if(show.plots==TRUE){
-        ##postscript(paste(file,"_lasso1.eps",sep=""))
-        plot(wLasso.out,cex.axis=1.5,cex.lab=1.5)
-        ##dev.off()
-        ##postscript(paste(file,"_lasso2.eps",sep=""))
-        ##x11()
-        ##plot(s,RSS+2*(s),type="l",cex.axis=1.5,cex.lab=1.5)
-        ##abline(v=s.min,lty=2)
-        ## Samuel's correction 11/9/2011
-        par(mar=c(5, 4, 4, 2)+1)
-        plot(1:s,RSS+2*(p.pos),type="l",cex.axis=1.5,cex.lab=1.5,ylab=substitute(M[n](that,p),
-                                                                                 list(that=delta)), xlab="Steps")
-        abline(v=p.min,lty=2)
-        ##dev.off()
-    }
     list(order.variables=order.variables,sig.variables=sig.variables,
          sign.of.variables=sign.of.variables,entry.variables=entry.variables,delta.out=delta.out)
 }
 
-weighted.lasso.computations <- function(weights,weights_fn,response,
+weighted.lasso.computations <- function(weights,weight_fn=weight_fn=function(x){x},response,
                                         XX,z,z.names,
                                         show.plots,
                                         penalty.choice,
@@ -1599,7 +1551,7 @@ weighted.lasso.computations <- function(weights,weights_fn,response,
     for(i in 1:ncol(interest)){
         #print(data.response)
         lasso.out <-  weighted.lasso(weights[,i],
-                       weights_fn,
+                       weight_fn,
                        yy=data.response[,i],
                        XX,z,data.delta[,i],
                        z.names,
@@ -1629,7 +1581,7 @@ weighted.lasso.computations <- function(weights,weights_fn,response,
 ## Cross-Validation function to select delta ##
 ###############################################
 
-cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("TRUE","est.var","step")[2]){
+cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("TRUE","est.var","step")[2],show.plots){
     ## sequence of delta values
     delta.cv <- seq(0.75,2,by=0.1)
     ##delta.cv <- seq(0.1,2,by=0.1)
@@ -1651,7 +1603,8 @@ cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("TRUE","est.var","step")[2]){
 
             ## Find best-fitting model for specified delta
             beta.omit <- lasso.delta.choice(wLasso.out,y1[-omit],X1[-omit,,drop=FALSE],z.names,
-                                            delta=delta.cv[d],est.MSE=est.MSE)
+                                            delta=delta.cv[d],est.MSE=est.MSE,
+                                            show.plots)
 
             ## Find final fit with data omitted
             fit <- X1[omit,,drop=FALSE] %*% beta.omit$predict.out$coefficients
@@ -1672,7 +1625,7 @@ cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("TRUE","est.var","step")[2]){
     delta <- mean(delta.opt)		## takes average of delta values
 
     wLasso.out <- lasso.procedure(y1,X1)$wLasso.out
-    predict.out <- lasso.delta.choice(wLasso.out,y1,X1,delta=delta,est.MSE=est.MSE)$predict.out
+    predict.out <- lasso.delta.choice(wLasso.out,y1,X1,delta=delta,est.MSE=est.MSE,show.plots)$predict.out
     list(predict.out=predict.out,delta=delta)
 }
 
@@ -1696,7 +1649,8 @@ lasso.procedure <- function(y1,X1){
 
 lasso.delta.choice <- function(wLasso.out,y1,X1,z.names,
                                delta,
-                               est.MSE=c("est.var","step")[1]){
+                               est.MSE=c("est.var","step")[1],
+                               show.plots){
     # Setup
     N <- length(y1)
     p <- ncol(X1)
@@ -1738,6 +1692,22 @@ lasso.delta.choice <- function(wLasso.out,y1,X1,z.names,
 
     ## final best descriptive model
     predict.out <- predict(wLasso.out, X1, s=p.min, type = c("coefficients"))
+
+    if(show.plots==TRUE){
+        ##postscript(paste(file,"_lasso1.eps",sep=""))
+        plot(wLasso.out,cex.axis=1.5,cex.lab=1.5)
+        ##dev.off()
+        ##postscript(paste(file,"_lasso2.eps",sep=""))
+        ##x11()
+        ##plot(s,RSS+2*(s),type="l",cex.axis=1.5,cex.lab=1.5)
+        ##abline(v=s.min,lty=2)
+        ## Samuel's correction 11/9/2011
+        par(mar=c(5, 4, 4, 2)+1)
+        plot(1:s,RSS+2*(p.pos),type="l",cex.axis=1.5,cex.lab=1.5,ylab=substitute(M[n](that,p),
+                                                                                 list(that=delta)), xlab="Steps")
+        abline(v=p.min,lty=2)
+        ##dev.off()
+    }
 
     list(wLasso.out=wLasso.out,predict.out=predict.out)
 }
