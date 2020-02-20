@@ -115,6 +115,8 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
     ######################
     ## WARNING Messages ##
     ######################
+    run.aic <- run.bic <- NULL
+
     if(pi0.known==TRUE & is.null(pi0.val)){
         stop("User must provide pi0.val if pi0.known is TRUE.")
     }
@@ -131,8 +133,6 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
         stop("y must be a n x 1 matrix.")
     }
 
-    run.aic <- NULL
-    run.bic <- NULL
 
     #################################
     # Store the dimensions of x, z ##
