@@ -115,7 +115,6 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
     ######################
     ## WARNING Messages ##
     ######################
-    run.aic <- run.bic <- NULL
 
     if(pi0.known==TRUE & is.null(pi0.val)){
         stop("User must provide pi0.val if pi0.known is TRUE.")
@@ -333,14 +332,19 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
               weight.type=="exfrequency.ksorted.partition.bic"
               ){
 
-
-        run.aic <- FALSE
-        run.bic <- FALSE
-        if(grepl("*.aic",weight.type)){
-            run.aic <- TRUE
-        } else {
-            run.bic <- TRUE
+        step.type <- NULL
+        if(weight.type=="exfrequency.random.partition.aic" |
+           weight.type=="exfrequency.kmeans.partition.aic" |
+           weight.type=="exfrequency.kquartiles.partition.aic"|
+           weight.type=="exfrequency.ksorted.partition.aic"){
+            step.type <- "AIC"
+        } else if(weight.type=="exfrequency.random.partition.bic" |
+                  weight.type=="exfrequency.kmeans.partition.bic" |
+                  weight.type=="exfrequency.kquartiles.partition.bic"|
+                  weight.type=="exfrequency.ksorted.partition.bic"){
+            step.type <- "BIC"
         }
+
 
         ###########################################
         ##  Set up storage for bootstrap results ##
@@ -348,103 +352,65 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
         tmp2.store <- as.data.frame(matrix(0, nrow = m, ncol = nboot,
                                            dimnames = list(x.names,
                                                            seq(1,nboot))))
-        weight.aic.boot <- tmp2.store
-        weight.bic.boot <- tmp2.store
-
-        weight.fixed.aic.boot <- tmp2.store
-        weight.fixed.bic.boot <- tmp2.store
-
-        weight.kmeans.aic.boot <- tmp2.store
-        weight.kmeans.bic.boot <- tmp2.store
-
-        weight.kquart.aic.boot <- tmp2.store
-        weight.kquart.bic.boot <- tmp2.store
-
-        weight.sort.aic.boot <- tmp2.store
-        weight.sort.bic.boot <- tmp2.store
+        weight.boot <- tmp2.store
 
 
-        #############################################
-        ##  Set up which random partitioning to do ##
-        #############################################
-
-        run.aic.bic <- FALSE
-        run.kmeans.aic.bic <- FALSE
-        run.kquart.aic.bic <- FALSE
-        run.sort.aic.bic <- FALSE
-
-        if(weight.type=="exfrequency.random.partitioning"){
-            run.aic.bic <- TRUE
-        }
-
-        if(weight.type=="exfrequency.kmeans.partitioning"){
-            run.kmeans.aic.bic <- TRUE
-        }
-
-        if(weight.type=="exfrequency.kquartiles.partitioning"){
-            run.kquart.aic.bic <- TRUE
-        }
-
-        if(weight.type=="exfrequency.ksorted.partitioning"){
-            run.sort.aic.bic <- TRUE
-        }
 
         #####################################
         ## Compute intermediary quantities ##
         #####################################
-        if(run.kmeans.aic.bic==TRUE | run.kquart.aic.bic==TRUE |  run.sort.aic.bic==TRUE){
+        ## Get parameter estimates from ridge regression
+        beta.values <- ridge.regression(XX,response,x.names)
 
-            ## Get parameter estimates from ridge regression
-            beta.values <- ridge.regression(XX,response,x.names)
+        if(weight.type=="exfrequency.kmeans.partition.aic" |
+           weight.type=="exfrequency.kmeans.partition.bic"){
+            ## K-means clustering
+            kmeans.out <- stats::kmeans(beta.values,centers=k.split,iter.max=100)
+            index.group.kmeans <- kmeans.out$cluster
+        }
 
-            if(run.kmeans.aic.bic==TRUE){
-                ## K-means clustering
-                kmeans.out <- stats::kmeans(beta.values,centers=k.split,iter.max=100)
-                index.group.kmeans <- kmeans.out$cluster
-            }
+        if(weight.type=="exfrequency.kquartiles.partition.aic" |
+           weight.type=="exfrequency.kquartiles.partition.bic"){
 
-            if(run.kquart.aic.bic==TRUE){
+            ## K-quart clustering
+            index.group.kquart <- cut(beta.values, breaks=quantile(beta.values,
+                                        probs=seq(0,1, by=1/k.split)),include.lowest=TRUE)
+            index.group.kquart <- as.numeric(factor(index.group.kquart, labels=1:k.split))
+        }
 
-                ## K-quart clustering
-                index.group.kquart <- cut(beta.values, breaks=quantile(beta.values,
-                                            probs=seq(0,1, by=1/k.split)),include.lowest=TRUE)
-                index.group.kquart <- as.numeric(factor(index.group.kquart, labels=1:k.split))
-            }
+        if(weight.type=="exfrequency.ksorted.partition.aic"|
+           weight.type=="exfrequency.ksorted.partition.bic"){
 
-            if(run.sort.aic.bic==TRUE){
+            ## K-sort clustering
+            beta.sort <- sort(abs(beta.values),decreasing=TRUE,index.return=TRUE)
+            sort.beta.index <- beta.sort$ix
 
-                ## K-sort clustering
-                beta.sort <- sort(abs(beta.values),decreasing=TRUE,index.return=TRUE)
-                sort.beta.index <- beta.sort$ix
-
-                ## index of ordering
-                index.group.sort <- index.sort.partition(n=nrow(XX),k=k.split,sort.beta.index,x.names)
-            }
+            ## index of ordering
+            index.group.sort <- index.sort.partition(n=nrow(XX),k=k.split,sort.beta.index,x.names)
         }
 
         for(b in 1:nboot){
             ##print(b)
-            if(run.aic.bic==TRUE){
+            if(weight.type=="exfrequency.random.partition.aic" |
+               weight.type=="exfrequency.random.partition.bic"){
                 ## Randomly partition the index
                 rand.index <- random.partition(n=nrow(XX),p=m,k=k.split)
             }
 
-            #if(run.fixed.aic.bic==TRUE){
-            ## Ensure fixed covariates are in the partition + randomly partition the rest
-            #    rand.fixed.index <- fixed.plus.random.partition(fixed.covariates,n=nrow(XX),p=ncol(XX)-1,k=k)
-            #}
-
-            if(run.kmeans.aic.bic==TRUE){
+            if(weight.type=="exfrequency.kmeans.partition.aic" |
+               weight.type=="exfrequency.kmeans.partition.bic"){
                 ## Partition the index using k-means
                 kmeans.rand.index <- designed.partition(index.group.kmeans,k=k.split)
             }
 
-            if(run.kquart.aic.bic==TRUE){
+            if(weight.type=="exfrequency.kquartiles.partition.aic" |
+               weight.type=="exfrequency.kquartiles.partition.bic"){
                 ## Partition the index using k-quartile
                 kquart.rand.index <- designed.partition(index.group.kquart,k=k.split)
             }
 
-            if(run.sort.aic.bic==TRUE){
+            if(weight.type=="exfrequency.ksorted.partition.aic"|
+               weight.type=="exfrequency.ksorted.partition.bic"){
                 ## Partition the index using k-quartile
                 sort.rand.index <- designed.partition(index.group.sort,k=k.split)
 
@@ -456,153 +422,35 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
             ## Apply stepwise AIC to each group
             for(l in 1:k.split){
                 ##print(l)
-                if(run.aic.bic==TRUE){
+                if(weight.type=="exfrequency.random.partition.aic" |
+                   weight.type=="exfrequency.random.partition.bic"){
                     ## Random partitioning
                     index <- as.numeric(unlist(rand.index[l]))
-                    if(length(index)!=0){
 
-                        if(run.aic==TRUE){
-                            weight.aic.boot[,b] <- weight.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,x.names,z.names,
-                                               response,type="AIC",
-                                               direction=step.direction)
-                        }
-
-                        if(run.bic==TRUE){
-                            weight.bic.boot[,b] <- weight.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,x.names,z.names,
-                                               response,type="BIC",
-                                               direction=step.direction)
-                        }
-                    }
-                }
-
-                ## The following is NOT run. It was used for a simulation study in Garcia and Mueller (2016, AOAS)
-                if (FALSE){
-                    if(run.fixed.aic.bic==TRUE){
-                        ## Fixed + Random partitioning
-                        index <- as.numeric(unlist(rand.fixed.index[l]))
-                        if(length(index)!=0){
-                            if(run.aic==TRUE){
-                                weight.fixed.aic.boot[,b] <- weight.fixed.aic.boot[,b] +
-                                    step.selection(factor.z,index,XX,x.names,z.names,
-                                                   response,type="AIC",
-                                                   direction=step.direction)
-                            }
-
-                            if(run.bic==TRUE){
-                                weight.fixed.bic.boot[,b] <- weight.fixed.bic.boot[,b] +
-                                    step.selection(factor.z,index,
-                                                    XX,x.names,z.names,response,type="BIC",
-                                                    direction=step.direction)
-                            }
-                        }
-                    }
-                }
-
-                if(run.kmeans.aic.bic==TRUE){
-                    ## k-means partitioning
+                } else if(weight.type=="exfrequency.kmeans.partition.aic" |
+                          weight.type=="exfrequency.kmeans.partition.bic"){
                     index <- as.numeric(unlist(kmeans.rand.index[l]))
-                    if(length(index)!=0){
-                        if(run.aic==TRUE){
-                            weight.kmeans.aic.boot[,b] <- weight.kmeans.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,x.names,z.names,
-                                               response,
-                                               type="AIC",
-                                               direction=step.direction)
-                        }
 
-                        if(run.bic==TRUE){
-                            weight.kmeans.bic.boot[,b] <- weight.kmeans.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,x.names,z.names,response,
-                                               type="BIC",
-                                               direction=step.direction)
-                        }
-                    }
-                }
-
-                if(run.kquart.aic.bic==TRUE){
-                    ## k-quartile partitioning
+                } else if(weight.type=="exfrequency.kquartiles.partition.aic" |
+                          weight.type=="exfrequency.kquartiles.partition.bic"){
                     index <- as.numeric(unlist(kquart.rand.index[l]))
 
-                    if(length(index)!=0){
-                        if(run.aic==TRUE){
-                            weight.kquart.aic.boot[,b] <- weight.kquart.aic.boot[,b] +
-                                step.selection(factor.z,index,XX,x.names,z.names,response,
-                                               type="AIC",
-                                               direction=step.direction)
-                        }
-
-                        if(run.bic==TRUE){
-                            weight.kquart.bic.boot[,b] <- weight.kquart.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,x.names,z.names,response,
-                                               type="BIC",
-                                               direction=step.direction)
-                        }
-                    }
-                }
-
-                if(run.sort.aic.bic==TRUE){
-                    ## sorted partitioning
+                } else if(weight.type=="exfrequency.ksorted.partition.aic"|
+                   weight.type=="exfrequency.ksorted.partition.bic"){
                     index <- as.numeric(unlist(sort.rand.index[l]))
+                }
 
-                    if(length(index)!=0){
-                        if(run.aic==TRUE){
-                            weight.sort.aic.boot[,b] <- weight.sort.aic.boot[,b] +
+                if(length(index)!=0){
+
+                    weight.boot[,b] <- weight.boot[,b] +
                                 step.selection(factor.z,index,XX,x.names,z.names,
-                                               response,
-                                               type="AIC",
+                                               response,type=step.type,
                                                direction=step.direction)
-                        }
-                        if(run.bic==TRUE){
-                            weight.sort.bic.boot[,b] <- weight.sort.bic.boot[,b] +
-                                step.selection(factor.z,index,XX,x.names,z.names,
-                                               response,
-                                               type="BIC",
-                                               direction=step.direction)
-                        }
-                    }
                 }
             }
         }
 
-
-        if(run.aic.bic==TRUE){
-            if(run.aiC==TRUE){
-                weights <- apply(weight.aic.boot,1,sum)/nboot
-            } else {
-                weights <- apply(weight.bic.boot,1,sum)/nboot
-            }
-        }
-
-        #if(run.fixed.aic.bic==TRUE){
-        #    out.fixed.aic.boot <- apply(weight.fixed.aic.boot,1,sum)/nboot
-        #    out.fixed.bic.boot <- apply(weight.fixed.bic.boot,1,sum)/nboot
-        #}
-
-        if(run.kmeans.aic.bic==TRUE){
-            if(run.aic==TRUE){
-                weights <- apply(weight.kmeans.aic.boot,1,sum)/nboot
-            } else {
-                weights <- apply(weight.kmeans.bic.boot,1,sum)/nboot
-            }
-        }
-
-        if(run.kquart.aic.bic==TRUE){
-            if(run.aic==TRUE){
-                weights <- apply(weight.kquart.aic.boot,1,sum)/nboot
-            } else {
-                weights <- apply(weight.kquart.bic.boot,1,sum)/nboot
-            }
-        }
-
-        if(run.sort.aic.bic==TRUE){
-            if(run.aic==TRUE){
-                weights <- apply(weight.sort.aic.boot,1,sum)/nboot
-            } else {
-                weights <- apply(weight.sort.bic.boot,1,sum)/nboot
-            }
-        }
+        weights <- apply(weight.boot,1,sum)/nboot
         weights <- t(data.frame(weights))
     }
 

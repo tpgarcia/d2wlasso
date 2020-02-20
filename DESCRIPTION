@@ -25,7 +25,6 @@ Imports:
  survival
 Collate:
  d2wlasso.R
- globals.R
  main_functions.R
 Suggests:
  testthat
