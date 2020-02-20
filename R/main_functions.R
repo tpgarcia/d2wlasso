@@ -1588,39 +1588,47 @@ weighted.lasso <- function(weights,weights_fn,yy,XX,z,data.delta,z.names,
          sign.of.variables=sign.of.variables,entry.variables=entry.variables,delta.out=delta.out)
 }
 
-weighted.lasso.computations <- function(weights,XX,response,g,show.plots=TRUE,include.diet=TRUE,
-                               diet.wt=100,thresh.q=FALSE,corr.g=FALSE,delta=2,std.y="TRUE",
-                               est.MSE=c("TRUE","est.var","step")[2],
-                               cv.criterion=FALSE,vfold=10){
+weighted.lasso.computations <- function(weights,weights_fn,response,
+                                        XX,z,z.names,
+                                        show.plots,
+                                        penalty.choice,
+                                        est.MSE,
+                                        cv.folds,
+                                        delta){
     #print(response)
     data.response <- response$yy
     data.delta <- response$delta
 
-    interest <- matrix(0,nrow=nrow(XX),ncol=nrow(data.response))
+    interest <- matrix(0,nrow=ncol(XX),ncol=ncol(data.response))
     interest <- as.data.frame(interest)
-    rownames(interest) <- rownames(XX)
-    colnames(interest) <- rownames(data.response)
+    rownames(interest) <- colnames(XX)
+    colnames(interest) <- colnames(data.response)
 
     interest.sign <- interest		# matrix to store sign of lasso coefficients
 
-    R2.val <- matrix(0,nrow=nrow(data.response),ncol=1)
+    R2.val <- matrix(0,nrow=ncol(data.response),ncol=1)
     R2.val <- as.data.frame(R2.val)
     colnames(R2.val) <- "R2"
-    rownames(R2.val) <- rownames(data.response)
+    rownames(R2.val) <- colnames(data.response)
 
-    order.var <- array(0,dim=c(nrow(data.response),300))
+    order.var <- array(0,dim=c(ncol(data.response),300))
 
-    entry.var <- array(0,dim=c(nrow(data.response),nrow(XX)))
+    entry.var <- array(0,dim=c(ncol(data.response),nrow(XX)))
 
-    delta.out <- matrix(0,nrow=1,ncol=nrow(data.response))
+    delta.out <- matrix(0,nrow=1,ncol=ncol(data.response))
 
     for(i in 1:ncol(interest)){
         #print(data.response)
-        lasso.out <- weighted.lasso(weights[,i],data.response[i,],XX,data.delta[i,],g,
-                           show.plots=show.plots,include.diet=include.diet,
-                           diet.wt=diet.wt,thresh.q=thresh.q,corr.g=corr.g,delta=delta,std.y=std.y,
-                           est.MSE=est.MSE,
-                           cv.criterion=cv.criterion,vfold=vfold)
+        lasso.out <-  weighted.lasso(weights[,i],
+                       weights_fn,
+                       yy=data.response[,i],
+                       XX,z,data.delta[,i],
+                       z.names,
+                       show.plots,
+                       penalty.choice,
+                       est.MSE,
+                       cv.folds,delta)
+
 
         interest[,i] <- lasso.out$sig.variables
         interest.sign[,i] <- lasso.out$sign.of.variables
