@@ -99,7 +99,7 @@
 #' linear/cox regression of the response on each covariate. If FALSE, the
 #' p-value is computed from correlation coefficients between the response and each covariate.
 #' Default is FALSE.
-#' @param q_opt_tuning_method character value used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+#' @param q_opt_tuning_method character indicator used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
 #' Options are "bootstrap" or "smoother" to specify how the optimal tuning parameter is obtained when computing
 #' q-values from Storey and Tibshirani (2003). Default is "smoother" (smoothing spline).
 #' @param robust logical indicator used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
@@ -126,17 +126,35 @@
 #' used to obtain the result in \code{threshold.selection}.
 #' The result \code{threshold.selection} contains all covariates for which their Benjamini-Hochberg adjusted
 #' p-value is less than \code{alpha.bh}.
-#' @param penalty.choice
-#' Among the lasso solution path, the best descriptive model is the one which minimizes the loss function:
-#'  (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors
-#'   in the selected model). If delta = 2, this loss function is Mallows' Cp.
-#' @param penalized.loss.delta Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.
-#' @param cv.folds indicates the number of folds of the cross-validation for selecting delta.
-#' @param mult.cv.folds indicates the number of cross-validation runs for selecting delta.
-#' @param nboot indicates the number of bootstrap samples for the Cox regression with exclusion frequency-based weights
-#' @param k.split indicates the number of partitions for the Cox regression with exclusion frequency-based weights. Default is 4.
-#' @param step.direction indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".
-#' @param est.MSE indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".
+#' @param penalty.choice character that indicates the variable selection criterion. Options are "cv.mse" for
+#' the K-fold cross-validated mean squared prediction error, "mallows.cp" for the Mallow's Cp criterion which
+#' requires specification of the penalization parameter \code{mallows.cp.delta},
+#' "cv.mallows.cp" for the K-fold cross-validated Mallow's Cp criterion which chooses the
+#' penalization parameter delta, and "deviance.criterion" for optimizing the
+#' Cox proportional hazards deviance (only available when \code{regression.type} is "cox".)
+#' @param mallows.cp.delta scalar to indicate the choice of the penalization parameter delta in the
+#' Mallow's Cp criterion when \code{penalty.choice} is "mallows.cp".
+#' @param est.MSE character that indicators how the mean squared error is estimated in the Mallow's Cp
+#' criterion when \code{penalty.choice} is "mallows.cp" or "cv.mallows.cp".
+#' @param cv.folds scalar denoting the number of folds for cross-validation
+#' when \code{penalty.choice} is "cv.mse" or "cv.mallows.cp".
+#' @param mult.cv.folds scalar denoting the number of times we repeat the cross-validation procedures
+#' of \code{penalty.choice} being "cv.mse" or "cv.mallows.cp".
+#' @param nboot scalar denoting the number of bootstrap samples obtained for exclusion frequency weights when
+#' \code{weight.type} is "exfrequency.random.partition.aic", "exfrequency.random.partition.bic",
+#' "exfrequency.kmeans.partition.aic", "exfrequency.kmeans.partition.bic","exfrequency.kquartiles.partition.aic",
+#' "exfrequency.kquartiles.partition.bic","exfrequency.ksorted.partition.aic","exfrequency.ksorted.partition.bic".
+#' Default is 100.
+#' @param k.split scalar that indicates the number of partitions used to compute the exclusion frequency weights
+#' when \code{weight.type} is "exfrequency.random.partition.aic", "exfrequency.random.partition.bic",
+#' "exfrequency.kmeans.partition.aic", "exfrequency.kmeans.partition.bic","exfrequency.kquartiles.partition.aic",
+#' "exfrequency.kquartiles.partition.bic","exfrequency.ksorted.partition.aic","exfrequency.ksorted.partition.bic". Default is 4.
+#' @param step.direction character that indicates the direction of stepwise regression used to compute the exclusion frequency weights
+#' when \code{weight.type} is "exfrequency.random.partition.aic", "exfrequency.random.partition.bic",
+#' "exfrequency.kmeans.partition.aic", "exfrequency.kmeans.partition.bic","exfrequency.kquartiles.partition.aic",
+#' "exfrequency.kquartiles.partition.bic","exfrequency.ksorted.partition.aic","exfrequency.ksorted.partition.bic".
+#'  One of "both", "forward" or "backward". Default is "backward".
+#'
 #'
 #' @return
 #' \itemize{
@@ -197,12 +215,12 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                      show.plots=FALSE,
                      pi0.known=FALSE,
                      pi0.val=0.9,
-                     penalty.choice=c("cv.mse","cv.penalized.loss","penalized.loss",
+                     penalty.choice=c("cv.mse","cv.mallows.cp","mallows.cp",
                                       "deviance.criterion")[1],
                      est.MSE=c("est.var","step")[1],
                      cv.folds=10,
                      mult.cv.folds=100,
-                     penalized.loss.delta=2,
+                     mallows.cp.delta=2,
                      nboot=100,
                      k.split=4,
                      step.direction="backward"){
@@ -572,7 +590,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                                                        penalty.choice="cv.penalty.loss",
                                                        est.MSE,
                                                        cv.folds,
-                                                       penalized.loss.delta)
+                                                       mallows.cp.delta)
 
             lasso.w <- lasso.w + as.matrix(lasso.w.tmp$interest)
         }
@@ -585,7 +603,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                                                penalty.choice,
                                                est.MSE,
                                                cv.folds,
-                                               penalized.loss.delta)
+                                               mallows.cp.delta)
 
         weighted.lasso.results <- as.matrix(lasso.w$interest)
     }
@@ -1391,12 +1409,12 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
             predict.out <- predict(wLasso.out, X1,s=bestindex, type = "coefficients", mode="step")
             delta.out <- delta
 
-        } else if(penalty.choice=="cv.penalized.loss"){
+        } else if(penalty.choice=="cv.mallows.cp"){
             cv.out <- cv.delta(y1,X1,z.names,K=cv.folds,est.MSE=est.MSE,show.plots)
             predict.out <- cv.out$predict.out
             delta.out <- cv.out$delta
-        } else if(penalty.choice=="penalized.loss"){
-            tmp.out <- penalized.loss.criterion(wLasso.out,y1,X1,z.names,
+        } else if(penalty.choice=="mallows.cp"){
+            tmp.out <- mallows.cp.criterion(wLasso.out,y1,X1,z.names,
                                             delta,est.MSE,show.plots)
             predict.out <- tmp.out$predict.out
             delta.out <- delta
@@ -1424,7 +1442,7 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
             wLasso.cv <- cv.glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,penalty.factor=penalty)
             lambda.opt <- wLasso.cv$lambda.min
 
-        } else if(penalty.choice=="cv.penalized.loss" | "penalized.loss"){
+        } else if(penalty.choice=="cv.mallows.cp" | "mallows.cp"){
             ## not used
             stop("This method is not implemented for the Cox model.")
         } else if(penalty.choice=="deviance.criterion"){
@@ -1547,7 +1565,7 @@ cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("TRUE","est.var","step")[2],sh
         for(d in 1:length(delta.cv)){
 
             ## Find best-fitting model for specified delta
-            beta.omit <- penalized.loss.criterion(wLasso.out,y1[-omit],X1[-omit,,drop=FALSE],z.names,
+            beta.omit <- mallows.cp.criterion(wLasso.out,y1[-omit],X1[-omit,,drop=FALSE],z.names,
                                             delta=delta.cv[d],est.MSE=est.MSE,
                                             show.plots)
 
@@ -1570,7 +1588,7 @@ cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("TRUE","est.var","step")[2],sh
     delta <- mean(delta.opt)		## takes average of delta values
 
     wLasso.out <- lasso.procedure(y1,X1)$wLasso.out
-    predict.out <- penalized.loss.criterion(wLasso.out,y1,X1,delta=delta,est.MSE=est.MSE,show.plots)$predict.out
+    predict.out <- mallows.cp.criterion(wLasso.out,y1,X1,delta=delta,est.MSE=est.MSE,show.plots)$predict.out
     list(predict.out=predict.out,delta=delta)
 }
 
@@ -1592,7 +1610,7 @@ lasso.procedure <- function(y1,X1){
 	list(wLasso.out=wLasso.out)
 }
 
-penalized.loss.criterion <- function(wLasso.out,y1,X1,z.names,
+mallows.cp.criterion <- function(wLasso.out,y1,X1,z.names,
                                delta,
                                est.MSE=c("est.var","step")[1],
                                show.plots){
