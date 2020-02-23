@@ -61,9 +61,55 @@
 #'   from \code{parcor.pvalue}.}
 #'   \item{parcor.tstat:}{The scalar weight for covariate \eqn{x_j} is the t-statistic associated with testing
 #'   the significance of \eqn{x_j} in the regression of \eqn{y} on \eqn{z} and \eqn{x_j}.}
+#'   \item{exfrequency.random.partition.aic:}{The scalar weight for covariate \eqn{x_j} is an exclusion frequency.
+#'   The exclusion frequency is obtained as follows: we first partition the covariates into \code{k.split}
+#'   random groups, and we apply a stepwise linear/Cox regression of the response on each partition
+#'   set of covariate. The final model is selected using an AIC criterion, and we track if \eqn{x_j} is
+#'   excluded from the final model. We repeat
+#'   this procedure \code{nboot} times and the exclusion frequency is the average number of times
+#'   \eqn{x_j} is excluded.}
+#'   \item{exfrequency.random.partition.bic:}{The scalar weight for covariate \eqn{x_j} is computed
+#'   as in exfrequency.random.partition.aic, except that the final model within each stepwise regression
+#'   is selected using a BIC criterion.}
+#'   \item{exfrequency.kmeans.partition.aic:}{The scalar weight for covariate \eqn{x_j} is an exclusion frequency.
+#'   The exclusion frequency is obtained as follows: we apply ridge regression of the response on all covariates and
+#'   obtain ridge regression coefficients for each covariate.
+#'   We then partitioned the covariates into \code{k.split}
+#'   groups using a K-means criterion on the ridge regression coefficients, and we applied
+#'   a stepwise linear/Cox regression of the response on each partition
+#'   set of covariate. The final model is selected using an AIC criterion, and we track if \eqn{x_j} is
+#'   excluded from the final model. We repeat
+#'   this procedure \code{nboot} times and the exclusion frequency is the average number of times
+#'   \eqn{x_j} is excluded.}
+#'   \item{exfrequency.kmeans.partition.bic:}{The scalar weight for covariate \eqn{x_j} is computed
+#'   as in exfrequency.kmeans.partition.aic, except that the final model within each stepwise regression
+#'   is selected using a BIC criterion.}
+#'   \item{exfrequency.kquartile.partition.aic:}{The scalar weight for covariate \eqn{x_j} is an exclusion frequency.
+#'   The exclusion frequency is obtained as follows: we apply ridge regression of the response on all covariates and
+#'   obtain ridge regression coefficients for each covariate.
+#'   We then partitioned the covariates into \code{k.split}
+#'   groups using k-quantiles of the ridge regression coefficients, and we applied a stepwise linear/Cox regression of the response on each partition
+#'   set of covariate. The final model is selected using an AIC criterion, and we track if \eqn{x_j} is
+#'   excluded from the final model. We repeat
+#'   this procedure \code{nboot} times and the exclusion frequency is the average number of times
+#'   \eqn{x_j} is excluded.}
+#'   \item{exfrequency.kquartiles.partition.bic:}{The scalar weight for covariate \eqn{x_j} is computed
+#'   as in exfrequency.kquartiles.partition.aic, except that the final model within each stepwise regression
+#'   is selected using a BIC criterion.}
+#'   \item{exfrequency.ksorted.partition.aic:}{The scalar weight for covariate \eqn{x_j} is an exclusion frequency.
+#'   The exclusion frequency is obtained as follows: we apply ridge regression of the response on all covariates and
+#'   obtain ridge regression coefficients for each covariate.
+#'   We then partitioned the covariates into \code{k.split}
+#'   groups by first ordering the ridge regression coefficients in descending order
+#'   and splitting them into \code{k.split} groups. We then applied a stepwise linear/Cox regression of the response on each partition
+#'   set of covariate. The final model is selected using an AIC criterion, and we track if \eqn{x_j} is
+#'   excluded from the final model. We repeat
+#'   this procedure \code{nboot} times and the exclusion frequency is the average number of times
+#'   \eqn{x_j} is excluded.}
+#'   \item{exfrequency.ksorted.partition.bic:}{The scalar weight for covariate \eqn{x_j} is computed
+#'   as in exfrequency.ksorted.partition.aic, except that the final model within each stepwise regression
+#'   is selected using a BIC criterion.}
 #' }
-#' One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor".
-#' "one" gives no weight. "t_val" gives weight of the inverse absolute t-statistics of the regression coefficients. "parcor" gives weight of the inverse absolute partial correlation between the main covariate and the response after accounting for z. "p_val" gives p-value of each predictor's coefficient as weights. "bhp_val" gives Benjamini-Hochberg adjusted p-value of each predictor's coefficient as weights. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
 #' @param weight_fn The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
 #' @param qval.alpha indicates cut-off for q-values (thresholding). That is, the covariate with q-value less than this cut-off is included in the model.
 #' @param alpha.bh indicates cut-off for Benjamini-Hochberg adjusted p-value (thresholding). That is, the covariate with BH-adjusted p-value less than this cut-off is included in the model.
