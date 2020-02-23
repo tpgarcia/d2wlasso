@@ -641,7 +641,19 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
 ## Functions to get a sample weight function ##
 ###############################################
 
-# EXPORT
+#' Weight function examples
+#'
+#' Returns possible weight functions that can be used in d2wlasso.
+#'
+#' @param weight_fn_type character indicating type of function to return.
+#'
+#' @return a function that can be applied to a scalar.
+#
+#' @export
+#'
+#' @examples
+#' weight_fn <- get.weight.fn("sqrt") # return f(x)=sqrt(x)
+#'
 get.weight.fn <- function(weight_fn_type=c("identity","sqrt","inverse_abs","square")[1]){
 
     ## Weight functions
