@@ -932,7 +932,52 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
 }
 
 
-## EXPORT
+
+#' Correlation, p-value and t-statistic associated with the regression between response y and a covariate x
+#' after potential adjustment for a covariate z.
+#'
+#' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
+#' @param response a list containing: yy and delta. yy is an (n by 1) matrix corresponding to the response variable. If \code{regression.type} is "cox",
+#' \code{y} contains the observed event times. delta is an (n by 1) matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
+#' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
+#' @param z (n by 1) matrix of additional fixed covariate affecting response variable. Can be NULL.
+#' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
+#' @param regression.type a character indicator that is either "linear" for linear regression
+#' or "cox" for Cox proportional hazards regression. Default is "linear".
+#' @param partial logical indicator. If TRUE, the partial correlation is computed between the response
+#' and each covariate in x after adjustment for z. If FALSE, the correlation is computed between the
+#' response and each covariate in x.
+#' @param ttest.pvalue logical indicator. If TRUE, p-value for each covariate is computed from univariate
+#' linear/cox regression of the response on each covariate. If FALSE, the
+#' p-value is computed from correlation coefficients between the response and each covariate.
+#' Default is FALSE.
+#'
+#' @return
+#' \itemize{
+#'   \item \strong{pvalues:}{p-values for each x_k in the regression of y on x_k when \code{partial}=FALSE. Otherwise,
+#'   p-values for each x_k in the regression of y on x_k and z when \code{partial}=TRUE.}
+#'   \item \strong{estimate:}{Correlation between x_k and y when \code{partial}=FALSE.
+#'   Otherwise, \code{estimate} is the partial correlation between x_k and y after adjustment for z
+#'   when \code{partial} is TRUE.}
+#'   \item \strong{tvalues:}{t-statistic with testing the significance of x_k in the regression
+#'   of y on x_k and z when \code{partial} is TRUE. Otherwise it is the t-statistic when testing the
+#'   significance of x_k in the regression of y on x_k when \code{partial} is FALSE.}
+#' }
+#'
+#'
+#'
+#' @export
+#' @examples
+#' x = matrix(rnorm(100*5, 0, 1),100,1)
+#' colnames(x) <- paste0("X",1:ncol(xx))
+#' z = matrix(rbinom(100, 1, 0.5),100,1)
+#' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+#' colnames(y) <- "y"
+#' delta <- NULL
+#' response <- list(yy=y,delta=delta)
+#'
+#' output <- correlations(factor.z=TRUE,x,z,response, partial=TRUE,regression.type="linear")
+#'
 correlations <- function(factor.z,x,z,response,partial=FALSE,ttest.pvalue=FALSE,regression.type){
 
     ## Formatting data
@@ -971,7 +1016,7 @@ correlations <- function(factor.z,x,z,response,partial=FALSE,ttest.pvalue=FALSE,
 ##################################################
 # Function to get F-test statistics and p-values #
 ##################################################
-# EXPORT
+
 fstat.pvalue <- function(factor.z,x,z){
     if(factor.z==TRUE){
         z <- factor(as.numeric(z))
@@ -992,7 +1037,6 @@ fstat.pvalue <- function(factor.z,x,z){
     return(list(Fstat = stat, p.value = p.value))
 }
 
-# EXPORT
 ftests <- function(factor.z,x,z){
     # Formatting data
     data.z <- z
