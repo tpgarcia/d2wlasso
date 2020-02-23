@@ -135,7 +135,7 @@
 #' requires specification of the penalization parameter \code{mallows.cp.delta},
 #' "cv.mallows.cp" for the K-fold cross-validated Mallow's Cp criterion which chooses the
 #' penalization parameter delta, and "deviance.criterion" for optimizing the
-#' Cox proportional hazards deviance (only available when \code{regression.type} is "cox".)
+#' Cox proportional hazards deviance (only available when \code{regression.type} is "cox".) Defalt is "mallows.cp".
 #' @param mallows.cp.delta scalar to indicate the choice of the penalization parameter delta in the
 #' Mallow's Cp criterion when \code{penalty.choice} is "mallows.cp".
 #' @param est.MSE character that indicators how the mean squared error is estimated in the Mallow's Cp
@@ -143,7 +143,7 @@
 #' @param cv.folds scalar denoting the number of folds for cross-validation
 #' when \code{penalty.choice} is "cv.mse" or "cv.mallows.cp".
 #' @param mult.cv.folds scalar denoting the number of times we repeat the cross-validation procedures
-#' of \code{penalty.choice} being "cv.mse" or "cv.mallows.cp".
+#' of \code{penalty.choice} being "cv.mse" or "cv.mallows.cp". Default is 0.
 #' @param nboot scalar denoting the number of bootstrap samples obtained for exclusion frequency weights when
 #' \code{weight.type} is "exfrequency.random.partition.aic", "exfrequency.random.partition.bic",
 #' "exfrequency.kmeans.partition.aic", "exfrequency.kmeans.partition.bic","exfrequency.kquartiles.partition.aic",
@@ -190,6 +190,26 @@
 #' x = matrix(rnorm(100*5, 0, 1),100,5)
 #' z = matrix(rbinom(100, 1, 0.5),100,1)
 #' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+#'
+#' dwl0 <- d2wlasso(x,z,y)
+#' dwl1 <- d2wlasso(x,z=NULL,y,weight.type="corr.pvalue")
+#' dwl2 <- d2wlasso(x,z,y,weight.type="parcor.qvalue")
+#' dwl3 <- d2wlasso(x,z,y,weight.type="parcor.bh.pvalue")
+#' dwl4 <- d2wlasso(x,z,y,weight.type="parcor.qvalue",mult.cv.folds=100)
+#' dwl5 <- d2wlasso(x,z,y,weight.type="exfrequency.random.partition.aic")
+#'
+#' ## Cox model
+#' x <- matrix(rnorm(100*5, 0, 1),100,5)
+#' z <- matrix(rbinom(100, 1, 0.5),100,1)
+#' y <- matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
+#' cox.delta <- matrix(1,nrow=length(y),ncol=1)
+#' dwl0.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox")
+#' dwl1.cox <- d2wlasso(x,z=NULL,y,cox.delta,regression.type="cox",weight.type="corr.pvalue")
+#' dwl2.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="parcor.qvalue")
+#' dwl3.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="parcor.bh.pvalue")
+#' dwl4.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="parcor.qvalue",mult.cv.folds=100)
+#' dwl5.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="exfrequency.random.partition.aic")
+
 d2wlasso <- function(x,z,y,cox.delta=NULL,
                      factor.z=TRUE,
                      regression.type=c("linear","cox")[1],
@@ -215,10 +235,10 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
                      pi0.known=FALSE,
                      pi0.val=0.9,
                      penalty.choice=c("cv.mse","cv.mallows.cp","mallows.cp",
-                                      "deviance.criterion")[1],
+                                      "deviance.criterion")[3],
                      est.MSE=c("est.var","step")[1],
                      cv.folds=10,
-                     mult.cv.folds=100,
+                     mult.cv.folds=0,
                      mallows.cp.delta=2,
                      nboot=100,
                      k.split=4,
@@ -579,14 +599,14 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
     ##                                                        ##
     ############################################################
 
-    if(penalty.choice=="multiple.cv.penalty.loss"){
+    if(mult.cv.folds > 0 & (penalty.choice=="cv.mallows.cp" | penalty.choice="cv.mse")){
         lasso.w <-0
 
         for(v in 1:mult.cv.folds){
             lasso.w.tmp <- weighted.lasso.computations(weights,weight_fn,response,
                                                        XX,z,z.names,
                                                        show.plots,
-                                                       penalty.choice="cv.penalty.loss",
+                                                       penalty.choice=penalty.choice,
                                                        est.MSE,
                                                        cv.folds,
                                                        mallows.cp.delta)
