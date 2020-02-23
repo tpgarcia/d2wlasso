@@ -19,25 +19,7 @@
 #' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
 #' @param regression.type a character indicator that is either "linear" for linear regression
 #' or "cox" for Cox proportional hazards regression. Default is "linear".
-#' @param ttest.pvalue logical. If TRUE, p-value for each covariate is computed from univariate
-#' linear/cox regression of the response on each covariate. If FALSE, the
-#' p-value is computed from correlation coefficients between the response and each covariate.
-#' Default is FALSE.
-#' @param q_opt_tuning_method indicates the method for choosing optimal tuning parameter
-#' in the q-value computation as proposed in Storey and Tibshirani (2003).
-#' One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
-#' @param show.plots logical. If TRUE, figures associated with q-value computations as proposed in Storey
-#' and Tibshirani (2003) are plotted. These include the density histogram of original p-values,
-#' density histogram of the q-values, scatter plot of \eqn{\hat\pi} versus \eqn{\lambda} in the
-#' computation of q-values, and scatter plot of significant tests versus q-value cut-off.
-#' Default is FALSE.
-#' @param pi0.known logical.  If TRUE, the estimate of the
-#' true proportion of the null hypothesis in the computatio of q-values
-#' is set to the value of pi0.val which is given by the user.
-#' If FALSE, the estimate of the true proportion of the null hypothesis is
-#' computed by bootstrap or smoothing spline as proposed in Storey and Tibshirani (2003). Default is FALSE.
-#' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.known is TRUE. Default is 0.9.
-#' @param weight.type The weights to be used for the weighted lasso, where each covariate in \code{x}
+#' @param weight.type Character value denoting which weights to be used for the weighted lasso, where each covariate in \code{x}
 #' is multiplied by a scalar weight. Options include
 #' \itemize{
 #'   \item{one:}{The scalar weight is one.}
@@ -110,12 +92,45 @@
 #'   as in exfrequency.ksorted.partition.aic, except that the final model within each stepwise regression
 #'   is selected using a BIC criterion.}
 #' }
-#' @param weight_fn The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
-#' @param qval.alpha indicates cut-off for q-values (thresholding). That is, the covariate with q-value less than this cut-off is included in the model.
-#' @param alpha.bh indicates cut-off for Benjamini-Hochberg adjusted p-value (thresholding). That is, the covariate with BH-adjusted p-value less than this cut-off is included in the model.
-#' @param penalty.choice Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.
+#' @param weight_fn A user-defined function to be applied to the weights for the weighted lasso.
+#' Default is an identify function.
+#' @param ttest.pvalue logical indicator used when \code{weight.type} is "corr.pvalue","corr.bh.pvalue", "corr.qvalue",
+#' "parcor.pvalue","parcor.bh.pvalue","parcor.qvalue". If TRUE, p-value for each covariate is computed from univariate
+#' linear/cox regression of the response on each covariate. If FALSE, the
+#' p-value is computed from correlation coefficients between the response and each covariate.
+#' Default is FALSE.
+#' @param q_opt_tuning_method character value used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+#' Options are "bootstrap" or "smoother" to specify how the optimal tuning parameter is obtained when computing
+#' q-values from Storey and Tibshirani (2003). Default is "smoother" (smoothing spline).
+#' @param robust logical indicator used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+#' If TRUE, q-values computed as in Storey and Tibshirani (2003)
+#' are robust for small p-values.
+#' @param pi0.known logical indicator used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+#' If TRUE, when computing q-values, the estimate of the
+#' true proportion of the null hypothesis is set to the value of pi0.val given by the user.
+#' If FALSE, the estimate of the true proportion of the null hypothesis is
+#' computed by bootstrap or smoothing spline as proposed in Storey and Tibshirani (2003). Default is FALSE.
+#' @param pi0.val scalar used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+#' A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.known is TRUE. Default is 0.9.
+#' @param show.plots logical indicator used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+#' If TRUE, figures associated with q-value computations as proposed in Storey
+#' and Tibshirani (2003) are plotted. These include the density histogram of original p-values,
+#' density histogram of the q-values, scatter plot of \eqn{\hat\pi} versus \eqn{\lambda} in the
+#' computation of q-values, and scatter plot of significant tests versus q-value cut-off.
+#' Default is FALSE.
+#' @param qval.alpha scalar value used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+#' The choice of \code{qval.alpha} indicates the cut-off for q-values used to obtain the result \code{threshold.selection}
+#' The result \code{threshold.selection} contains all covariates for which their q-value is less than \code{qval.alpha}.
+#' @param alpha.bh scalar value used when \code{weight.type} is "corr.bh.pvalue", "parcor.bh.pvalue".
+#' The choice of \code{alpha.bh} indicates the cut-off for Benjamini-Hochberg adjusted p-values
+#' used to obtain the result in \code{threshold.selection}.
+#' The result \code{threshold.selection} contains all covariates for which their Benjamini-Hochberg adjusted
+#' p-value is less than \code{alpha.bh}.
+#' @param penalty.choice
+#' Among the lasso solution path, the best descriptive model is the one which minimizes the loss function:
+#'  (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors
+#'   in the selected model). If delta = 2, this loss function is Mallows' Cp.
 #' @param penalized.loss.delta Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.
-#' @param robust indicates whether it is desired to make the estimate more robust for small p-values.
 #' @param cv.folds indicates the number of folds of the cross-validation for selecting delta.
 #' @param mult.cv.folds indicates the number of cross-validation runs for selecting delta.
 #' @param nboot indicates the number of bootstrap samples for the Cox regression with exclusion frequency-based weights
