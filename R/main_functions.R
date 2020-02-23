@@ -697,7 +697,7 @@ get.weight.fn <- function(weight_fn_type=c("identity","sqrt","inverse_abs","squa
 #'
 #' xx = matrix(rnorm(100*5, 0, 1),100,5)
 #' colnames(xx) <- paste0("X",1:ncol(xx))
-#' yy = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+#' yy = matrix(2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
 #' colnames(yy) <- "y"
 #' store.xy(xx,yy)
 store.xy <- function(XX,yy){
@@ -764,7 +764,7 @@ store.x <- function(XX){
 #' @examples
 #' x = matrix(rnorm(100*5, 0, 1),100,1)
 #' colnames(x) <- paste0("X",1:ncol(xx))
-#' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+#' y = matrix(2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
 #' colnames(y) <- "y"
 #' delta <- NULL
 #'
@@ -817,7 +817,47 @@ corr.pvalue <- function(x,y,delta,method="pearson",
 }
 
 
-## EXPORT
+#' Partial correlation, p-value and t-statistic associated with the regression between response y and a covariate x
+#' after adjustment for a covariate z.
+#'
+#' @param x (n by 1) matrix corresponding to a covariate vector where n is the sample size.
+#' @param y (n by 1) a matrix corresponding to the response variable. If \code{regression.type} is "cox",
+#' \code{y} contains the observed event times.
+#' @param z (n by 1) matrix of additional fixed covariate affecting response variable. Can be NULL.
+#' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
+#' @param delta (n by 1) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
+#' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
+#' @param regression.type a character indicator that is either "linear" for linear regression
+#' or "cox" for Cox proportional hazards regression. Default is "linear".
+#' @param method character indicating the type of correlation to compute. Default if "pearson"
+#' @param alternative character indicating whether the p-value is computed using one-sided or two-sided
+#' testing. Default is "two-sided".
+#' @param ttest.pvalue logical indicator. If TRUE, p-value for each covariate is computed from univariate
+#' linear/cox regression of the response on each covariate. If FALSE, the
+#' p-value is computed from correlation coefficients between the response and each covariate.
+#' Default is FALSE.
+#'
+#' @return
+#' \itemize{
+#'   \item \strong{p.value:}{p-value of the coefficient of x in the regression of y on x and z.}
+#'   \item \strong{estimate:}{Partial correlation between x and y after adjustment for z.}
+#'   \item \strong{t.stat:}{t-statistic with testing the significance of x in the regression
+#'   of y on x and z.}
+#' }
+#'
+#'
+#'
+#' @export
+#' @examples
+#' x = matrix(rnorm(100*5, 0, 1),100,1)
+#' colnames(x) <- paste0("X",1:ncol(xx))
+#' z = matrix(rbinom(100, 1, 0.5),100,1)
+#' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+#' colnames(y) <- "y"
+#' delta <- NULL
+#'
+#' output <- parcorr.pvalue(factor.z=TRUE,x,y,z,delta,regression.type="linear")
+#'
 #' @importFrom stats lm
 #' @importFrom survival coxph Surv
 parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternative="two.sided",ttest.pvalue=FALSE,regression.type){
