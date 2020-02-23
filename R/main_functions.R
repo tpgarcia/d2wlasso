@@ -15,7 +15,7 @@
 #' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
 #' @param z (n by 1) matrix of additional fixed covariate affecting response variable. This covariate should
 #' always be selected. Can be NULL.
-#' @param y (n by 1) a matrix corresponding the response variable. If \code{regression.type} is "cox",
+#' @param y (n by 1) a matrix corresponding to the response variable. If \code{regression.type} is "cox",
 #' \code{y} contains the observed event times.
 #' @param cox.delta (n by 1) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
 #' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
@@ -682,7 +682,24 @@ get.weight.fn <- function(weight_fn_type=c("identity","sqrt","inverse_abs","squa
 ## Function for making data frames for storing results ##
 #########################################################
 
-## EXPORT
+#' Matrix to store results for covariates x and vector response y.
+#'
+#' Forms a matrix that will be used to store regression results of response y on covariates x.
+#'
+#' @param xx (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
+#' @param yy (n by 1) a matrix corresponding to the response variable.
+#'
+#' @return (m by 1) matrix of zeroes
+#'
+#' @export
+#'
+#' @example
+#'
+#' xx = matrix(rnorm(100*5, 0, 1),100,5)
+#' colnames(xx) <- paste0("X",1:ncol(xx))
+#' yy = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+#' colnames(yy) <- "y"
+#' store.xy(xx,yy)
 store.xy <- function(XX,yy){
 	out <- as.data.frame(matrix(0,nrow=ncol(XX),ncol=ncol(yy)))
 	rownames(out) <- colnames(XX)
@@ -690,7 +707,21 @@ store.xy <- function(XX,yy){
 	return(out)
 }
 
-## EXPORT
+#' Matrix to store results for covariates x.
+#'
+#' Forms a matrix that will be used to store regression results of response y on covariates x.
+#'
+#' @param xx (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
+#'
+#' @return (m by 1) matrix of zeroes
+#'
+#' @export
+#'
+#' @example
+#'
+#' xx = matrix(rnorm(100*5, 0, 1),100,5)
+#' colnames(xx) <- paste0("X",1:ncol(xx))
+#' store.x(xx)
 store.x <- function(XX){
 	out <- as.data.frame(rep(0,ncol(XX)))
 	rownames(out) <- colnames(XX)
@@ -702,13 +733,47 @@ store.x <- function(XX){
 ## Functions to get partial correlation and its p-value #
 ##########################################################
 
-# When pearson correlation is 0 (because std. deviation is 0), I am setting
-# p-value  to 1.
-
-## EXPORT
+#' Pearson correlation, p-value and t-statistic associated with the regression between response y and a covariate x
+#'
+#' @param x (n by 1) matrix corresponding to a covariate vector where n is the sample size.
+#' @param y (n by 1) a matrix corresponding to the response variable. If \code{regression.type} is "cox",
+#' \code{y} contains the observed event times.
+#' @param delta (n by 1) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
+#' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
+#' @param regression.type a character indicator that is either "linear" for linear regression
+#' or "cox" for Cox proportional hazards regression. Default is "linear".
+#' @param method character indicating the type of correlation to compute. Default if "pearson"
+#' @param alternative character indicating whether the p-value is computed using one-sided or two-sided
+#' testing. Default is "two-sided".
+#' @param ttest.pvalue logical indicator. If TRUE, p-value for each covariate is computed from univariate
+#' linear/cox regression of the response on each covariate. If FALSE, the
+#' p-value is computed from correlation coefficients between the response and each covariate.
+#' Default is FALSE.
+#'
+#' @return
+#' \itemize{
+#'   \item \strong{p.value:}{p-value of the coefficient of x in the regression of y on x.}
+#'   \item \strong{estimate:}{Pearson correlation between x and y.}
+#'   \item \strong{t.stat:}{t-statistic with testing the significance of x in the regression
+#'   of y on x.}
+#' }
+#'
+#'
+#'
+#' @export
+#' @examples
+#' x = matrix(rnorm(100*5, 0, 1),100,1)
+#' colnames(x) <- paste0("X",1:ncol(xx))
+#' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+#' colnames(y) <- "y"
+#' delta <- NULL
+#'
+#' output <- corr.pvalue(x,y,delta,regression.type="linear")
+#'
 #' @importFrom stats lm
 #' @importFrom survival coxph Surv
-corr.pvalue <- function(x,y,delta,method="pearson",alternative="two.sided",ttest.pvalue=FALSE,regression.type){
+corr.pvalue <- function(x,y,delta,method="pearson",
+                        alternative="two.sided",ttest.pvalue=FALSE,regression.type){
     x <- as.numeric(x)
     y <- as.numeric(y)
     delta.use <- as.numeric(delta)
