@@ -7,7 +7,10 @@
 ####################################
 ####################################
 
-#' Implement structured variables selection with q-values
+#' Weigted lasso variable selection
+#'
+#' Performs variable selection with covariates multiplied by weights that direct which variables
+#' are likely to be associated with the response.
 #'
 #' @param x (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
 #' @param z (n by 1) matrix of additional fixed covariate affecting response variable. This covariate should
@@ -121,10 +124,11 @@
 #' @param qval.alpha scalar value used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
 #' The choice of \code{qval.alpha} indicates the cut-off for q-values used to obtain the result \code{threshold.selection}
 #' The result \code{threshold.selection} contains all covariates for which their q-value is less than \code{qval.alpha}.
-#' @param alpha.bh scalar value used when \code{weight.type} is "corr.bh.pvalue", "parcor.bh.pvalue".
-#' The choice of \code{alpha.bh} indicates the cut-off for Benjamini-Hochberg adjusted p-values
+#' @param alpha.bh scalar value used when \code{weight.type} is "corr.pvalue","corr.bh.pvalue",
+#' "parcor.pvalue", "parcor.bh.pvalue".
+#' The choice of \code{alpha.bh} indicates the cut-off for p-values
 #' used to obtain the result in \code{threshold.selection}.
-#' The result \code{threshold.selection} contains all covariates for which their Benjamini-Hochberg adjusted
+#' The result \code{threshold.selection} contains all covariates for which their
 #' p-value is less than \code{alpha.bh}.
 #' @param penalty.choice character that indicates the variable selection criterion. Options are "cv.mse" for
 #' the K-fold cross-validated mean squared prediction error, "mallows.cp" for the Mallow's Cp criterion which
@@ -155,32 +159,27 @@
 #' "exfrequency.kquartiles.partition.bic","exfrequency.ksorted.partition.aic","exfrequency.ksorted.partition.bic".
 #'  One of "both", "forward" or "backward". Default is "backward".
 #'
+#' @references
+#' Garcia, T.P. and M¨uller, S. (2016). Cox regression with exclusion frequency-based weights to
+#' identify neuroimaging markers relevant to Huntington’s disease onset. Annals of Applied Statistics, 10, 2130-2156.
+#'
+#' Garcia, T.P. and M¨uller, S. (2014). Influence of measures of significance-based weights in the weighted Lasso.
+#' Journal of the Indian Society of Agricultural Statistics (Invited paper), 68, 131-144.
+#'
+#' Garcia, T.P., Mueller, S., Carroll, R.J., Dunn, T.N., Thomas, A.P., Adams, S.H., Pillai, S.D., and Walzem, R.L.
+#' (2013). Structured variable selection with q-values. Biostatistics, DOI:10.1093/biostatistics/kxt012.
+#'
+#' Storey, J. D. and Tibshirani, R. (2003). Statistical significance for genomewide studies.
+#' Proceedings of the National Academy of Sciences 100, 9440-9445.
 #'
 #' @return
 #' \itemize{
-#'    \item \strong{qval:} {q-value as proposed in Storey and Tibshirani (2003)}
-#'    \item \strong{bh.pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
-#'    \item \strong{pval:} {p-value for each covariate}
-#'    \item \strong{out.cor:} {variable selection results for testing if a main covariate has an effect on the response variable, but NOT accounting for the additional fixed covariate z}
-#'    \item \strong{out.parcor:} {variable selection results for testing if a main covariate has an effect on the response variable, but AFTER accounting for the additional fixed covariate z}
-#'    \item \strong{out.benhoch.cor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values do not account for the additional fixed covariate z}
-#'    \item \strong{out.benhoch.parcor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values account for the additional fixed covariate z}
-#'    \item \strong{out.w:} {variable selection results from weighted lasso}
-#'    \item \strong{alpha:} {level of significance to compare with the q-values}
-#'    \item \strong{alpha.bh:} {level of significance to compare with the Benjamini-Hochberg adjusted p-values}
-#'    \item \strong{delta:} {the multiplier to the number of predictors in the penalized loss function for variable selection. The loss function is defined as: \code{ SSE/(sigma^2) - n + delta*p } where SSE denotes the residual sum of squares, sigma denotes the estimator of the model error variance, n is the sample size and p is the number of predictors in the selected model. }
-#'    \item \strong{cv.delta.w:} {the selected delta from the cross-validation for the weighted lasso with q-values}
-#'    \item \strong{cv.delta.adapt:} {the selected delta from the cross-validation for the adaptive lasso}
-#'    \item \strong{cv.out.w:} {the aggregated result of the cross-validation for the weighted lasso with q-values}
-#'    \item \strong{cv.out.adapt:} {the aggregated result of the cross-validation for the adaptive lasso}
-#'    \item \strong{w.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from random partitioning}
-#'    \item \strong{w.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from random partitioning}
-#'    \item \strong{w.kmeans.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from k-means partitioning}
-#'    \item \strong{w.kmeans.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from k-means partitioning}
-#'    \item \strong{w.kquart.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from k-quartile partitioning}
-#'    \item \strong{w.kquart.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from k-quartile partitioning}
-#'    \item \strong{w.sort.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from sorted partitioning}
-#'    \item \strong{w.sort.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from sorted partitioning}
+#'    \item \strong{weights:} {weights used in the weighted Lasso. Weights computed depend on \code{weight.type} selected.}
+#'    \item \strong{weighted.lasso.results:} {variable selection results from the LASSO when the covariates
+#'    are multiplied by weights as specified by \code{weight.type}.}
+#'    \item \strong{threshold.selection:} {variable selection results when weights are below a specified threshold.
+#'    Results are reported only when \code{weight.type} are "corr.pvalue","corr.bh.pvalue",
+#'    "corr.qvalue","parcor.pvalue","parcor.bh.pvalue","parcor.qvalue".}
 #' }
 #'
 #' @importFrom stats kmeans
