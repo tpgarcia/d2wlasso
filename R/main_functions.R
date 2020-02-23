@@ -14,21 +14,32 @@
 #' always be selected. Can be NULL.
 #' @param y (n by 1) a matrix corresponding the response variable. If \code{regression.type} is "cox",
 #' \code{y} contains the observed event times.
-#' @param cox.delta (n by K) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
+#' @param cox.delta (n by 1) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
 #' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
 #' @param factor.z logical. If TRUE, the fixed variable z is a factor variable.
 #' @param regression.type a character indicator that is either "linear" for linear regression
 #' or "cox" for Cox proportional hazards regression. Default is "linear".
 #' @param ttest.pvalue logical. If TRUE, p-value for each covariate is computed from univariate
 #' linear/cox regression of the response on each covariate. If FALSE, the
-#' p-value is computed from correlation coefficients. Default is FALSE.
+#' p-value is computed from correlation coefficients between the response and each covariate.
+#' Default is FALSE.
 #' @param q_opt_tuning_method indicates the method for choosing optimal tuning parameter
 #' in the q-value computation as proposed in Storey and Tibshirani (2003).
 #' One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).
-#' @param show.plots logical. If TRUE, figures are plotted. Default is FALSE.
-#' @param pi0.known logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.
+#' @param show.plots logical. If TRUE, figures associated with q-value computations as proposed in Storey
+#' and Tibshirani (2003) are plotted. These include the density histogram of original p-values,
+#' density histogram of the q-values, scatter plot of \eqn{\hat\pi} versus \eqn{\lambda} in the
+#' computation of q-values, and scatter plot of significant tests versus q-value cut-off.
+#' Default is FALSE.
+#' @param pi0.known logical.  If TRUE, the estimate of the
+#' true proportion of the null hypothesis in the computatio of q-values
+#' is set to the value of pi0.val which is given by the user.
+#' If FALSE, the estimate of the true proportion of the null hypothesis is
+#' computed by bootstrap or smoothing spline as proposed in Storey and Tibshirani (2003). Default is FALSE.
 #' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.known is TRUE. Default is 0.9.
-#' @param weight.type The weights to be used for the weighted lasso. One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor".
+#' @param weight.type The weights to be used for the weighted lasso. Options include
+#'
+#' One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor".
 #' "one" gives no weight. "t_val" gives weight of the inverse absolute t-statistics of the regression coefficients. "parcor" gives weight of the inverse absolute partial correlation between the main covariate and the response after accounting for z. "p_val" gives p-value of each predictor's coefficient as weights. "bhp_val" gives Benjamini-Hochberg adjusted p-value of each predictor's coefficient as weights. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
 #' @param weight_fn The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
 #' @param qval.alpha indicates cut-off for q-values (thresholding). That is, the covariate with q-value less than this cut-off is included in the model.
