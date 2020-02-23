@@ -37,8 +37,22 @@
 #' If FALSE, the estimate of the true proportion of the null hypothesis is
 #' computed by bootstrap or smoothing spline as proposed in Storey and Tibshirani (2003). Default is FALSE.
 #' @param pi0.val A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.known is TRUE. Default is 0.9.
-#' @param weight.type The weights to be used for the weighted lasso. Options include
+#' @param weight.type The weights to be used for the weighted lasso, where each covariate in \code{x}
+#' is multiplied by a scalar weight. Options include
+#' \itemize{
+#'   \item{one:}{The scalar weight is one.}
+#'   \item{corr.estimate:}{The scalar weight for covariate \eqn{x_j} is the Pearson correlation between
+#'   \eqn{x_k} and \eqn{y}. }
+#'   \item{corr.pvalue:}{The scalar weight for covariate \eqn{x_j} is the p-value of the coefficient of
+#'   \eqn{x_j} in the regression of y on \eqn{x_j} }
+#'   \item{corr.bh.pvalue:}{The scalar weight for covariate \eqn{x_j} is the Benjanmini-Hocbherg adjusted p-value
+#'   from \code{corr.pvalue}.}
+#'   \item{corr.qvalue:}{The scalar weight for covariate \eqn{x_j} is the q-value transform of the p-value
+#'   from \code{corr.pvalue}.}
+#'   \item{corr.tstat:}{The scalar weight for covariate \eqn{x_j} is the t-statistic associated with testing
+#'   the significance of \eqn{x_j} in the regression of y on \eqn{x_j}.}
 #'
+#' }
 #' One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor".
 #' "one" gives no weight. "t_val" gives weight of the inverse absolute t-statistics of the regression coefficients. "parcor" gives weight of the inverse absolute partial correlation between the main covariate and the response after accounting for z. "p_val" gives p-value of each predictor's coefficient as weights. "bhp_val" gives Benjamini-Hochberg adjusted p-value of each predictor's coefficient as weights. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.
 #' @param weight_fn The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".
@@ -249,7 +263,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
             }
 
         } else if(weight.type=="corr.estimate"){
-            ## partial correlations
+            ##  correlation between y and x_k
             weights <- cor.out$estimate
         } else if(weight.type=="corr.bh.pvalue"){
             ## Benjamini-Hochberg adjusted p-values from y=z + \beta_k * x_k
