@@ -1850,45 +1850,23 @@ weighted.lasso.computations <- function(weights,weight_fn=function(x){x},respons
 
 #' Cross-validation function to select regularization parameter delta in the penalized loss criterion.
 #'
-#' Performs variable selection with covariates multiplied by weights that direct which variables
-#' are likely to be associated with the response.
-#'
-#' @param weights (m x 1) matrix that we use to multiply the m-covariates by.
-#' @param weight_fn A user-defined function to be applied to the weights for the weighted lasso.
-#' Default is an identify function.
-#' @param response a list containing: yy and delta. yy is an (n by 1) matrix corresponding to the response variable. If \code{regression.type} is "cox",
-#' \code{y} contains the observed event times. delta is an (n by 1) matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
-#' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
-#' @param z (n by 1) matrix of additional fixed covariate affecting response variable. This covariate will
-#' always be selected. Can be NULL.
+#' @param y1 (n by 1) matrix corresponding to the response variable.
+#' @param X1 (n by L) matrix of main covariates where n is the sample size and L=m if z is NULL,
+#' and L= m+1 otherwise. Here, m refers to the number of x-covariates.
 #' @param z.names character denoting the column name of the z-covariate if z is not NULL. Can be NULL.
-#' @param XX (n by K) matrix of main covariates where n is the sample size and K=m if z is NULL,
-#' and K= m+1 otherwise. Here, m refers to the number of x-covariates.
-#' @param penalty.choice character that indicates the variable selection criterion. Options are "cv.mse" for
-#' the K-fold cross-validated mean squared prediction error, "penalized.loss" for the penalized loss criterion which
-#' requires specification of the penalization parameter \code{penalized.loss.delta},
-#' "cv.penalized.loss" for the K-fold cross-validated criterion to determine delta in the penalized loss
-#' criterion, and "deviance.criterion" for optimizing the
-#' Cox proportional hazards deviance (only available when \code{regression.type} is "cox".) Defalt is "penalized.loss".
-#' @param show.plots logical indicator. If TRUE and \code{penalty.type} is "penalized.loss", a plot of the penalized
-#' loss criterion versus steps in the LARS algorithm of Efron et al (2004).
-#' @param delta scalar to indicate the choice of the penalization parameter delta in the
-#' penalized loss criterion when \code{penalty.choice} is "penalized.loss".
+#' @param K scalar denoting the number of folds for cross-validation
+#' when \code{penalty.choice} is "cv.mse" or "cv.penalized.loss". Default is 10.
 #' @param est.MSE character that indicates how the mean squared error is estimated in the penalized loss
 #' criterion when \code{penalty.choice} is "penalized.loss" or "cv.penalized.loss". Options are
 #' "est.var" which means the MSE is sd(y) * sqrt(n/(n-1)) where n is the sample size, and
 #' "step" which means we use the MSE from forward stepwise regression with AIC as the selection criterion. Default
 #' is "est.var".
-#' @param cv.folds scalar denoting the number of folds for cross-validation
-#' when \code{penalty.choice} is "cv.mse" or "cv.penalized.loss". Default is 10.
-#'
+#' @param show.plots logical indicator. If TRUE and \code{penalty.type} is "penalized.loss", a plot of the penalized
+#' loss criterion versus steps in the LARS algorithm of Efron et al (2004).
 #'
 #' @references
 #' Efron, B., Hastie, T., Johnstone, I. AND Tibshirani, R. (2004). Least angle regression.
 #' Annals of Statistics 32, 407–499.
-#'
-#' Garcia, T.P. and M¨uller, S. (2016). Cox regression with exclusion frequency-based weights to
-#' identify neuroimaging markers relevant to Huntington’s disease onset. Annals of Applied Statistics, 10, 2130-2156.
 #'
 #' Garcia, T.P. and M¨uller, S. (2014). Influence of measures of significance-based weights in the weighted Lasso.
 #' Journal of the Indian Society of Agricultural Statistics (Invited paper), 68, 131-144.
@@ -1896,23 +1874,13 @@ weighted.lasso.computations <- function(weights,weight_fn=function(x){x},respons
 #' Garcia, T.P., Mueller, S., Carroll, R.J., Dunn, T.N., Thomas, A.P., Adams, S.H., Pillai, S.D., and Walzem, R.L.
 #' (2013). Structured variable selection with q-values. Biostatistics, DOI:10.1093/biostatistics/kxt012.
 #'
-#' Storey, J. D. and Tibshirani, R. (2003). Statistical significance for genomewide studies.
-#' Proceedings of the National Academy of Sciences 100, 9440-9445.
-#'
 #' @return
 #' \itemize{
-#'   \item \strong{interest:}{(m by 1) matrix where the kth entry is 1 if x_k is selected to be
-#'   in the model, and 0 if not.}
-#'   \item \strong{sign.interest:}{(m by 1) matrix where the kth entry is 1 if the coefficient in
-#'   front of x_k is positive, and -1 if not.}
-#'   \item \strong{delta.out:}{the penalization parameter delta used in the penalized loss criterion.
-#'   When \code{penalty.choice} is "penalized.loss", \code{delta.out} is the same as \code{delta}.
-#'   When \code{penalty.choice} is "cv.penalized.loss", \code{delta.out} is the resulting delta-value
-#'   obtained from the k-fold cross validation.}
+#'   \item \strong{predict.out:}{output from LARS algorithm of Efron et al (2004).}
+#'   \item \strong{delta.out:}{the penalization parameter delta obtained from K-fold cross validation.}
 #' }
 #'
 #' @export
-
 cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("est.var","step")[1],show.plots){
     ## sequence of delta values
     delta.cv <- seq(0.75,2,by=0.1)
