@@ -1,12 +1,32 @@
 Package: d2wlasso
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Structured variable selection with weighted lasso
+Version: 1.1.1.9001
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Rakheon",
+           family = "Kim",
            role = c("aut", "cre"),
-           email = "first.last@example.com")
-Description: What the package does (one paragraph).
-License: What license it uses
+           email = "rkim@stat.tamu.edu")
+    person(given = "Tanya",
+           family = "Garcia",
+           role = c("aut", "cre"),
+           email = "tpgarcia16@gmail.com")
+Description: Procedures for weighted lasso variable selection where weights help to direct the variable selection procedure. 
+    Weights are determined from results of simpler regressions between the outcome variable and each potential predictor variable.
+    Weights implemented in this package are based on q-values, partial correlation coefficients, t-statistics 
+    of regression coefficients, and exclusion frequency statistics.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+RoxygenNote: 7.0.2
+Depends: R (>= 3.0.1), stats
+Imports:
+ glmnet,
+ lars,
+ survival
+Collate:
+ d2wlasso.R
+ main_functions.R
+Suggests:
+ testthat
+
+
