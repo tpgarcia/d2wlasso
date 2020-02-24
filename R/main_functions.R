@@ -120,7 +120,7 @@
 #' and Tibshirani (2003). If \code{show.plots} is TRUE, we display the density histogram of original p-values,
 #' density histogram of the q-values, scatter plot of \eqn{\hat\pi} versus \eqn{\lambda} in the
 #' computation of q-values, and scatter plot of significant tests versus q-value cut-off. When
-#' \code{penalty.type} is "penalized.loss", \code{show.plots} refers to plots associated with the
+#' \code{penalty.choice} is "penalized.loss", \code{show.plots} refers to plots associated with the
 #' penalized loss criterion. If TRUE, a plot of the penalized loss criterion
 #' versus steps in the LARS algorithm of Efron et al (2004) is displayed. Default of
 #' \code{show.plots} is FALSE.
@@ -207,23 +207,33 @@
 #' dwl3 = d2wlasso(x,z,y,weight.type="parcor.bh.pvalue")
 #' dwl4 = d2wlasso(x,z,y,weight.type="parcor.qvalue",mult.cv.folds=100)
 #' dwl5 = d2wlasso(x,z,y,weight.type="exfrequency.random.partition.aic")
+#' dwl6 = d2wlasso(x,z,y,weight.type="exfrequency.kmeans.partition.aic")
+#' dwl7 = d2wlasso(x,z,y,weight.type="exfrequency.kquartiles.partition.aic")
+#' dwl8 = d2wlasso(x,z,y,weight.type="exfrequency.ksorted.partition.aic")
 #'
 #' ## Cox model
 #' x = matrix(rnorm(100*5, 0, 1),100,5)
 #' z = matrix(rbinom(100, 1, 0.5),100,1)
 #' y = matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
 #' cox.delta = matrix(1,nrow=length(y),ncol=1)
-#' dwl0.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox")
+#' dwl0.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox",penalty.choice="cv.mse")
 #' dwl1.cox = d2wlasso(x,z=NULL,y,cox.delta,
-#'   regression.type="cox",weight.type="corr.pvalue")
+#'   regression.type="cox",weight.type="corr.pvalue",penalty.choice="cv.mse")
 #' dwl2.cox = d2wlasso(x,z,y,cox.delta,
-#'   regression.type="cox",weight.type="parcor.qvalue")
+#'   regression.type="cox",weight.type="parcor.qvalue",penalty.choice="cv.mse")
 #' dwl3.cox = d2wlasso(x,z,y,cox.delta,
-#'   regression.type="cox",weight.type="parcor.bh.pvalue")
+#'   regression.type="cox",weight.type="parcor.bh.pvalue",penalty.choice="cv.mse")
 #' dwl4.cox = d2wlasso(x,z,y,cox.delta,
-#'   regression.type="cox",weight.type="parcor.qvalue",mult.cv.folds=100)
-#' dwl5.cox = d2wlasso(x,z,y,cox.delta,
-#'   regression.type="cox",weight.type="exfrequency.random.partition.aic")
+#'   regression.type="cox",weight.type="parcor.qvalue",
+#'   mult.cv.folds=100,penalty.choice="cv.mse")
+#' dwl5.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox",
+#'   weight.type="exfrequency.random.partition.aic",penalty.choice="cv.mse")
+#' dwl6.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox",
+#'   weight.type="exfrequency.kmeans.partition.aic",penalty.choice="cv.mse")
+#' dwl7.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox",
+#'   weight.type="exfrequency.kquartiles.partition.aic",penalty.choice="cv.mse")
+#' dwl8.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox",
+#'   weight.type="exfrequency.ksorted.partition.aic",penalty.choice="cv.mse")
 
 d2wlasso <- function(x,z,y,cox.delta=NULL,
                      factor.z=TRUE,
@@ -271,9 +281,13 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
         stop("x must be a n x m matrix.")
     }
 
-    if(!is.matrix(z) | ncol(z)>1){
+    if(!is.null(z)){
+        if(!is.matrix(z) | ncol(z)>1){
         stop("z must be a n x 1 matrix.")
+        }
     }
+
+
 
     if(!is.matrix(y) | ncol(y)>1){
         stop("y must be a n x 1 matrix.")
@@ -598,7 +612,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
         }
 
         weights <- apply(weight.boot,1,sum)/nboot
-        weights <- t(data.frame(weights))
+        weights <- data.frame(weights)
     }
 
     ################################
@@ -1543,7 +1557,7 @@ make.center <- function(x){
 #' "cv.penalized.loss" for the K-fold cross-validated criterion to determine delta in the penalized loss
 #' criterion, and "deviance.criterion" for optimizing the
 #' Cox proportional hazards deviance (only available when \code{regression.type} is "cox".) Defalt is "penalized.loss".
-#' @param show.plots logical indicator. If TRUE and \code{penalty.type} is "penalized.lasso",
+#' @param show.plots logical indicator. If TRUE and \code{penalty.choice} is "penalized.lasso",
 #' a plot of the penalized lasso criterion versus steps in the LARS algorithm of Efron et al (2004).
 #' @param delta scalar to indicate the choice of the penalization parameter delta in the
 #' penalized loss criterion when \code{penalty.choice} is "penalized.loss".
@@ -1619,8 +1633,11 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
     if(!is.null(z)){
         wts <- c(1e-5,weights.use)
     } else {
-        wts <- c(1,weights.use)
+        wts <- c(weights.use)
     }
+
+    ##print(dim(X1))
+    ##print(length(wts))
 
     X1 <- X1 %*% diag(1/wts)
 
@@ -1672,7 +1689,7 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
         ##########################
         ## Cox Regression LASSO ##
         ##########################
-        if(is.null(z)){
+        if(!is.null(z)){
             penalty <- c(0,rep(1,ncol(X1)-ncol(z)))
         } else {
             penalty <- rep(1,ncol(X1))
@@ -1686,7 +1703,7 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
             wLasso.cv <- cv.glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,penalty.factor=penalty)
             lambda.opt <- wLasso.cv$lambda.min
 
-        } else if(penalty.choice=="cv.penalized.loss" | "penalized.loss"){
+        } else if(penalty.choice=="cv.penalized.loss" | penalty.choice == "penalized.loss"){
             ## not used
             stop("This method is not implemented for the Cox model.")
         } else if(penalty.choice=="deviance.criterion"){
@@ -1749,7 +1766,7 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
 #' "cv.penalized.loss" for the K-fold cross-validated criterion to determine delta in the penalized loss
 #' criterion, and "deviance.criterion" for optimizing the
 #' Cox proportional hazards deviance (only available when \code{regression.type} is "cox".) Defalt is "penalized.loss".
-#' @param show.plots logical indicator. If TRUE and \code{penalty.type} is "penalized.loss", a plot of the penalized
+#' @param show.plots logical indicator. If TRUE and \code{penalty.choice} is "penalized.loss", a plot of the penalized
 #' loss criterion versus steps in the LARS algorithm of Efron et al (2004).
 #' @param delta scalar to indicate the choice of the penalization parameter delta in the
 #' penalized loss criterion when \code{penalty.choice} is "penalized.loss".
@@ -1856,7 +1873,7 @@ weighted.lasso.computations <- function(weights,weight_fn=function(x){x},respons
 #' "est.var" which means the MSE is sd(y) * sqrt(n/(n-1)) where n is the sample size, and
 #' "step" which means we use the MSE from forward stepwise regression with AIC as the selection criterion. Default
 #' is "est.var".
-#' @param show.plots logical indicator. If TRUE and \code{penalty.type} is "penalized.loss", a plot of the penalized
+#' @param show.plots logical indicator. If TRUE and \code{penalty.choice} is "penalized.loss", a plot of the penalized
 #' loss criterion versus steps in the LARS algorithm of Efron et al (2004).
 #'
 #' @references
@@ -1939,7 +1956,7 @@ lasso.procedure <- function(y1,X1){
 	wLasso.out <-  lars::lars(X1, y1, type = c("lasso"),
                 trace = FALSE, normalize = FALSE, intercept = FALSE,use.Gram=use.Gram)
 
-	list(wLasso.out=wLasso.out)
+	return(wLasso.out)
 }
 
 #' @importFrom lars predict.lars
