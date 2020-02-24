@@ -48,9 +48,9 @@ or "cox" for Cox proportional hazards regression. Default is "linear".}
 Pearson correlation, p-value and t-statistic associated with the regression between response y and a covariate x
 }
 \examples{
-x = matrix(rnorm(100*5, 0, 1),100,1)
+x = matrix(rnorm(100, 0, 1),100,1)
 colnames(x) <- paste0("X",1:ncol(x))
-y = matrix(2*x+ rnorm(100, 0, 1), 100)
+y = matrix(2*x[,1]+ rnorm(100, 0, 1), 100)
 colnames(y) <- "y"
 delta <- NULL
 

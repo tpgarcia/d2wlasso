@@ -54,15 +54,3 @@ or "cox" for Cox proportional hazards regression. Default is "linear".}
 Correlation, p-value and t-statistic associated with the regression between response y and a covariate x
 after potential adjustment for a covariate z.
 }
-\examples{
-x = matrix(rnorm(100*5, 0, 1),100,1)
-colnames(x) <- paste0("X",1:ncol(x))
-z = matrix(rbinom(100, 1, 0.5),100,1)
-y = matrix(z[,1] + 2*x + rnorm(100, 0, 1), 100)
-colnames(y) <- "y"
-delta <- NULL
-response <- list(yy=y,delta=delta)
-
-output <- correlations(factor.z=TRUE,x,z,response, partial=TRUE,regression.type="linear")
-
-}

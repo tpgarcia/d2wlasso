@@ -614,7 +614,7 @@ d2wlasso <- function(x,z,y,cox.delta=NULL,
     ##                                                        ##
     ############################################################
 
-    if(mult.cv.folds > 0 & (penalty.choice=="cv.penalized.loss" | penalty.choice="cv.mse")){
+    if(mult.cv.folds > 0 & (penalty.choice=="cv.penalized.loss" | penalty.choice=="cv.mse")){
         lasso.w <-0
 
         for(v in 1:mult.cv.folds){
@@ -777,9 +777,9 @@ store.x <- function(XX){
 #'
 #' @export
 #' @examples
-#' x = matrix(rnorm(100*5, 0, 1),100,1)
+#' x = matrix(rnorm(100, 0, 1),100,1)
 #' colnames(x) <- paste0("X",1:ncol(x))
-#' y = matrix(2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+#' y = matrix(2*x[,1]+ rnorm(100, 0, 1), 100)
 #' colnames(y) <- "y"
 #' delta <- NULL
 #'
@@ -864,10 +864,10 @@ corr.pvalue <- function(x,y,delta,method="pearson",
 #'
 #' @export
 #' @examples
-#' x = matrix(rnorm(100*5, 0, 1),100,1)
+#' x = matrix(rnorm(100, 0, 1),100,1)
 #' colnames(x) <- paste0("X",1:ncol(x))
 #' z = matrix(rbinom(100, 1, 0.5),100,1)
-#' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+#' y = matrix(z[,1] + 2*x[,1] + rnorm(100, 0, 1), 100)
 #' colnames(y) <- "y"
 #' delta <- NULL
 #'
@@ -982,16 +982,6 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
 #'
 #'
 #' @export
-#' @examples
-#' x = matrix(rnorm(100*5, 0, 1),100,1)
-#' colnames(x) <- paste0("X",1:ncol(x))
-#' z = matrix(rbinom(100, 1, 0.5),100,1)
-#' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
-#' colnames(y) <- "y"
-#' delta <- NULL
-#' response <- list(yy=y,delta=delta)
-#'
-#' output <- correlations(factor.z=TRUE,x,z,response, partial=TRUE,regression.type="linear")
 #'
 correlations <- function(factor.z,x,z,response,partial=FALSE,ttest.pvalue=FALSE,regression.type){
 
@@ -1663,7 +1653,7 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
 
             ## final best descriptive model
             s <- NULL
-            predict.out <- predict(wLasso.out, X1,s=bestindex, type = "coefficients", mode="step")
+            predict.out <- lars::predict.lars(wLasso.out, X1,s=bestindex, type = "coefficients", mode="step")
             delta.out <- delta
 
         } else if(penalty.choice=="cv.penalized.loss"){
@@ -1952,6 +1942,7 @@ lasso.procedure <- function(y1,X1){
 	list(wLasso.out=wLasso.out)
 }
 
+#' @importFrom lars predict.lars
 penalized.loss.criterion <- function(wLasso.out,y1,X1,z.names,
                                delta,
                                est.MSE=c("est.var","step")[1],
@@ -1964,8 +1955,8 @@ penalized.loss.criterion <- function(wLasso.out,y1,X1,z.names,
     RSS = NULL
 
     for (i in 1:s){
-        RSS[i] = sum((y1-predict(wLasso.out, X1, s=i, type = c("fit"))$fit)**2)
-        p.pre = predict(wLasso.out, X1, s=i, type = c("coefficients"))$coefficients
+        RSS[i] = sum((y1-lars::predict.lars(wLasso.out, X1, s=i, type = c("fit"))$fit)**2)
+        p.pre = lars::predict.lars(wLasso.out, X1, s=i, type = c("coefficients"))$coefficients
         p.pos = c(p.pos,length(p.pre[abs(p.pre)>0]))
     }
 
@@ -1996,7 +1987,7 @@ penalized.loss.criterion <- function(wLasso.out,y1,X1,z.names,
 
 
     ## final best descriptive model
-    predict.out <- predict(wLasso.out, X1, s=p.min, type = c("coefficients"))
+    predict.out <- lars::predict.lars(wLasso.out, X1, s=p.min, type = c("coefficients"))
 
     if(show.plots==TRUE){
         ##postscript(paste(file,"_lasso1.eps",sep=""))
