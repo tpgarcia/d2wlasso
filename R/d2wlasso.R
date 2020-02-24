@@ -1,11 +1,12 @@
 #' d2wlasso package
 #'
 #' This package provides functions to perform variable selection with weighted lasso for both linear regression
-#' and the Cox proportional hazards regression. The weights are chosen to direct the variable selection procedure so that covariates that are highly
-#' associated with the response are likely to be selected and covariates that weakly associated with the response
+#' and the Cox proportional hazards regression. The weights are chosen to direct the variable selection procedure
+#' so that covariates that are highly
+#' associated with the response are likely to be selected and covariates that are weakly associated with the response
 #' are less likely to be selected.  Association between the response and the covariates is based on
 #' results from simpler linear/Cox regressions between the response and each covariate, and include, for example,
-#' q-values, partial correlation coefficients, and t-statistics of regression coefficients.
+#' q-values, partial correlation coefficients, t-statistics of regression coefficients, and exclusion frequency statistics.
 #'
 #'
 #'@references

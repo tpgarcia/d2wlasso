@@ -12,8 +12,8 @@ Authors@R:
            email = "tpgarcia16@gmail.com")
 Description: Procedures for weighted lasso variable selection where weights help to direct the variable selection procedure. 
     Weights are determined from results of simpler regressions between the outcome variable and each potential predictor variable.
-    Weights implemented in this package are based on q-values, partial correlation coefficients, and
-    Benjamini-Hochberg adjusted p-values.
+    Weights implemented in this package are based on q-values, partial correlation coefficients, t-statistics 
+    of regression coefficients, and exclusion frequency statistics.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
