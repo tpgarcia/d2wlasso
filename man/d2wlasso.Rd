@@ -29,10 +29,10 @@ d2wlasso(
   pi0.known = FALSE,
   pi0.val = 0.9,
   penalty.choice = c("cv.mse", "cv.penalized.loss", "penalized.loss",
-    "deviance.criterion")[1],
+    "deviance.criterion")[3],
   est.MSE = c("est.var", "step")[1],
   cv.folds = 10,
-  mult.cv.folds = 100,
+  mult.cv.folds = 0,
   penalized.loss.delta = 2,
   nboot = 100,
   k.split = 4,
@@ -45,10 +45,10 @@ d2wlasso(
 \item{z}{(n by 1) matrix of additional fixed covariate affecting response variable. This covariate should
 always be selected. Can be NULL.}
 
-\item{y}{(n by 1) a matrix corresponding the response variable. If \code{regression.type} is "cox",
+\item{y}{(n by 1) a matrix corresponding to the response variable. If \code{regression.type} is "cox",
 \code{y} contains the observed event times.}
 
-\item{cox.delta}{(n by K) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
+\item{cox.delta}{(n by 1) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
 survival event is observed, 0 denotes the survival event is censored). Can be NULL.}
 
 \item{factor.z}{logical. If TRUE, the fixed variable z is a factor variable.}
@@ -56,72 +56,174 @@ survival event is observed, 0 denotes the survival event is censored). Can be NU
 \item{regression.type}{a character indicator that is either "linear" for linear regression
 or "cox" for Cox proportional hazards regression. Default is "linear".}
 
-\item{weight.type}{The weights to be used for the weighted lasso. One of "one","t_val","parcor","p_val","bhp_val","adapt","q_cor" or "q_parcor".
-"one" gives no weight. "t_val" gives weight of the inverse absolute t-statistics of the regression coefficients. "parcor" gives weight of the inverse absolute partial correlation between the main covariate and the response after accounting for z. "p_val" gives p-value of each predictor's coefficient as weights. "bhp_val" gives Benjamini-Hochberg adjusted p-value of each predictor's coefficient as weights. "adapt" gives adaptive lasso weights, that is, the inverse of the absolute value of regression coefficients. "q_cor" gives weights set to q-values BEFORE taking into account diet. "q_parcor" gives weights set to q-values AFTER taking into account diet.}
+\item{weight.type}{Character value denoting which weights to be used for the weighted lasso, where each covariate in \code{x}
+is multiplied by a scalar weight. Options include
+\itemize{
+  \item{one:}{The scalar weight is one.}
+  \item{corr.estimate:}{The scalar weight for covariate \eqn{x_j} is the Pearson correlation between
+  \eqn{x_j} and \eqn{y}. }
+  \item{corr.pvalue:}{The scalar weight for covariate \eqn{x_j} is the p-value of the coefficient of
+  \eqn{x_j} in the regression of \eqn{y} on \eqn{x_j} }
+  \item{corr.bh.pvalue:}{The scalar weight for covariate \eqn{x_j} is the Benjanmini-Hocbherg adjusted p-value
+  from \code{corr.pvalue}.}
+  \item{corr.qvalue:}{The scalar weight for covariate \eqn{x_j} is the q-value transform of the p-value
+  from \code{corr.pvalue}.}
+  \item{corr.tstat:}{The scalar weight for covariate \eqn{x_j} is the t-statistic associated with testing
+  the significance of \eqn{x_j} in the regression of \eqn{y} on \eqn{x_j}.}
+  \item{parcor.estimate:}{The scalar weight for covariate \eqn{x_j} is the partial correlation between
+  \eqn{x_j} and \eqn{y} after adjustment for \eqn{z}. }
+  \item{parcor.pvalue:}{The scalar weight for covariate \eqn{x_j} is the p-value of the coefficient of
+  \eqn{x_j} in the regression of \eqn{y} on \eqn{z} and \eqn{x_j} }
+  \item{parcor.bh.pvalue:}{The scalar weight for covariate \eqn{x_j} is the Benjanmini-Hocbherg adjusted p-value
+  from \code{parcor.pvalue}.}
+  \item{parcor.qvalue:}{The scalar weight for covariate \eqn{x_j} is the q-value transform of the p-value
+  from \code{parcor.pvalue}.}
+  \item{parcor.tstat:}{The scalar weight for covariate \eqn{x_j} is the t-statistic associated with testing
+  the significance of \eqn{x_j} in the regression of \eqn{y} on \eqn{z} and \eqn{x_j}.}
+  \item{exfrequency.random.partition.aic:}{The scalar weight for covariate \eqn{x_j} is an exclusion frequency.
+  The exclusion frequency is obtained as follows: we first partition the covariates into \code{k.split}
+  random groups, and we apply a stepwise linear/Cox regression of the response on each partition
+  set of covariate. The final model is selected using an AIC criterion, and we track if \eqn{x_j} is
+  excluded from the final model. We repeat
+  this procedure \code{nboot} times and the exclusion frequency is the average number of times
+  \eqn{x_j} is excluded.}
+  \item{exfrequency.random.partition.bic:}{The scalar weight for covariate \eqn{x_j} is computed
+  as in exfrequency.random.partition.aic, except that the final model within each stepwise regression
+  is selected using a BIC criterion.}
+  \item{exfrequency.kmeans.partition.aic:}{The scalar weight for covariate \eqn{x_j} is an exclusion frequency.
+  The exclusion frequency is obtained as follows: we apply ridge regression of the response on all covariates and
+  obtain ridge regression coefficients for each covariate.
+  We then partitioned the covariates into \code{k.split}
+  groups using a K-means criterion on the ridge regression coefficients, and we applied
+  a stepwise linear/Cox regression of the response on each partition
+  set of covariate. The final model is selected using an AIC criterion, and we track if \eqn{x_j} is
+  excluded from the final model. We repeat
+  this procedure \code{nboot} times and the exclusion frequency is the average number of times
+  \eqn{x_j} is excluded.}
+  \item{exfrequency.kmeans.partition.bic:}{The scalar weight for covariate \eqn{x_j} is computed
+  as in exfrequency.kmeans.partition.aic, except that the final model within each stepwise regression
+  is selected using a BIC criterion.}
+  \item{exfrequency.kquartile.partition.aic:}{The scalar weight for covariate \eqn{x_j} is an exclusion frequency.
+  The exclusion frequency is obtained as follows: we apply ridge regression of the response on all covariates and
+  obtain ridge regression coefficients for each covariate.
+  We then partitioned the covariates into \code{k.split}
+  groups using k-quantiles of the ridge regression coefficients, and we applied a stepwise linear/Cox regression of the response on each partition
+  set of covariate. The final model is selected using an AIC criterion, and we track if \eqn{x_j} is
+  excluded from the final model. We repeat
+  this procedure \code{nboot} times and the exclusion frequency is the average number of times
+  \eqn{x_j} is excluded.}
+  \item{exfrequency.kquartiles.partition.bic:}{The scalar weight for covariate \eqn{x_j} is computed
+  as in exfrequency.kquartiles.partition.aic, except that the final model within each stepwise regression
+  is selected using a BIC criterion.}
+  \item{exfrequency.ksorted.partition.aic:}{The scalar weight for covariate \eqn{x_j} is an exclusion frequency.
+  The exclusion frequency is obtained as follows: we apply ridge regression of the response on all covariates and
+  obtain ridge regression coefficients for each covariate.
+  We then partitioned the covariates into \code{k.split}
+  groups by first ordering the ridge regression coefficients in descending order
+  and splitting them into \code{k.split} groups. We then applied a stepwise linear/Cox regression of the response on each partition
+  set of covariate. The final model is selected using an AIC criterion, and we track if \eqn{x_j} is
+  excluded from the final model. We repeat
+  this procedure \code{nboot} times and the exclusion frequency is the average number of times
+  \eqn{x_j} is excluded.}
+  \item{exfrequency.ksorted.partition.bic:}{The scalar weight for covariate \eqn{x_j} is computed
+  as in exfrequency.ksorted.partition.aic, except that the final model within each stepwise regression
+  is selected using a BIC criterion.}
+}}
 
-\item{weight_fn}{The function applied to the weights for the weighted lasso. One of "identity","sqrt","inverse_abs","square". "identity" is the identity function, "sqrt" is the square root function, "inverse_abs" is the inverse of the absolute value and "square" is the square function. Not used if wt is set to "adapt". Default is "identity".}
+\item{weight_fn}{A user-defined function to be applied to the weights for the weighted lasso.
+Default is an identify function.}
 
-\item{ttest.pvalue}{logical. If TRUE, p-value for each covariate is computed from univariate
+\item{ttest.pvalue}{logical indicator used when \code{weight.type} is "corr.pvalue","corr.bh.pvalue", "corr.qvalue",
+"parcor.pvalue","parcor.bh.pvalue","parcor.qvalue". If TRUE, p-value for each covariate is computed from univariate
 linear/cox regression of the response on each covariate. If FALSE, the
-p-value is computed from correlation coefficients. Default is FALSE.}
+p-value is computed from correlation coefficients between the response and each covariate.
+Default is FALSE.}
 
-\item{q_opt_tuning_method}{indicates the method for choosing optimal tuning parameter
-in the q-value computation as proposed in Storey and Tibshirani (2003).
-One of "bootstrap" or "smoother". Default is "smoother" (smoothing spline).}
+\item{q_opt_tuning_method}{character indicator used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+Options are "bootstrap" or "smoother" to specify how the optimal tuning parameter is obtained when computing
+q-values from Storey and Tibshirani (2003). Default is "smoother" (smoothing spline).}
 
-\item{qval.alpha}{indicates cut-off for q-values (thresholding). That is, the covariate with q-value less than this cut-off is included in the model.}
+\item{qval.alpha}{scalar value used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+The choice of \code{qval.alpha} indicates the cut-off for q-values used to obtain the result \code{threshold.selection}
+The result \code{threshold.selection} contains all covariates for which their q-value is less than \code{qval.alpha}.}
 
-\item{alpha.bh}{indicates cut-off for Benjamini-Hochberg adjusted p-value (thresholding). That is, the covariate with BH-adjusted p-value less than this cut-off is included in the model.}
+\item{alpha.bh}{scalar value used when \code{weight.type} is "corr.pvalue","corr.bh.pvalue",
+"parcor.pvalue", "parcor.bh.pvalue".
+The choice of \code{alpha.bh} indicates the cut-off for p-values
+used to obtain the result in \code{threshold.selection}.
+The result \code{threshold.selection} contains all covariates for which their
+p-value is less than \code{alpha.bh}.}
 
-\item{robust}{indicates whether it is desired to make the estimate more robust for small p-values.}
+\item{robust}{logical indicator used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+If TRUE, q-values computed as in Storey and Tibshirani (2003)
+are robust for small p-values.}
 
-\item{show.plots}{logical. If TRUE, figures are plotted. Default is FALSE.}
+\item{show.plots}{logical indicator. When \code{weight.type} is "corr.qvalue" or "parcor.qvalue",
+\code{show.plots} refers to figures associated with q-value computations as proposed in Storey
+and Tibshirani (2003). If \code{show.plots} is TRUE, we display the density histogram of original p-values,
+density histogram of the q-values, scatter plot of \eqn{\hat\pi} versus \eqn{\lambda} in the
+computation of q-values, and scatter plot of significant tests versus q-value cut-off. When
+\code{penalty.type} is "penalized.loss", \code{show.plots} refers to plots associated with the
+penalized loss criterion. If TRUE, a plot of the penalized loss criterion
+versus steps in the LARS algorithm of Efron et al (2004) is displayed. Default of
+\code{show.plots} is FALSE.}
 
-\item{pi0.known}{logical. If TRUE, the estimate of the true proportion of the null hypothesis is set to the value of pi0.val which is given by the user. If FALSE, the estimate of the true proportion of the null hypothesis is computed by bootstrap or smoothing spline. Default is FALSE.}
+\item{pi0.known}{logical indicator used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+If TRUE, when computing q-values, the estimate of the
+true proportion of the null hypothesis is set to the value of pi0.val given by the user.
+If FALSE, the estimate of the true proportion of the null hypothesis is
+computed by bootstrap or smoothing spline as proposed in Storey and Tibshirani (2003). Default is FALSE.}
 
-\item{pi0.val}{A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.known is TRUE. Default is 0.9.}
+\item{pi0.val}{scalar used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
+A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.known is TRUE. Default is 0.9.}
 
-\item{penalty.choice}{Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.}
+\item{penalty.choice}{character that indicates the variable selection criterion. Options are "cv.mse" for
+the K-fold cross-validated mean squared prediction error, "penalized.loss" for the penalized loss criterion which
+requires specification of the penalization parameter \code{penalized.loss.delta},
+"cv.penalized.loss" for the K-fold cross-validated criterion to determine delta in the penalized loss
+criterion, and "deviance.criterion" for optimizing the
+Cox proportional hazards deviance (only available when \code{regression.type} is "cox".) Defalt is "penalized.loss".}
 
-\item{est.MSE}{indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".}
+\item{est.MSE}{character that indicates how the mean squared error is estimated in the penalized loss
+criterion when \code{penalty.choice} is "penalized.loss" or "cv.penalized.loss". Options are
+"est.var" which means the MSE is sd(y) * sqrt(n/(n-1)) where n is the sample size, and
+"step" which means we use the MSE from forward stepwise regression with AIC as the selection criterion. Default
+is "est.var".}
 
-\item{cv.folds}{indicates the number of folds of the cross-validation for selecting delta.}
+\item{cv.folds}{scalar denoting the number of folds for cross-validation
+when \code{penalty.choice} is "cv.mse" or "cv.penalized.loss". Default is 10.}
 
-\item{mult.cv.folds}{indicates the number of cross-validation runs for selecting delta.}
+\item{mult.cv.folds}{scalar denoting the number of times we repeat the cross-validation procedures
+of \code{penalty.choice} being "cv.mse" or "cv.penalized.loss". Default is 0.}
 
-\item{penalized.loss.delta}{Among the lasso solution path, the best descriptive model is the one which minimizes the loss function: (residual sum of squares)/(estimator of the model error variance) - (sample size) + delta*(number of predictors in the selected model). If delta = 2, this loss function is Mallows' Cp.}
+\item{penalized.loss.delta}{scalar to indicate the choice of the penalization parameter delta in the
+penalized loss criterion when \code{penalty.choice} is "penalized.loss".}
 
-\item{nboot}{indicates the number of bootstrap samples for the Cox regression with exclusion frequency-based weights}
+\item{nboot}{scalar denoting the number of bootstrap samples obtained for exclusion frequency weights when
+\code{weight.type} is "exfrequency.random.partition.aic", "exfrequency.random.partition.bic",
+"exfrequency.kmeans.partition.aic", "exfrequency.kmeans.partition.bic","exfrequency.kquartiles.partition.aic",
+"exfrequency.kquartiles.partition.bic","exfrequency.ksorted.partition.aic","exfrequency.ksorted.partition.bic".
+Default is 100.}
 
-\item{k.split}{indicates the number of partitions for the Cox regression with exclusion frequency-based weights. Default is 4.}
+\item{k.split}{scalar that indicates the number of partitions used to compute the exclusion frequency weights
+when \code{weight.type} is "exfrequency.random.partition.aic", "exfrequency.random.partition.bic",
+"exfrequency.kmeans.partition.aic", "exfrequency.kmeans.partition.bic","exfrequency.kquartiles.partition.aic",
+"exfrequency.kquartiles.partition.bic","exfrequency.ksorted.partition.aic","exfrequency.ksorted.partition.bic". Default is 4.}
 
-\item{step.direction}{indicates the direction of stepwise regression for the Cox regression with exclusion frequency-based weights. One of "both", "forward" or "backward". Default is "backward".}
+\item{step.direction}{character that indicates the direction of stepwise regression used to compute the exclusion frequency weights
+when \code{weight.type} is "exfrequency.random.partition.aic", "exfrequency.random.partition.bic",
+"exfrequency.kmeans.partition.aic", "exfrequency.kmeans.partition.bic","exfrequency.kquartiles.partition.aic",
+"exfrequency.kquartiles.partition.bic","exfrequency.ksorted.partition.aic","exfrequency.ksorted.partition.bic".
+ One of "both", "forward" or "backward". Default is "backward".}
 }
 \value{
 \itemize{
-   \item \strong{qval:} {q-value as proposed in Storey and Tibshirani (2003)}
-   \item \strong{bh.pval:} {Benjamini-Hochberg adjusted p-value as proposed in Benjamini and Hochberg (1995)}
-   \item \strong{pval:} {p-value for each covariate}
-   \item \strong{out.cor:} {variable selection results for testing if a main covariate has an effect on the response variable, but NOT accounting for the additional fixed covariate z}
-   \item \strong{out.parcor:} {variable selection results for testing if a main covariate has an effect on the response variable, but AFTER accounting for the additional fixed covariate z}
-   \item \strong{out.benhoch.cor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values do not account for the additional fixed covariate z}
-   \item \strong{out.benhoch.parcor:} {variable selection results from Benjamini-Hochberg adjusted p-values when p-values account for the additional fixed covariate z}
-   \item \strong{out.w:} {variable selection results from weighted lasso}
-   \item \strong{alpha:} {level of significance to compare with the q-values}
-   \item \strong{alpha.bh:} {level of significance to compare with the Benjamini-Hochberg adjusted p-values}
-   \item \strong{delta:} {the multiplier to the number of predictors in the penalized loss function for variable selection. The loss function is defined as: \code{ SSE/(sigma^2) - n + delta*p } where SSE denotes the residual sum of squares, sigma denotes the estimator of the model error variance, n is the sample size and p is the number of predictors in the selected model. }
-   \item \strong{cv.delta.w:} {the selected delta from the cross-validation for the weighted lasso with q-values}
-   \item \strong{cv.delta.adapt:} {the selected delta from the cross-validation for the adaptive lasso}
-   \item \strong{cv.out.w:} {the aggregated result of the cross-validation for the weighted lasso with q-values}
-   \item \strong{cv.out.adapt:} {the aggregated result of the cross-validation for the adaptive lasso}
-   \item \strong{w.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from random partitioning}
-   \item \strong{w.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from random partitioning}
-   \item \strong{w.kmeans.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from k-means partitioning}
-   \item \strong{w.kmeans.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from k-means partitioning}
-   \item \strong{w.kquart.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from k-quartile partitioning}
-   \item \strong{w.kquart.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from k-quartile partitioning}
-   \item \strong{w.sort.aic.boot:} {variable selection results from AIC and the Cox regression with exclusion frequency-based weights from sorted partitioning}
-   \item \strong{w.sort.bic.boot:} {variable selection results from BIC and the Cox regression with exclusion frequency-based weights from sorted partitioning}
+   \item \strong{weights:} {weights used in the weighted Lasso. Weights computed depend on \code{weight.type} selected.}
+   \item \strong{weighted.lasso.results:} {variable selection results from the LASSO when the covariates
+   are multiplied by weights as specified by \code{weight.type}.}
+   \item \strong{threshold.selection:} {variable selection results when weights are below a specified threshold.
+   Results are reported only when \code{weight.type} are "corr.pvalue","corr.bh.pvalue",
+   "corr.qvalue","parcor.pvalue","parcor.bh.pvalue","parcor.qvalue".}
 }
 }
 \description{
@@ -131,11 +233,33 @@ associated with the response are likely to be selected and covariates that weakl
 are less likely to be selected.  Association between the response and the covariates is based on
 results from simpler linear/Cox regressions between the response and each covariate, and include, for example,
 q-values, partial correlation coefficients, and t-statistics of regression coefficients.
+
+Performs variable selection with covariates multiplied by weights that direct which variables
+are likely to be associated with the response.
 }
 \examples{
 x = matrix(rnorm(100*5, 0, 1),100,5)
 z = matrix(rbinom(100, 1, 0.5),100,1)
 y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+
+dwl0 <- d2wlasso(x,z,y)
+dwl1 <- d2wlasso(x,z=NULL,y,weight.type="corr.pvalue")
+dwl2 <- d2wlasso(x,z,y,weight.type="parcor.qvalue")
+dwl3 <- d2wlasso(x,z,y,weight.type="parcor.bh.pvalue")
+dwl4 <- d2wlasso(x,z,y,weight.type="parcor.qvalue",mult.cv.folds=100)
+dwl5 <- d2wlasso(x,z,y,weight.type="exfrequency.random.partition.aic")
+
+## Cox model
+x <- matrix(rnorm(100*5, 0, 1),100,5)
+z <- matrix(rbinom(100, 1, 0.5),100,1)
+y <- matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
+cox.delta <- matrix(1,nrow=length(y),ncol=1)
+dwl0.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox")
+dwl1.cox <- d2wlasso(x,z=NULL,y,cox.delta,regression.type="cox",weight.type="corr.pvalue")
+dwl2.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="parcor.qvalue")
+dwl3.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="parcor.bh.pvalue")
+dwl4.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="parcor.qvalue",mult.cv.folds=100)
+dwl5.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="exfrequency.random.partition.aic")
 }
 \references{
 Garcia, T.P. and M¨uller, S. (2016). Cox regression with exclusion frequency-based weights to
@@ -146,4 +270,19 @@ Journal of the Indian Society of Agricultural Statistics (Invited paper), 68, 13
 
 Garcia, T.P., Mueller, S., Carroll, R.J., Dunn, T.N., Thomas, A.P., Adams, S.H., Pillai, S.D., and Walzem, R.L.
 (2013). Structured variable selection with q-values. Biostatistics, DOI:10.1093/biostatistics/kxt012.
+
+Efron, B., Hastie, T., Johnstone, I. AND Tibshirani, R. (2004). Least angle regression.
+Annals of Statistics 32, 407–499.
+
+Garcia, T.P. and M¨uller, S. (2016). Cox regression with exclusion frequency-based weights to
+identify neuroimaging markers relevant to Huntington’s disease onset. Annals of Applied Statistics, 10, 2130-2156.
+
+Garcia, T.P. and M¨uller, S. (2014). Influence of measures of significance-based weights in the weighted Lasso.
+Journal of the Indian Society of Agricultural Statistics (Invited paper), 68, 131-144.
+
+Garcia, T.P., Mueller, S., Carroll, R.J., Dunn, T.N., Thomas, A.P., Adams, S.H., Pillai, S.D., and Walzem, R.L.
+(2013). Structured variable selection with q-values. Biostatistics, DOI:10.1093/biostatistics/kxt012.
+
+Storey, J. D. and Tibshirani, R. (2003). Statistical significance for genomewide studies.
+Proceedings of the National Academy of Sciences 100, 9440-9445.
 }

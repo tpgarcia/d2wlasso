@@ -201,24 +201,29 @@
 #' z = matrix(rbinom(100, 1, 0.5),100,1)
 #' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
 #'
-#' dwl0 <- d2wlasso(x,z,y)
-#' dwl1 <- d2wlasso(x,z=NULL,y,weight.type="corr.pvalue")
-#' dwl2 <- d2wlasso(x,z,y,weight.type="parcor.qvalue")
-#' dwl3 <- d2wlasso(x,z,y,weight.type="parcor.bh.pvalue")
-#' dwl4 <- d2wlasso(x,z,y,weight.type="parcor.qvalue",mult.cv.folds=100)
-#' dwl5 <- d2wlasso(x,z,y,weight.type="exfrequency.random.partition.aic")
+#' dwl0 = d2wlasso(x,z,y)
+#' dwl1 = d2wlasso(x,z=NULL,y,weight.type="corr.pvalue")
+#' dwl2 = d2wlasso(x,z,y,weight.type="parcor.qvalue")
+#' dwl3 = d2wlasso(x,z,y,weight.type="parcor.bh.pvalue")
+#' dwl4 = d2wlasso(x,z,y,weight.type="parcor.qvalue",mult.cv.folds=100)
+#' dwl5 = d2wlasso(x,z,y,weight.type="exfrequency.random.partition.aic")
 #'
 #' ## Cox model
 #' x <- matrix(rnorm(100*5, 0, 1),100,5)
 #' z <- matrix(rbinom(100, 1, 0.5),100,1)
 #' y <- matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
-#' cox.delta <- matrix(1,nrow=length(y),ncol=1)
-#' dwl0.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox")
-#' dwl1.cox <- d2wlasso(x,z=NULL,y,cox.delta,regression.type="cox",weight.type="corr.pvalue")
-#' dwl2.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="parcor.qvalue")
-#' dwl3.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="parcor.bh.pvalue")
-#' dwl4.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="parcor.qvalue",mult.cv.folds=100)
-#' dwl5.cox <- d2wlasso(x,z,y,cox.delta,regression.type="cox",weight.type="exfrequency.random.partition.aic")
+#' cox.delta = matrix(1,nrow=length(y),ncol=1)
+#' dwl0.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox")
+#' dwl1.cox = d2wlasso(x,z=NULL,y,cox.delta,
+#'   regression.type="cox",weight.type="corr.pvalue")
+#' dwl2.cox = d2wlasso(x,z,y,cox.delta,
+#'   regression.type="cox",weight.type="parcor.qvalue")
+#' dwl3.cox = d2wlasso(x,z,y,cox.delta,
+#'   regression.type="cox",weight.type="parcor.bh.pvalue")
+#' dwl4.cox = d2wlasso(x,z,y,cox.delta,
+#'   regression.type="cox",weight.type="parcor.qvalue",mult.cv.folds=100)
+#' dwl5.cox = d2wlasso(x,z,y,cox.delta,
+#'   regression.type="cox",weight.type="exfrequency.random.partition.aic")
 
 d2wlasso <- function(x,z,y,cox.delta=NULL,
                      factor.z=TRUE,
@@ -703,7 +708,7 @@ get.weight.fn <- function(weight_fn_type=c("identity","sqrt","inverse_abs","squa
 #'
 #' @export
 #'
-#' @example
+#' @examples
 #'
 #' xx = matrix(rnorm(100*5, 0, 1),100,5)
 #' colnames(xx) <- paste0("X",1:ncol(xx))
@@ -727,7 +732,7 @@ store.xy <- function(XX,yy){
 #'
 #' @export
 #'
-#' @example
+#' @examples
 #'
 #' xx = matrix(rnorm(100*5, 0, 1),100,5)
 #' colnames(xx) <- paste0("X",1:ncol(xx))
@@ -773,7 +778,7 @@ store.x <- function(XX){
 #' @export
 #' @examples
 #' x = matrix(rnorm(100*5, 0, 1),100,1)
-#' colnames(x) <- paste0("X",1:ncol(xx))
+#' colnames(x) <- paste0("X",1:ncol(x))
 #' y = matrix(2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
 #' colnames(y) <- "y"
 #' delta <- NULL
@@ -860,7 +865,7 @@ corr.pvalue <- function(x,y,delta,method="pearson",
 #' @export
 #' @examples
 #' x = matrix(rnorm(100*5, 0, 1),100,1)
-#' colnames(x) <- paste0("X",1:ncol(xx))
+#' colnames(x) <- paste0("X",1:ncol(x))
 #' z = matrix(rbinom(100, 1, 0.5),100,1)
 #' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
 #' colnames(y) <- "y"
@@ -979,7 +984,7 @@ parcorr.pvalue <- function(factor.z,x,y,z,delta=NULL,method="pearson",alternativ
 #' @export
 #' @examples
 #' x = matrix(rnorm(100*5, 0, 1),100,1)
-#' colnames(x) <- paste0("X",1:ncol(xx))
+#' colnames(x) <- paste0("X",1:ncol(x))
 #' z = matrix(rbinom(100, 1, 0.5),100,1)
 #' y = matrix(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
 #' colnames(y) <- "y"
