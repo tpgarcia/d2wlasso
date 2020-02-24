@@ -115,12 +115,15 @@
 #' computed by bootstrap or smoothing spline as proposed in Storey and Tibshirani (2003). Default is FALSE.
 #' @param pi0.val scalar used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
 #' A user supplied estimate of the true proportion of the null hypothesis. Used only when pi0.known is TRUE. Default is 0.9.
-#' @param show.plots logical indicator used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
-#' If TRUE, figures associated with q-value computations as proposed in Storey
-#' and Tibshirani (2003) are plotted. These include the density histogram of original p-values,
+#' @param show.plots logical indicator. When \code{weight.type} is "corr.qvalue" or "parcor.qvalue",
+#' \code{show.plots} refers to figures associated with q-value computations as proposed in Storey
+#' and Tibshirani (2003). If \code{show.plots} is TRUE, we display the density histogram of original p-values,
 #' density histogram of the q-values, scatter plot of \eqn{\hat\pi} versus \eqn{\lambda} in the
-#' computation of q-values, and scatter plot of significant tests versus q-value cut-off.
-#' Default is FALSE.
+#' computation of q-values, and scatter plot of significant tests versus q-value cut-off. When
+#' \code{penalty.type} is "mallows.cp", \code{show.plots} refers to plots associated with the
+#' Mallow's Cp criterion. If TRUE, a plot of the Mallow's
+#' Cp criterion versus steps in the LARS algorithm of Efron et al (2004) is displayed. Default of
+#' \code{show.plots} is FALSE.
 #' @param qval.alpha scalar value used when \code{weight.type} is "corr.qvalue" or "parcor.qvalue".
 #' The choice of \code{qval.alpha} indicates the cut-off for q-values used to obtain the result \code{threshold.selection}
 #' The result \code{threshold.selection} contains all covariates for which their q-value is less than \code{qval.alpha}.
@@ -138,10 +141,13 @@
 #' Cox proportional hazards deviance (only available when \code{regression.type} is "cox".) Defalt is "mallows.cp".
 #' @param mallows.cp.delta scalar to indicate the choice of the penalization parameter delta in the
 #' Mallow's Cp criterion when \code{penalty.choice} is "mallows.cp".
-#' @param est.MSE character that indicators how the mean squared error is estimated in the Mallow's Cp
-#' criterion when \code{penalty.choice} is "mallows.cp" or "cv.mallows.cp".
+#' @param est.MSE character that indicates how the mean squared error is estimated in the Mallow's Cp
+#' criterion when \code{penalty.choice} is "mallows.cp" or "cv.mallows.cp". Options are
+#' "est.var" which means the MSE is sd(y) * sqrt(n/(n-1)) where n is the sample size, and
+#' "step" which means we use the MSE from forward stepwise regression with AIC as the selection criterion. Default
+#' is "est.var".
 #' @param cv.folds scalar denoting the number of folds for cross-validation
-#' when \code{penalty.choice} is "cv.mse" or "cv.mallows.cp".
+#' when \code{penalty.choice} is "cv.mse" or "cv.mallows.cp". Default is 10.
 #' @param mult.cv.folds scalar denoting the number of times we repeat the cross-validation procedures
 #' of \code{penalty.choice} being "cv.mse" or "cv.mallows.cp". Default is 0.
 #' @param nboot scalar denoting the number of bootstrap samples obtained for exclusion frequency weights when
@@ -160,6 +166,10 @@
 #'  One of "both", "forward" or "backward". Default is "backward".
 #'
 #' @references
+#'
+#' Efron, B., Hastie, T., Johnstone, I. AND Tibshirani, R. (2004). Least angle regression.
+#' Annals of Statistics 32, 407–499.
+#'
 #' Garcia, T.P. and M¨uller, S. (2016). Cox regression with exclusion frequency-based weights to
 #' identify neuroimaging markers relevant to Huntington’s disease onset. Annals of Applied Statistics, 10, 2130-2156.
 #'
@@ -1470,7 +1480,6 @@ bon.holm.interest <- function(pvalues,alpha=0.05){
 #############################
 # Benjamini-Hochberg Method #
 #############################
-# EXPORT
 #' @importFrom stats p.adjust
 ben.hoch.interest <- function(pvalues,alpha=0.05,padjust.method="BH"){
 
@@ -1516,6 +1525,71 @@ make.center <- function(x){
 	return(x-mean(x))
 }
 
+#' Compute weighted lasso variable selection
+#'
+#' Performs variable selection with covariates multiplied by weights that direct which variables
+#' are likely to be associated with the response.
+#'
+#' @param weights (m x 1) matrix that we use to multiply the m-covariates by.
+#' @param weight_fn A user-defined function to be applied to the weights for the weighted lasso.
+#' Default is an identify function.
+#' @param yy (n by 1) a matrix corresponding to the response variable. If \code{regression.type} is "cox",
+#' \code{yy} contains the observed event times.
+#' @param XX (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
+#' @param z (n by 1) matrix of additional fixed covariate affecting response variable. This covariate should
+#' always be selected. Can be NULL.
+#' @param data.delta (n by 1) a matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
+#' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
+#' @param z.names character denoting the column name of the z-covariate.
+#' @param penalty.choice character that indicates the variable selection criterion. Options are "cv.mse" for
+#' the K-fold cross-validated mean squared prediction error, "mallows.cp" for the Mallow's Cp criterion which
+#' requires specification of the penalization parameter \code{mallows.cp.delta},
+#' "cv.mallows.cp" for the K-fold cross-validated Mallow's Cp criterion which chooses the
+#' penalization parameter delta, and "deviance.criterion" for optimizing the
+#' Cox proportional hazards deviance (only available when \code{regression.type} is "cox".) Defalt is "mallows.cp".
+#' @param show.plots logical indicator. If TRUE and \code{penalty.type} is "mallows.cp", a plot of the Mallow's
+#' Cp criterion versus steps in the LARS algorithm of Efron et al (2004).
+#' @param delta scalar to indicate the choice of the penalization parameter delta in the
+#' Mallow's Cp criterion when \code{penalty.choice} is "mallows.cp".
+#' @param est.MSE character that indicates how the mean squared error is estimated in the Mallow's Cp
+#' criterion when \code{penalty.choice} is "mallows.cp" or "cv.mallows.cp". Options are
+#' "est.var" which means the MSE is sd(y) * sqrt(n/(n-1)) where n is the sample size, and
+#' "step" which means we use the MSE from forward stepwise regression with AIC as the selection criterion. Default
+#' is "est.var".
+#' @param cv.folds scalar denoting the number of folds for cross-validation
+#' when \code{penalty.choice} is "cv.mse" or "cv.mallows.cp". Default is 10.
+#'
+#'
+#' @references
+#' Efron, B., Hastie, T., Johnstone, I. AND Tibshirani, R. (2004). Least angle regression.
+#' Annals of Statistics 32, 407–499.
+#'
+#' Garcia, T.P. and M¨uller, S. (2016). Cox regression with exclusion frequency-based weights to
+#' identify neuroimaging markers relevant to Huntington’s disease onset. Annals of Applied Statistics, 10, 2130-2156.
+#'
+#' Garcia, T.P. and M¨uller, S. (2014). Influence of measures of significance-based weights in the weighted Lasso.
+#' Journal of the Indian Society of Agricultural Statistics (Invited paper), 68, 131-144.
+#'
+#' Garcia, T.P., Mueller, S., Carroll, R.J., Dunn, T.N., Thomas, A.P., Adams, S.H., Pillai, S.D., and Walzem, R.L.
+#' (2013). Structured variable selection with q-values. Biostatistics, DOI:10.1093/biostatistics/kxt012.
+#'
+#' Storey, J. D. and Tibshirani, R. (2003). Statistical significance for genomewide studies.
+#' Proceedings of the National Academy of Sciences 100, 9440-9445.
+#'
+#' @return
+#' \itemize{
+#'   \item \strong{sig.variables:}{m-dimensional vector where the kth entry is 1 if x_k is selected to be
+#'   in the model, and 0 if not.}
+#'   \item \strong{sign.of.variables:}{m-dimensional vector where the kth entry is 1 if the coefficient in
+#'   front of x_k is positive, and -1 if not.}
+#'   \item \strong{delta.out:}{the penalization parameter delta used in the Mallow's Cp criterion.
+#'   When \code{penalty.choice} is "mallows.cp", \code{delta.out} is the same as \code{delta}.
+#'   When \code{penalty.choice} is "cv.mallows.cp", \code{delta.out} is the resulting delta-value
+#'   obtained from the k-fold cross validation.}
+#' }
+#'
+#' @export
+#'
 #' @import glmnet
 #' @import lars
 weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z.names,
@@ -1569,11 +1643,8 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
         ## Run Lasso
         wLasso.out <-  lasso.procedure(y1,X1)
 
-        ## entry in Lasso
-        entry.variables <- as.numeric(wLasso.out$entry)
 
         ##order.variables <- as.numeric(wLasso.out$actions)
-        order.variables <- 0
 
         if(penalty.choice=="cv.mse"){
             ## Computes the K-fold cross-validated mean squared prediction error for lars, lasso, or forward stagewise.
@@ -1614,9 +1685,6 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
         ytmp <- cbind(time=y1,status=data.delta)
         colnames(ytmp) <- c("time","status")
 
-        ## entry in Lasso
-        entry.variables <- 0 ## not available
-        order.variables <- 0 ## not available
 
         if(penalty.choice=="cv.mse"){
             wLasso.cv <- cv.glmnet(X1, ytmp, standardize=FALSE,family="cox",alpha=1,penalty.factor=penalty)
@@ -1658,10 +1726,75 @@ weighted.lasso <- function(weights,weight_fn=function(x){x},yy,XX,z,data.delta,z
     ind.neg <- which(as.logical(predict.out$coefficients <0))
     sign.of.variables[ind.neg] <- -1
 
-    list(order.variables=order.variables,sig.variables=sig.variables,
-         sign.of.variables=sign.of.variables,entry.variables=entry.variables,delta.out=delta.out)
+    list(sig.variables=sig.variables,
+         sign.of.variables=sign.of.variables,delta.out=delta.out)
 }
 
+
+#' Wrapper function to store results for  weighted lasso variable selection
+#'
+#' Performs variable selection with covariates multiplied by weights that direct which variables
+#' are likely to be associated with the response.
+#'
+#' @param weights (m x 1) matrix that we use to multiply the m-covariates by.
+#' @param weight_fn A user-defined function to be applied to the weights for the weighted lasso.
+#' Default is an identify function.
+#' @param response a list containing: yy and delta. yy is an (n by 1) matrix corresponding to the response variable. If \code{regression.type} is "cox",
+#' \code{y} contains the observed event times. delta is an (n by 1) matrix that denotes censoring when \code{regression.type} is "cox" (1 denotes
+#' survival event is observed, 0 denotes the survival event is censored). Can be NULL.
+#' @param XX (n by m) matrix of main covariates where m is the number of covariates and n is the sample size.
+#' @param z (n by 1) matrix of additional fixed covariate affecting response variable. This covariate should
+#' always be selected. Can be NULL.
+#' @param z.names character denoting the column name of the z-covariate.
+#' @param penalty.choice character that indicates the variable selection criterion. Options are "cv.mse" for
+#' the K-fold cross-validated mean squared prediction error, "mallows.cp" for the Mallow's Cp criterion which
+#' requires specification of the penalization parameter \code{mallows.cp.delta},
+#' "cv.mallows.cp" for the K-fold cross-validated Mallow's Cp criterion which chooses the
+#' penalization parameter delta, and "deviance.criterion" for optimizing the
+#' Cox proportional hazards deviance (only available when \code{regression.type} is "cox".) Defalt is "mallows.cp".
+#' @param show.plots logical indicator. If TRUE and \code{penalty.type} is "mallows.cp", a plot of the Mallow's
+#' Cp criterion versus steps in the LARS algorithm of Efron et al (2004).
+#' @param delta scalar to indicate the choice of the penalization parameter delta in the
+#' Mallow's Cp criterion when \code{penalty.choice} is "mallows.cp".
+#' @param est.MSE character that indicates how the mean squared error is estimated in the Mallow's Cp
+#' criterion when \code{penalty.choice} is "mallows.cp" or "cv.mallows.cp". Options are
+#' "est.var" which means the MSE is sd(y) * sqrt(n/(n-1)) where n is the sample size, and
+#' "step" which means we use the MSE from forward stepwise regression with AIC as the selection criterion. Default
+#' is "est.var".
+#' @param cv.folds scalar denoting the number of folds for cross-validation
+#' when \code{penalty.choice} is "cv.mse" or "cv.mallows.cp". Default is 10.
+#'
+#'
+#' @references
+#' Efron, B., Hastie, T., Johnstone, I. AND Tibshirani, R. (2004). Least angle regression.
+#' Annals of Statistics 32, 407–499.
+#'
+#' Garcia, T.P. and M¨uller, S. (2016). Cox regression with exclusion frequency-based weights to
+#' identify neuroimaging markers relevant to Huntington’s disease onset. Annals of Applied Statistics, 10, 2130-2156.
+#'
+#' Garcia, T.P. and M¨uller, S. (2014). Influence of measures of significance-based weights in the weighted Lasso.
+#' Journal of the Indian Society of Agricultural Statistics (Invited paper), 68, 131-144.
+#'
+#' Garcia, T.P., Mueller, S., Carroll, R.J., Dunn, T.N., Thomas, A.P., Adams, S.H., Pillai, S.D., and Walzem, R.L.
+#' (2013). Structured variable selection with q-values. Biostatistics, DOI:10.1093/biostatistics/kxt012.
+#'
+#' Storey, J. D. and Tibshirani, R. (2003). Statistical significance for genomewide studies.
+#' Proceedings of the National Academy of Sciences 100, 9440-9445.
+#'
+#' @return
+#' \itemize{
+#'   \item \strong{interest:}{(m by 1) matrix where the kth entry is 1 if x_k is selected to be
+#'   in the model, and 0 if not.}
+#'   \item \strong{sign.interest:}{(m by 1) matrix where the kth entry is 1 if the coefficient in
+#'   front of x_k is positive, and -1 if not.}
+#'   \item \strong{delta.out:}{the penalization parameter delta used in the Mallow's Cp criterion.
+#'   When \code{penalty.choice} is "mallows.cp", \code{delta.out} is the same as \code{delta}.
+#'   When \code{penalty.choice} is "cv.mallows.cp", \code{delta.out} is the resulting delta-value
+#'   obtained from the k-fold cross validation.}
+#' }
+#'
+#' @export
+#'
 weighted.lasso.computations <- function(weights,weight_fn=function(x){x},response,
                                         XX,z,z.names,
                                         show.plots,
@@ -1680,14 +1813,6 @@ weighted.lasso.computations <- function(weights,weight_fn=function(x){x},respons
 
     interest.sign <- interest		# matrix to store sign of lasso coefficients
 
-    R2.val <- matrix(0,nrow=ncol(data.response),ncol=1)
-    R2.val <- as.data.frame(R2.val)
-    colnames(R2.val) <- "R2"
-    rownames(R2.val) <- colnames(data.response)
-
-    order.var <- array(0,dim=c(ncol(data.response),300))
-
-    entry.var <- array(0,dim=c(ncol(data.response),nrow(XX)))
 
     delta.out <- matrix(0,nrow=1,ncol=ncol(data.response))
 
@@ -1708,14 +1833,12 @@ weighted.lasso.computations <- function(weights,weight_fn=function(x){x},respons
         interest.sign[,i] <- lasso.out$sign.of.variables
         R2.val[i,]   <- get.R2(interest[,i],XX,data.response[i,])
 
-        order.var[i,1:length(lasso.out$order.variables)] <- lasso.out$order.variables
-        entry.var[i,] <- lasso.out$entry.variables
 
         delta.out[,i] <- lasso.out$delta.out
 
     }
-    list(interest=interest,order.var=order.var,R2.val=R2.val,interest.sign=interest.sign,
-         entry.var=entry.var,delta.out=delta.out)
+    list(interest=interest,interest.sign=interest.sign,
+         delta.out=delta.out)
 }
 
 
@@ -1724,7 +1847,7 @@ weighted.lasso.computations <- function(weights,weight_fn=function(x){x},respons
 ## Cross-Validation function to select delta ##
 ###############################################
 
-cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("TRUE","est.var","step")[2],show.plots){
+cv.delta <- function(y1,X1,z.names,K=10,est.MSE=c("est.var","step")[1],show.plots){
     ## sequence of delta values
     delta.cv <- seq(0.75,2,by=0.1)
     ##delta.cv <- seq(0.1,2,by=0.1)
