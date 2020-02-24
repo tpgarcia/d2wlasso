@@ -209,9 +209,9 @@
 #' dwl5 = d2wlasso(x,z,y,weight.type="exfrequency.random.partition.aic")
 #'
 #' ## Cox model
-#' x <- matrix(rnorm(100*5, 0, 1),100,5)
-#' z <- matrix(rbinom(100, 1, 0.5),100,1)
-#' y <- matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
+#' x = matrix(rnorm(100*5, 0, 1),100,5)
+#' z = matrix(rbinom(100, 1, 0.5),100,1)
+#' y = matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
 #' cox.delta = matrix(1,nrow=length(y),ncol=1)
 #' dwl0.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox")
 #' dwl1.cox = d2wlasso(x,z=NULL,y,cox.delta,

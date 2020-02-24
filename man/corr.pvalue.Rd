@@ -49,8 +49,8 @@ Pearson correlation, p-value and t-statistic associated with the regression betw
 }
 \examples{
 x = matrix(rnorm(100*5, 0, 1),100,1)
-colnames(x) <- paste0("X",1:ncol(xx))
-y = matrix(2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+colnames(x) <- paste0("X",1:ncol(x))
+y = matrix(2*x+ rnorm(100, 0, 1), 100)
 colnames(y) <- "y"
 delta <- NULL
 
