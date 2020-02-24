@@ -163,7 +163,7 @@ are robust for small p-values.}
 and Tibshirani (2003). If \code{show.plots} is TRUE, we display the density histogram of original p-values,
 density histogram of the q-values, scatter plot of \eqn{\hat\pi} versus \eqn{\lambda} in the
 computation of q-values, and scatter plot of significant tests versus q-value cut-off. When
-\code{penalty.type} is "penalized.loss", \code{show.plots} refers to plots associated with the
+\code{penalty.choice} is "penalized.loss", \code{show.plots} refers to plots associated with the
 penalized loss criterion. If TRUE, a plot of the penalized loss criterion
 versus steps in the LARS algorithm of Efron et al (2004) is displayed. Default of
 \code{show.plots} is FALSE.}
@@ -248,23 +248,33 @@ dwl2 = d2wlasso(x,z,y,weight.type="parcor.qvalue")
 dwl3 = d2wlasso(x,z,y,weight.type="parcor.bh.pvalue")
 dwl4 = d2wlasso(x,z,y,weight.type="parcor.qvalue",mult.cv.folds=100)
 dwl5 = d2wlasso(x,z,y,weight.type="exfrequency.random.partition.aic")
+dwl6 = d2wlasso(x,z,y,weight.type="exfrequency.kmeans.partition.aic")
+dwl7 = d2wlasso(x,z,y,weight.type="exfrequency.kquartiles.partition.aic")
+dwl8 = d2wlasso(x,z,y,weight.type="exfrequency.ksorted.partition.aic")
 
 ## Cox model
 x = matrix(rnorm(100*5, 0, 1),100,5)
 z = matrix(rbinom(100, 1, 0.5),100,1)
 y = matrix(exp(z[,1] + 2*x[,1] - 2*x[,2] + rnorm(100, 0, 2)), 100)
 cox.delta = matrix(1,nrow=length(y),ncol=1)
-dwl0.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox")
+dwl0.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox",penalty.choice="cv.mse")
 dwl1.cox = d2wlasso(x,z=NULL,y,cox.delta,
-  regression.type="cox",weight.type="corr.pvalue")
+  regression.type="cox",weight.type="corr.pvalue",penalty.choice="cv.mse")
 dwl2.cox = d2wlasso(x,z,y,cox.delta,
-  regression.type="cox",weight.type="parcor.qvalue")
+  regression.type="cox",weight.type="parcor.qvalue",penalty.choice="cv.mse")
 dwl3.cox = d2wlasso(x,z,y,cox.delta,
-  regression.type="cox",weight.type="parcor.bh.pvalue")
+  regression.type="cox",weight.type="parcor.bh.pvalue",penalty.choice="cv.mse")
 dwl4.cox = d2wlasso(x,z,y,cox.delta,
-  regression.type="cox",weight.type="parcor.qvalue",mult.cv.folds=100)
-dwl5.cox = d2wlasso(x,z,y,cox.delta,
-  regression.type="cox",weight.type="exfrequency.random.partition.aic")
+  regression.type="cox",weight.type="parcor.qvalue",
+  mult.cv.folds=100,penalty.choice="cv.mse")
+dwl5.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox",
+  weight.type="exfrequency.random.partition.aic",penalty.choice="cv.mse")
+dwl6.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox",
+  weight.type="exfrequency.kmeans.partition.aic",penalty.choice="cv.mse")
+dwl7.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox",
+  weight.type="exfrequency.kquartiles.partition.aic",penalty.choice="cv.mse")
+dwl8.cox = d2wlasso(x,z,y,cox.delta,regression.type="cox",
+  weight.type="exfrequency.ksorted.partition.aic",penalty.choice="cv.mse")
 }
 \references{
 Garcia, T.P. and M¨uller, S. (2016). Cox regression with exclusion frequency-based weights to

@@ -21,7 +21,7 @@ Forms a matrix that will be used to store regression results of response y on co
 
 xx = matrix(rnorm(100*5, 0, 1),100,5)
 colnames(xx) <- paste0("X",1:ncol(xx))
-yy = matrix(2*x[,1] - 2*x[,2] + rnorm(100, 0, 1), 100)
+yy = matrix(2*xx[,1] - 2*xx[,2] + rnorm(100, 0, 1), 100)
 colnames(yy) <- "y"
 store.xy(xx,yy)
 }

@@ -39,7 +39,7 @@ survival event is observed, 0 denotes the survival event is censored). Can be NU
 
 \item{z.names}{character denoting the column name of the z-covariate if z is not NULL. Can be NULL.}
 
-\item{show.plots}{logical indicator. If TRUE and \code{penalty.type} is "penalized.lasso",
+\item{show.plots}{logical indicator. If TRUE and \code{penalty.choice} is "penalized.lasso",
 a plot of the penalized lasso criterion versus steps in the LARS algorithm of Efron et al (2004).}
 
 \item{penalty.choice}{character that indicates the variable selection criterion. Options are "cv.mse" for

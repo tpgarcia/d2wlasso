@@ -36,7 +36,7 @@ always be selected. Can be NULL.}
 
 \item{z.names}{character denoting the column name of the z-covariate if z is not NULL. Can be NULL.}
 
-\item{show.plots}{logical indicator. If TRUE and \code{penalty.type} is "penalized.loss", a plot of the penalized
+\item{show.plots}{logical indicator. If TRUE and \code{penalty.choice} is "penalized.loss", a plot of the penalized
 loss criterion versus steps in the LARS algorithm of Efron et al (2004).}
 
 \item{penalty.choice}{character that indicates the variable selection criterion. Options are "cv.mse" for

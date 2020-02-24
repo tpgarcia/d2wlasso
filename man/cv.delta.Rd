@@ -30,7 +30,7 @@ criterion when \code{penalty.choice} is "penalized.loss" or "cv.penalized.loss".
 "step" which means we use the MSE from forward stepwise regression with AIC as the selection criterion. Default
 is "est.var".}
 
-\item{show.plots}{logical indicator. If TRUE and \code{penalty.type} is "penalized.loss", a plot of the penalized
+\item{show.plots}{logical indicator. If TRUE and \code{penalty.choice} is "penalized.loss", a plot of the penalized
 loss criterion versus steps in the LARS algorithm of Efron et al (2004).}
 }
 \value{
